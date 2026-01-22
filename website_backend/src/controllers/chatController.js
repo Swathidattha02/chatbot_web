@@ -1,0 +1,447 @@
+const ChatHistory = require("../models/ChatHistory");
+const axios = require("axios");
+
+// Ollama configuration
+const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
+const LLM_MODEL = process.env.LLM_MODEL || "llama3.2";
+
+// @desc    Send message to AI avatar and get response
+// @route   POST /api/chat/message
+// @access  Private
+exports.sendMessage = async (req, res) => {
+    try {
+        const { message, sessionId, language = "en" } = req.body;
+        const userId = req.user.id;
+
+        if (!message) {
+            return res.status(400).json({
+                success: false,
+                message: "Message is required",
+            });
+        }
+
+        // Find or create chat session
+        let chatSession;
+        if (sessionId) {
+            chatSession = await ChatHistory.findById(sessionId);
+        } else {
+            chatSession = await ChatHistory.create({
+                userId,
+                language,
+                messages: [],
+            });
+        }
+
+        // Add user message to history
+        chatSession.messages.push({
+            role: "user",
+            content: message,
+        });
+
+        // Get AI response from Ollama
+        let aiResponse = "I'm your AI assistant. How can I help you today?";
+        let audioUrl = null;
+
+        // Try RAG service first for document-aware responses
+        const ragService = require('../services/ragService');
+        const ragHealth = await ragService.checkRAGHealth();
+
+        if (ragHealth.available) {
+            try {
+                console.log('🤖 Using RAG service for enhanced response');
+
+                const ragResponse = await ragService.chatWithRAG(message, true);
+
+                if (ragResponse.success) {
+                    aiResponse = ragResponse.data.response;
+                    const contextUsed = ragResponse.data.context_used || false;
+                    const numChunks = ragResponse.data.num_chunks || 0;
+
+                    if (contextUsed) {
+                        console.log(`✅ RAG response with ${numChunks} context chunks`);
+                    } else {
+                        console.log('✅ RAG response (no relevant context found)');
+                    }
+                } else {
+                    throw new Error('RAG service returned error');
+                }
+            } catch (ragError) {
+                console.warn('⚠️ RAG service failed, falling back to direct Ollama:', ragError.message);
+                // Fall through to direct Ollama call below
+            }
+        } else {
+            console.log('ℹ️ RAG service not available, using direct Ollama');
+        }
+
+        // Fallback to direct Ollama if RAG didn't work
+        if (aiResponse === "I'm your AI assistant. How can I help you today?") {
+            try {
+                console.log(`🤖 Calling Ollama (${LLM_MODEL}) for message:`, message);
+
+                // Build conversation history for context
+                const conversationHistory = chatSession.messages.slice(-10).map(msg => ({
+                    role: msg.role === 'user' ? 'user' : 'assistant',
+                    content: msg.content
+                }));
+
+                // Call Ollama API
+                const ollamaResponse = await axios.post(
+                    `${OLLAMA_BASE_URL}/api/chat`,
+                    {
+                        model: LLM_MODEL,
+                        messages: [
+                            {
+                                role: 'system',
+                                content: `You are an expert educational AI tutor designed to help students learn effectively. Follow these guidelines:
+
+1. **For Math/Science Questions:**
+   - Break down solutions into clear, numbered steps
+   - Explain the reasoning behind each step
+   - Show all calculations and formulas used
+   - Use simple language that students can understand
+   - Provide examples when helpful
+
+2. **For Conceptual Questions:**
+   - Start with a simple definition
+   - Provide detailed explanations with examples
+   - Use analogies to make concepts relatable
+   - Break complex topics into smaller parts
+
+3. **Formatting:**
+   - Use clear headings and bullet points
+   - Highlight important formulas or key points
+   - Number your steps for math problems
+   - Keep explanations organized and easy to follow
+
+4. **Tone:**
+   - Be encouraging and patient
+   - Avoid jargon unless necessary (then explain it)
+   - Make learning engaging and accessible
+
+Always prioritize clarity and understanding over brevity. If a student asks a math question, show every step of the solution with clear explanations.`
+                            },
+                            ...conversationHistory
+                        ],
+                        stream: false
+                    },
+                    {
+                        timeout: 60000,
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+
+                if (ollamaResponse.data && ollamaResponse.data.message) {
+                    aiResponse = ollamaResponse.data.message.content;
+                    console.log('✅ Ollama response received:', aiResponse.substring(0, 100) + '...');
+                }
+            } catch (aiError) {
+                console.error("❌ Ollama Service Error:", aiError.message);
+
+                // Check if Ollama is running
+                if (aiError.code === 'ECONNREFUSED') {
+                    console.error('⚠️ Ollama is not running. Please start Ollama service.');
+                    aiResponse = "I'm having trouble connecting to my AI service. Please make sure Ollama is running with llama3.2 model installed.";
+                } else if (aiError.response?.status === 404) {
+                    console.error('⚠️ Model not found. Please pull llama3.2 model.');
+                    aiResponse = "The AI model is not available. Please run: ollama pull llama3.2";
+                } else {
+                    aiResponse = "I apologize, but I'm having technical difficulties. Please try again in a moment.";
+                }
+            }
+        }
+
+        // Add AI response to history
+        chatSession.messages.push({
+            role: "assistant",
+            content: aiResponse,
+            audioUrl,
+        });
+
+        await chatSession.save();
+
+        res.status(200).json({
+            success: true,
+            sessionId: chatSession._id,
+            response: aiResponse,
+            audioUrl,
+        });
+    } catch (error) {
+        console.error("Chat Error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error processing chat message",
+            error: error.message,
+        });
+    }
+};
+
+// @desc    Get chat history
+// @route   GET /api/chat/history
+// @access  Private
+exports.getChatHistory = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { sessionId } = req.query;
+
+        if (sessionId) {
+            // Get specific session
+            const session = await ChatHistory.findOne({
+                _id: sessionId,
+                userId,
+            });
+
+            if (!session) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Chat session not found",
+                });
+            }
+
+            return res.status(200).json({
+                success: true,
+                session,
+            });
+        }
+
+        // Get all sessions for user
+        const sessions = await ChatHistory.find({ userId })
+            .sort({ updatedAt: -1 })
+            .limit(20);
+
+        res.status(200).json({
+            success: true,
+            sessions,
+        });
+    } catch (error) {
+        console.error("Get Chat History Error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error fetching chat history",
+            error: error.message,
+        });
+    }
+};
+
+// @desc    Delete chat session
+// @route   DELETE /api/chat/:sessionId
+// @access  Private
+exports.deleteChat = async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        const userId = req.user.id;
+
+        const session = await ChatHistory.findOneAndDelete({
+            _id: sessionId,
+            userId,
+        });
+
+        if (!session) {
+            return res.status(404).json({
+                success: false,
+                message: "Chat session not found",
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Chat session deleted successfully",
+        });
+    } catch (error) {
+        console.error("Delete Chat Error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error deleting chat session",
+            error: error.message,
+        });
+    }
+};
+
+// @desc    Stream message to AI avatar and get streaming response
+// @route   POST /api/chat/stream
+// @access  Private
+exports.streamMessage = async (req, res) => {
+    try {
+        const { message, sessionId, language = "en" } = req.body;
+        const userId = req.user.id;
+
+        if (!message) {
+            return res.status(400).json({
+                success: false,
+                message: "Message is required",
+            });
+        }
+
+        // Set headers for Server-Sent Events
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.flushHeaders();
+
+        // Find or create chat session
+        let chatSession;
+        if (sessionId) {
+            chatSession = await ChatHistory.findById(sessionId);
+        } else {
+            chatSession = await ChatHistory.create({
+                userId,
+                language,
+                messages: [],
+            });
+        }
+
+        // Add user message to history
+        chatSession.messages.push({
+            role: "user",
+            content: message,
+        });
+
+        // Try RAG service first
+        const ragService = require('../services/ragService');
+        const ragHealth = await ragService.checkRAGHealth();
+
+        let fullResponse = "";
+        let usedRAG = false;
+
+        if (ragHealth.available) {
+            try {
+                console.log('🤖 Using RAG service for streaming response');
+
+                // For now, use non-streaming RAG and simulate streaming
+                // TODO: Implement actual streaming from RAG service
+                const ragResponse = await ragService.chatWithRAG(message, true);
+
+                if (ragResponse.success) {
+                    fullResponse = ragResponse.data.response || ragResponse.data.message;
+                    usedRAG = true;
+
+                    // Simulate streaming by sending words gradually
+                    const words = fullResponse.split(' ');
+                    for (let i = 0; i < words.length; i++) {
+                        const chunk = (i === 0 ? '' : ' ') + words[i];
+                        res.write(`data: ${JSON.stringify({ chunk, done: false })}\n\n`);
+                        await new Promise(resolve => setTimeout(resolve, 50)); // 50ms delay between words
+                    }
+                }
+            } catch (ragError) {
+                console.warn('⚠️ RAG streaming failed, falling back to Ollama:', ragError.message);
+            }
+        }
+
+        // Fallback to Ollama streaming if RAG didn't work
+        if (!usedRAG) {
+            console.log('🤖 Using Ollama streaming');
+
+            const conversationHistory = chatSession.messages.slice(-10).map(msg => ({
+                role: msg.role === 'user' ? 'user' : 'assistant',
+                content: msg.content
+            }));
+
+            try {
+                const ollamaResponse = await axios.post(
+                    `${OLLAMA_BASE_URL}/api/chat`,
+                    {
+                        model: LLM_MODEL,
+                        messages: [
+                            {
+                                role: 'system',
+                                content: `You are an expert educational AI tutor designed to help students learn effectively. Follow these guidelines:
+
+1. **For Math/Science Questions:**
+   - Break down solutions into clear, numbered steps
+   - Explain the reasoning behind each step
+   - Show all calculations and formulas used
+   - Use simple language that students can understand
+   - Provide examples when helpful
+
+2. **For Conceptual Questions:**
+   - Start with a simple definition
+   - Provide detailed explanations with examples
+   - Use analogies to make concepts relatable
+   - Break complex topics into smaller parts
+
+3. **Formatting:**
+   - Use clear headings and bullet points
+   - Highlight important formulas or key points
+   - Number your steps for math problems
+   - Keep explanations organized and easy to follow
+
+4. **Tone:**
+   - Be encouraging and patient
+   - Avoid jargon unless necessary (then explain it)
+   - Make learning engaging and accessible
+
+Always prioritize clarity and understanding over brevity. If a student asks a math question, show every step of the solution with clear explanations.`
+                            },
+                            ...conversationHistory
+                        ],
+                        stream: true
+                    },
+                    {
+                        responseType: 'stream',
+                        timeout: 60000,
+                    }
+                );
+
+                // Stream Ollama response
+                for await (const chunk of ollamaResponse.data) {
+                    const lines = chunk.toString().split('\n').filter(line => line.trim());
+
+                    for (const line of lines) {
+                        try {
+                            const json = JSON.parse(line);
+                            if (json.message?.content) {
+                                fullResponse += json.message.content;
+                                res.write(`data: ${JSON.stringify({ chunk: json.message.content, done: false })}\n\n`);
+                            }
+                            if (json.done) {
+                                break;
+                            }
+                        } catch (e) {
+                            // Skip invalid JSON
+                        }
+                    }
+                }
+            } catch (ollamaError) {
+                console.error('❌ Ollama streaming error:', ollamaError.message);
+
+                if (ollamaError.code === 'ECONNREFUSED') {
+                    fullResponse = "Ollama is not running. Please start the Ollama service on your computer.";
+                } else if (ollamaError.response?.status === 404) {
+                    fullResponse = `The AI model (${LLM_MODEL}) is not found. Please run: ollama pull ${LLM_MODEL}`;
+                } else {
+                    fullResponse = "I apologize, but I'm having technical difficulties. Please check if Ollama is running.";
+                }
+
+                res.write(`data: ${JSON.stringify({ chunk: fullResponse, done: false })}\n\n`);
+            }
+        }
+
+        // Save AI response to history
+        chatSession.messages.push({
+            role: "assistant",
+            content: fullResponse,
+        });
+
+        await chatSession.save();
+
+        // Send completion event
+        res.write(`data: ${JSON.stringify({
+            chunk: '',
+            done: true,
+            sessionId: chatSession._id,
+            fullResponse: fullResponse
+        })}\n\n`);
+
+        res.end();
+
+    } catch (error) {
+        console.error("Stream Chat Error:", error);
+        res.write(`data: ${JSON.stringify({
+            error: error.message,
+            done: true
+        })}\n\n`);
+        res.end();
+    }
+};
