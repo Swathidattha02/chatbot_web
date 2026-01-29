@@ -67,8 +67,8 @@ exports.updateProgress = async (req, res) => {
     }
 };
 
-// Helper function to calculate current study streak
-const calculateStreak = async (userId) => {
+// Helper function to calculate current study streak and personal best
+const calculateStreakDetails = async (userId) => {
     try {
         const progress = await Progress.find({ userId });
         const activeDates = new Set();
@@ -84,49 +84,76 @@ const calculateStreak = async (userId) => {
             }
         });
 
-        if (activeDates.size === 0) return 0;
+        if (activeDates.size === 0) return { currentStreak: 0, personalBest: 0 };
 
         const sortedDates = Array.from(activeDates)
             .map(d => new Date(d))
             .sort((a, b) => b - a);
 
-        let streak = 0;
+        let currentStreak = 0;
+        let personalBest = 0;
+        let tempStreak = 0;
+
         let today = new Date();
         today.setHours(0, 0, 0, 0);
 
         let yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
 
-        // Check if user was active today or yesterday to continue streak
+        // Check for current streak
         const latestDate = sortedDates[0];
         latestDate.setHours(0, 0, 0, 0);
 
-        if (latestDate.getTime() < yesterday.getTime()) {
-            return 0; // Streak broken
-        }
+        const hasRecentActivity = latestDate.getTime() >= yesterday.getTime();
 
-        let currentDate = latestDate;
+        let currentDate = sortedDates[0];
+        currentDate.setHours(0, 0, 0, 0);
+
         for (let i = 0; i < sortedDates.length; i++) {
             const dateToCheck = new Date(sortedDates[i]);
             dateToCheck.setHours(0, 0, 0, 0);
 
-            if (i === 0 || (currentDate.getTime() - dateToCheck.getTime()) <= 86400000) {
-                // If it's the first date or the difference is 1 day or less (same day)
-                if (i === 0 || (currentDate.getTime() - dateToCheck.getTime()) === 86400000) {
-                    streak++;
-                } else if (i === 0) {
-                    streak = 1;
+            const diff = i === 0 ? 0 : (currentDate.getTime() - dateToCheck.getTime());
+
+            if (i === 0 || diff <= 86400000) {
+                if (i === 0 || diff === 86400000) {
+                    tempStreak++;
                 }
                 currentDate = dateToCheck;
             } else {
-                break;
+                personalBest = Math.max(personalBest, tempStreak);
+                tempStreak = 1;
+                currentDate = dateToCheck;
             }
         }
+        personalBest = Math.max(personalBest, tempStreak);
 
-        return streak;
+        // Current streak is tempStreak only if it includes today or yesterday
+        currentStreak = hasRecentActivity ? 0 : 0; // Reset logic check
+
+        // Re-calculate current streak starting from the latest date
+        if (hasRecentActivity) {
+            let streakCount = 1;
+            let checkDate = latestDate;
+            for (let i = 1; i < sortedDates.length; i++) {
+                const nextDate = new Date(sortedDates[i]);
+                nextDate.setHours(0, 0, 0, 0);
+                if ((checkDate.getTime() - nextDate.getTime()) === 86400000) {
+                    streakCount++;
+                    checkDate = nextDate;
+                } else if ((checkDate.getTime() - nextDate.getTime()) === 0) {
+                    continue;
+                } else {
+                    break;
+                }
+            }
+            currentStreak = streakCount;
+        }
+
+        return { currentStreak, personalBest };
     } catch (error) {
         console.error("Streak calculation error:", error);
-        return 0;
+        return { currentStreak: 0, personalBest: 0 };
     }
 };
 
@@ -183,8 +210,8 @@ exports.getDailyAnalytics = async (req, res) => {
             }
         });
 
-        // Calculate actual streak
-        const streak = await calculateStreak(userId);
+        // Calculate actual streak details
+        const { currentStreak, personalBest } = await calculateStreakDetails(userId);
 
         res.status(200).json({
             success: true,
@@ -193,7 +220,8 @@ exports.getDailyAnalytics = async (req, res) => {
                 totalMinutes: Math.round(totalMinutesToday % 60),
                 hourlyData: hourlyData.map((val, i) => ({ time: labels[i], value: val })),
                 subjects: Object.values(subjectsToday),
-                streak
+                streak: currentStreak,
+                personalBest
             }
         });
     } catch (error) {
@@ -337,8 +365,8 @@ exports.getWeeklyAnalytics = async (req, res) => {
         // Pass 2: ensure we count topics correctly for subjects that were touched
         // Actually, let's keep it simple. Only subjects with active time show up in "Weekly Growth".
 
-        // Calculate actual streak
-        const streak = await calculateStreak(userId);
+        // Calculate actual streak details
+        const { currentStreak, personalBest } = await calculateStreakDetails(userId);
 
         res.status(200).json({
             success: true,
@@ -346,7 +374,8 @@ exports.getWeeklyAnalytics = async (req, res) => {
                 totalTime: Math.round(totalTimeThisWeek), // Round to minutes
                 dailyData,
                 subjectProgress: Object.values(subjectProgress),
-                streak
+                streak: currentStreak,
+                personalBest
             },
         });
     } catch (error) {
@@ -483,8 +512,8 @@ exports.getMonthlyAnalytics = async (req, res) => {
             }
         });
 
-        // Calculate actual streak
-        const streak = await calculateStreak(userId);
+        // Calculate actual streak details
+        const { currentStreak, personalBest } = await calculateStreakDetails(userId);
 
         res.status(200).json({
             success: true,
@@ -497,7 +526,8 @@ exports.getMonthlyAnalytics = async (req, res) => {
                 aiTutorQueries: totalQueries, // Dynamic count
                 weeklyData,
                 subjectGrowth: Object.values(subjectGrowth),
-                streak
+                streak: currentStreak,
+                personalBest
             },
         });
     } catch (error) {
