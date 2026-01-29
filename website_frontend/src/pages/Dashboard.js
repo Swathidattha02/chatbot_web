@@ -14,7 +14,7 @@ function Dashboard() {
         totalChats: 0,
         docsUploaded: 0,
         hoursLearned: 0,
-        memberSince: "New"
+        streak: 0
     });
 
     // Load subjects based on user's class and fetch progress
@@ -53,23 +53,13 @@ function Dashboard() {
                         });
                         const analyticsData = await analyticsResponse.json();
                         if (analyticsData.success) {
-                            const { totalTime, totalMinutes, aiTutorQueries } = analyticsData.analytics;
-
-                            // Format Member Since
-                            let memberSinceStr = "Jan 2026";
-                            if (user?.createdAt || localStorage.getItem('user')) {
-                                const userData = user || JSON.parse(localStorage.getItem('user'));
-                                if (userData.createdAt) {
-                                    const date = new Date(userData.createdAt);
-                                    memberSinceStr = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                                }
-                            }
+                            const { totalTime, aiTutorQueries, streak } = analyticsData.analytics;
 
                             setStats(prev => ({
                                 ...prev,
                                 totalChats: aiTutorQueries || 0,
                                 hoursLearned: totalTime || 0,
-                                memberSince: memberSinceStr
+                                streak: streak || 0
                             }));
                         }
                     } catch (error) {
@@ -362,9 +352,9 @@ function Dashboard() {
                         <div className="stat-label">Hours Learned</div>
                     </div>
                     <div className="stat-card">
-                        <div className="stat-icon">🎯</div>
-                        <div className="stat-value">{stats.memberSince}</div>
-                        <div className="stat-label">Member Since</div>
+                        <div className="stat-icon">🔥</div>
+                        <div className="stat-value">{stats.streak} Days</div>
+                        <div className="stat-label">Study Streak</div>
                     </div>
                 </div>
             </div>

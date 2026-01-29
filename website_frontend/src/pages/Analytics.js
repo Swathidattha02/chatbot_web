@@ -96,7 +96,7 @@ function Analytics() {
                                 <h2 className="card-title-lg">{dailyData.totalHours} <span className="unit">Hours</span></h2>
                             </div>
                             <div className="trend-badge positive">
-                                <span className="arrow">↗</span> +12% vs avg
+                                <span className="arrow">↗</span> Dynamic
                             </div>
                         </div>
 
@@ -186,21 +186,27 @@ function Analytics() {
                     <div className="stat-box-card">
                         <span className="box-label">Total Study Time</span>
                         <div className="box-value-row">
-                            <span className="value">18h 45m</span>
-                            <span className="trend positive">↗ 12%</span>
+                            <span className="value">
+                                {Math.floor(weeklyData.totalTime / 60)}h {weeklyData.totalTime % 60}m
+                            </span>
+                            <span className="trend positive">↗ Dynamic</span>
                         </div>
                     </div>
                     <div className="stat-box-card">
                         <span className="box-label">Daily Average</span>
                         <div className="box-value-row">
-                            <span className="value">2h 40m</span>
+                            <span className="value">
+                                {Math.floor((weeklyData.totalTime / 7) / 60)}h {Math.round((weeklyData.totalTime / 7) % 60)}m
+                            </span>
                             <span className="target">Target: 3h</span>
                         </div>
                     </div>
                     <div className="stat-box-card">
                         <span className="box-label">Top Subject</span>
                         <div className="box-value-row">
-                            <span className="value">Mathematics</span>
+                            <span className="value">
+                                {weeklyData.subjectProgress?.sort((a, b) => b.timeSpent - a.timeSpent)[0]?.name || 'N/A'}
+                            </span>
                             <span className="icon-sigma">Σ</span>
                         </div>
                     </div>
@@ -276,11 +282,11 @@ function Analytics() {
                     </div>
                     <div className="banner-content">
                         <span className="banner-label">CURRENT STUDY STREAK</span>
-                        <h2 className="banner-title">12 Days Straight</h2>
+                        <h2 className="banner-title">{monthlyData.streak} Days Straight</h2>
                     </div>
                     <div className="banner-best">
                         <span className="best-label">PERSONAL BEST</span>
-                        <span className="best-value">24 Days</span>
+                        <span className="best-value">{monthlyData.personalBest || 0} Days</span>
                     </div>
                 </div>
 
@@ -308,8 +314,8 @@ function Analytics() {
                         <div className="stat-info">
                             <span className="label">TOTAL HOURS</span>
                             <div className="val-row">
-                                <span className="val">42.5 hrs</span>
-                                <span className="change pos">+5.2%</span>
+                                <span className="val">{monthlyData.totalTime}h {monthlyData.totalMinutes}m</span>
+                                <span className="change pos">↗ Dynamic</span>
                             </div>
                             <p className="subtext">Against previous month</p>
                         </div>
@@ -318,25 +324,23 @@ function Analytics() {
                         <div className="stat-info full-width">
                             <span className="label">TOP SUBJECTS</span>
                             <div className="mini-subject-row">
-                                <div className="sub-line-item">
-                                    <span className="name">Algebra</span>
-                                    <div className="line-track"><div className="line-fill blue" style={{ width: '90%' }}></div></div>
-                                    <span className="val">18h</span>
-                                </div>
-                                <div className="sub-line-item">
-                                    <span className="name">Geometry</span>
-                                    <div className="line-track"><div className="line-fill light-blue" style={{ width: '65%' }}></div></div>
-                                    <span className="val">12h</span>
-                                </div>
+                                {monthlyData.subjectGrowth?.sort((a, b) => b.proficiency - a.proficiency).slice(0, 2).map((sub, i) => (
+                                    <div key={i} className="sub-line-item">
+                                        <span className="name">{sub.name}</span>
+                                        <div className="line-track"><div className={`line-fill ${i === 0 ? 'blue' : 'light-blue'}`} style={{ width: `${sub.proficiency}%` }}></div></div>
+                                        <span className="val">{sub.proficiency}%</span>
+                                    </div>
+                                ))}
+                                {(!monthlyData.subjectGrowth || monthlyData.subjectGrowth.length === 0) && <p className="subtext">No data yet</p>}
                             </div>
                         </div>
                     </div>
                     <div className="bottom-stat-card">
                         <div className="icon-circle blue">💬</div>
                         <div className="stat-info">
-                            <span className="label">AI VOICE HELP</span>
+                            <span className="label">AI ASSISTANT</span>
                             <div className="val-row">
-                                <span className="val">84 <span className="tag">Active</span></span>
+                                <span className="val">{monthlyData.aiTutorQueries} <span className="tag">Queries</span></span>
                             </div>
                             <p className="subtext">Queries solved this month</p>
                         </div>
@@ -377,9 +381,9 @@ function Analytics() {
                     {view === 'month' && (
                         <button className="download-report-btn">📥 Download Report</button>
                     )}
-                    {view === 'week' && (
+                    {view === 'week' && weeklyData && (
                         <div className="streak-badge-mini">
-                            🔥 STREAK <span className="val">12 Days</span>
+                            🔥 STREAK <span className="val">{weeklyData.streak || 0} Days</span>
                         </div>
                     )}
                     {view === 'day' && (
