@@ -24,6 +24,10 @@ const userSchema = new mongoose.Schema(
             type: String,
             default: "https://via.placeholder.com/150",
         },
+        phone: {
+            type: String,
+            trim: true,
+        },
         class: {
             type: String,
             required: [true, "Class is required"],

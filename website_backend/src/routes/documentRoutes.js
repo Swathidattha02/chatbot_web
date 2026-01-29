@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const authenticate = require('../middleware/auth');
+const Document = require('../models/Document');
 
 // Configure multer for file upload
 const storage = multer.diskStorage({
@@ -70,6 +71,16 @@ router.post('/upload', authenticate, upload.single('document'), async (req, res)
         if (ragResult.success) {
             console.log('✅ RAG processing successful:', ragResult.data);
 
+            // Save to database
+            await Document.create({
+                userId: userId,
+                fileName: documentInfo.originalName,
+                fileUrl: documentInfo.path,
+                fileType: documentInfo.originalName.endsWith('.pdf') ? 'pdf' : 'doc',
+                fileSize: documentInfo.size,
+                processed: true
+            });
+
             res.json({
                 success: true,
                 message: 'Document uploaded and processed successfully',
@@ -114,11 +125,11 @@ router.get('/list', authenticate, async (req, res) => {
     try {
         const userId = req.user.id;
 
-        // TODO: Get from database
-        // For now, return empty array
+        const documents = await Document.find({ userId }).sort({ createdAt: -1 });
+
         res.json({
             success: true,
-            documents: []
+            documents: documents
         });
 
     } catch (error) {

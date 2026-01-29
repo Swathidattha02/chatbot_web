@@ -8,6 +8,8 @@ exports.updateProgress = async (req, res) => {
         const { subjectId, subjectName, chapterId, chapterName, timeSpent } = req.body;
         const userId = req.user.id;
 
+        console.log(`📊 Progress Update - User: ${userId}, Subject: ${subjectName}, Chapter: ${chapterName}, Time: ${timeSpent} min`);
+
         // Find existing progress or create new
         let progress = await Progress.findOne({ userId, subjectId, chapterId });
 
@@ -31,6 +33,8 @@ exports.updateProgress = async (req, res) => {
             }
 
             await progress.save();
+            console.log(`💾 Progress saved - Total time: ${progress.timeSpent} min, Completed: ${progress.completed}, Sessions: ${progress.sessions.length}`);
+
         } else {
             // Create new progress entry
             progress = await Progress.create({
@@ -46,6 +50,7 @@ exports.updateProgress = async (req, res) => {
                     duration: timeSpent
                 }]
             });
+            console.log(`🆕 New progress created - Time: ${timeSpent} min, Completed: ${progress.completed}`);
         }
 
         res.status(200).json({
@@ -57,6 +62,145 @@ exports.updateProgress = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Server error updating progress",
+            error: error.message,
+        });
+    }
+};
+
+// Helper function to calculate current study streak
+const calculateStreak = async (userId) => {
+    try {
+        const progress = await Progress.find({ userId });
+        const activeDates = new Set();
+
+        progress.forEach(p => {
+            if (p.sessions) {
+                p.sessions.forEach(s => {
+                    activeDates.add(new Date(s.date).toDateString());
+                });
+            }
+            if (p.lastAccessed) {
+                activeDates.add(new Date(p.lastAccessed).toDateString());
+            }
+        });
+
+        if (activeDates.size === 0) return 0;
+
+        const sortedDates = Array.from(activeDates)
+            .map(d => new Date(d))
+            .sort((a, b) => b - a);
+
+        let streak = 0;
+        let today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        let yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        // Check if user was active today or yesterday to continue streak
+        const latestDate = sortedDates[0];
+        latestDate.setHours(0, 0, 0, 0);
+
+        if (latestDate.getTime() < yesterday.getTime()) {
+            return 0; // Streak broken
+        }
+
+        let currentDate = latestDate;
+        for (let i = 0; i < sortedDates.length; i++) {
+            const dateToCheck = new Date(sortedDates[i]);
+            dateToCheck.setHours(0, 0, 0, 0);
+
+            if (i === 0 || (currentDate.getTime() - dateToCheck.getTime()) <= 86400000) {
+                // If it's the first date or the difference is 1 day or less (same day)
+                if (i === 0 || (currentDate.getTime() - dateToCheck.getTime()) === 86400000) {
+                    streak++;
+                } else if (i === 0) {
+                    streak = 1;
+                }
+                currentDate = dateToCheck;
+            } else {
+                break;
+            }
+        }
+
+        return streak;
+    } catch (error) {
+        console.error("Streak calculation error:", error);
+        return 0;
+    }
+};
+
+// @desc    Get daily analytics for a specific date
+// @route   GET /api/progress/analytics/daily
+// @access  Private
+exports.getDailyAnalytics = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { date } = req.query;
+
+        const targetDate = date ? new Date(date) : new Date();
+        targetDate.setHours(0, 0, 0, 0);
+
+        const nextDate = new Date(targetDate);
+        nextDate.setDate(targetDate.getDate() + 1);
+
+        const progress = await Progress.find({
+            userId,
+            'sessions.date': { $gte: targetDate, $lt: nextDate }
+        });
+
+        // Calculate hourly time spent
+        const hourlyData = Array(12).fill(0); // 12 slots for 2-hour segments (0-2, 2-4, ..., 22-24)
+        const labels = ['12AM', '2AM', '4AM', '6AM', '8AM', '10AM', '12PM', '2PM', '4PM', '6PM', '8PM', '10PM'];
+
+        const subjectsToday = {};
+        let totalMinutesToday = 0;
+
+        progress.forEach(p => {
+            if (p.sessions) {
+                p.sessions.forEach(session => {
+                    const sessionDate = new Date(session.date);
+                    if (sessionDate >= targetDate && sessionDate < nextDate) {
+                        const hour = sessionDate.getHours();
+                        const slotIndex = Math.floor(hour / 2);
+                        const duration = session.duration || 0;
+
+                        hourlyData[slotIndex] += duration;
+                        totalMinutesToday += duration;
+
+                        if (!subjectsToday[p.subjectName]) {
+                            subjectsToday[p.subjectName] = {
+                                name: p.subjectName,
+                                chapterName: p.chapterName,
+                                timeSpent: 0,
+                                status: p.completed ? 'Completed' : 'In Progress',
+                                icon: p.subjectId // Frontend can map this to an icon
+                            };
+                        }
+                        subjectsToday[p.subjectName].timeSpent += duration;
+                    }
+                });
+            }
+        });
+
+        // Calculate actual streak
+        const streak = await calculateStreak(userId);
+
+        res.status(200).json({
+            success: true,
+            analytics: {
+                totalHours: (totalMinutesToday / 60).toFixed(1),
+                totalMinutes: Math.round(totalMinutesToday % 60),
+                hourlyData: hourlyData.map((val, i) => ({ time: labels[i], value: val })),
+                subjects: Object.values(subjectsToday),
+                streak
+            }
+        });
+    } catch (error) {
+        console.error("Get Daily Analytics Error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Server error fetching daily analytics",
             error: error.message,
         });
     }
@@ -193,12 +337,16 @@ exports.getWeeklyAnalytics = async (req, res) => {
         // Pass 2: ensure we count topics correctly for subjects that were touched
         // Actually, let's keep it simple. Only subjects with active time show up in "Weekly Growth".
 
+        // Calculate actual streak
+        const streak = await calculateStreak(userId);
+
         res.status(200).json({
             success: true,
             analytics: {
                 totalTime: Math.round(totalTimeThisWeek), // Round to minutes
                 dailyData,
                 subjectProgress: Object.values(subjectProgress),
+                streak
             },
         });
     } catch (error) {
@@ -335,6 +483,9 @@ exports.getMonthlyAnalytics = async (req, res) => {
             }
         });
 
+        // Calculate actual streak
+        const streak = await calculateStreak(userId);
+
         res.status(200).json({
             success: true,
             analytics: {
@@ -346,6 +497,7 @@ exports.getMonthlyAnalytics = async (req, res) => {
                 aiTutorQueries: totalQueries, // Dynamic count
                 weeklyData,
                 subjectGrowth: Object.values(subjectGrowth),
+                streak
             },
         });
     } catch (error) {

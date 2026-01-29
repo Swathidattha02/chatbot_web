@@ -7,7 +7,7 @@ const jwt = require("jsonwebtoken");
 // @access  Public
 exports.signup = async (req, res) => {
     try {
-        const { name, email, password, class: userClass } = req.body;
+        const { name, email, password, class: userClass, phone } = req.body;
 
         // Validation
         if (!name || !email || !password || !userClass) {
@@ -36,10 +36,11 @@ exports.signup = async (req, res) => {
             email,
             password: hashedPassword,
             class: userClass,
+            phone,
         });
 
         // Generate JWT token
-        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+        const token = jwt.sign({ userId: user._id.toString() }, process.env.JWT_SECRET, {
             expiresIn: "30d",
         });
 
@@ -53,6 +54,8 @@ exports.signup = async (req, res) => {
                 email: user.email,
                 avatar: user.avatar,
                 class: user.class,
+                phone: user.phone,
+                createdAt: user.createdAt,
             },
         });
     } catch (error) {
@@ -99,7 +102,7 @@ exports.login = async (req, res) => {
         }
 
         // Generate JWT token
-        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+        const token = jwt.sign({ userId: user._id.toString() }, process.env.JWT_SECRET, {
             expiresIn: "30d",
         });
 
@@ -113,6 +116,8 @@ exports.login = async (req, res) => {
                 email: user.email,
                 avatar: user.avatar,
                 class: user.class,
+                phone: user.phone,
+                createdAt: user.createdAt,
             },
         });
     } catch (error) {

@@ -37,13 +37,14 @@ const uploadToRAG = async (filePath, originalName) => {
 /**
  * Chat with RAG-enhanced context
  */
-const chatWithRAG = async (message, useRAG = true) => {
+const chatWithRAG = async (message, useRAG = true, language = 'en') => {
     try {
         const response = await axios.post(
             `${RAG_SERVICE_URL}/chat`,
             {
                 message,
                 use_rag: useRAG,
+                language: language
             },
             {
                 timeout: 60000,
@@ -129,9 +130,42 @@ const checkRAGHealth = async () => {
     }
 };
 
+/**
+ * Stream chat from RAG service
+ */
+const streamChatWithRAG = async (message, language = 'en', onChunk, onComplete, onError) => {
+    try {
+        const response = await axios.post(
+            `${RAG_SERVICE_URL}/chat/stream`,
+            {
+                message,
+                use_rag: true,
+                language: language
+            },
+            {
+                responseType: 'stream',
+                timeout: 60000,
+            }
+        );
+
+        response.data.on('data', (chunk) => {
+            onChunk(chunk);
+        });
+
+        response.data.on('end', () => {
+            onComplete();
+        });
+
+    } catch (error) {
+        console.error('RAG stream error:', error.message);
+        onError(error);
+    }
+};
+
 module.exports = {
     uploadToRAG,
     chatWithRAG,
+    streamChatWithRAG,
     getRAGStats,
     clearRAGStore,
     checkRAGHealth,

@@ -1,98 +1,32 @@
 const ChatHistory = require("../models/ChatHistory");
 const axios = require("axios");
+const mongoose = require("mongoose");
 
 // Ollama configuration
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
 const LLM_MODEL = process.env.LLM_MODEL || "llama3.2";
 
-// @desc    Send message to AI avatar and get response
-// @route   POST /api/chat/message
-// @access  Private
-exports.sendMessage = async (req, res) => {
-    try {
-        const { message, sessionId, language = "en" } = req.body;
-        const userId = req.user.id;
+// Language mapping
+const LANGUAGE_NAMES = {
+    'en': 'English',
+    'hi': 'Hindi',
+    'ta': 'Tamil',
+    'te': 'Telugu',
+    'kn': 'Kannada',
+    'ml': 'Malayalam',
+    'bn': 'Bengali',
+    'mr': 'Marathi',
+    'gu': 'Gujarati',
+    'pa': 'Punjabi'
+};
 
-        if (!message) {
-            return res.status(400).json({
-                success: false,
-                message: "Message is required",
-            });
-        }
+// Helper function to generate system prompt with language support
+const getSystemPrompt = (language = 'en') => {
+    const languageName = LANGUAGE_NAMES[language] || 'English';
 
-        // Find or create chat session
-        let chatSession;
-        if (sessionId) {
-            chatSession = await ChatHistory.findById(sessionId);
-        } else {
-            chatSession = await ChatHistory.create({
-                userId,
-                language,
-                messages: [],
-            });
-        }
-
-        // Add user message to history
-        chatSession.messages.push({
-            role: "user",
-            content: message,
-        });
-
-        // Get AI response from Ollama
-        let aiResponse = "I'm your AI assistant. How can I help you today?";
-        let audioUrl = null;
-
-        // Try RAG service first for document-aware responses
-        const ragService = require('../services/ragService');
-        const ragHealth = await ragService.checkRAGHealth();
-
-        if (ragHealth.available) {
-            try {
-                console.log('🤖 Using RAG service for enhanced response');
-
-                const ragResponse = await ragService.chatWithRAG(message, true);
-
-                if (ragResponse.success) {
-                    aiResponse = ragResponse.data.response;
-                    const contextUsed = ragResponse.data.context_used || false;
-                    const numChunks = ragResponse.data.num_chunks || 0;
-
-                    if (contextUsed) {
-                        console.log(`✅ RAG response with ${numChunks} context chunks`);
-                    } else {
-                        console.log('✅ RAG response (no relevant context found)');
-                    }
-                } else {
-                    throw new Error('RAG service returned error');
-                }
-            } catch (ragError) {
-                console.warn('⚠️ RAG service failed, falling back to direct Ollama:', ragError.message);
-                // Fall through to direct Ollama call below
-            }
-        } else {
-            console.log('ℹ️ RAG service not available, using direct Ollama');
-        }
-
-        // Fallback to direct Ollama if RAG didn't work
-        if (aiResponse === "I'm your AI assistant. How can I help you today?") {
-            try {
-                console.log(`🤖 Calling Ollama (${LLM_MODEL}) for message:`, message);
-
-                // Build conversation history for context
-                const conversationHistory = chatSession.messages.slice(-10).map(msg => ({
-                    role: msg.role === 'user' ? 'user' : 'assistant',
-                    content: msg.content
-                }));
-
-                // Call Ollama API
-                const ollamaResponse = await axios.post(
-                    `${OLLAMA_BASE_URL}/api/chat`,
-                    {
-                        model: LLM_MODEL,
-                        messages: [
-                            {
-                                role: 'system',
-                                content: `You are an expert educational AI tutor designed to help students learn effectively. Follow these guidelines:
+    if (language === 'en') {
+        return `You are an expert educational AI tutor designed to help students learn effectively. 
+Follow these guidelines:
 
 1. **For Math/Science Questions:**
    - Break down solutions into clear, numbered steps
@@ -118,9 +52,150 @@ exports.sendMessage = async (req, res) => {
    - Avoid jargon unless necessary (then explain it)
    - Make learning engaging and accessible
 
-Always prioritize clarity and understanding over brevity. If a student asks a math question, show every step of the solution with clear explanations.`
+Always prioritize clarity and understanding over brevity. If a student asks a math question, show every step of the solution with clear explanations.`;
+    }
+
+    // High-force language instruction for non-English responses
+    return `### 🚨 MANDATORY LANGUAGE RULE 🚨
+YOU ARE A ${languageName.toUpperCase()} TUTOR. 
+
+1. EVERYTHING YOU WRITE MUST BE IN ${languageName.toUpperCase()}.
+2. IF THE USER ASKS A QUESTION IN ENGLISH, YOU MUST ANSWER IN ${languageName.toUpperCase()}.
+3. IF YOU FIND INFORMATION IN AN ENGLISH DOCUMENT, YOU MUST TRANSLATE IT TO ${languageName.toUpperCase()} BEFORE SHARING.
+4. DO NOT USE ENGLISH SENTENCES. TRANSLATE ALL CONCEPTS TO ${languageName.toUpperCase()}.
+5. START YOUR RESPONSE DIRECTLY IN ${languageName.toUpperCase()}.
+
+You are an expert educational AI tutor helping students learn in ${languageName}.
+Follow these guidelines:
+- Translate all technical definitions into ${languageName}
+- Break down math steps in ${languageName}
+- Use analogies relevant to ${languageName} speakers
+- Be encouraging and patient
+
+### FINAL REMINDER: YOUR ENTIRE RESPONSE MUST BE IN ${languageName.toUpperCase()} ###`;
+};
+
+// @desc    Send message to AI avatar and get response
+// @route   POST /api/chat/message
+// @access  Private
+exports.sendMessage = async (req, res) => {
+    try {
+        const { message, sessionId, language = "en" } = req.body;
+        const userId = req.user.id;
+
+        if (!message) {
+            return res.status(400).json({
+                success: false,
+                message: "Message is required",
+            });
+        }
+
+        console.log(`📩 Incoming message from user ${userId}: "${message.substring(0, 50)}..." [Lang: ${language}, Session: ${sessionId}]`);
+
+        // Find or create chat session
+        let chatSession;
+        try {
+            if (sessionId && mongoose.Types.ObjectId.isValid(sessionId)) {
+                chatSession = await ChatHistory.findById(sessionId);
+            }
+
+            if (!chatSession) {
+                console.log('📝 Creating new chat session for user:', userId);
+                chatSession = await ChatHistory.create({
+                    userId,
+                    language,
+                    messages: [],
+                });
+            }
+        } catch (sessionError) {
+            console.error('❌ Session error:', sessionError.message);
+            chatSession = await ChatHistory.create({
+                userId,
+                language,
+                messages: [],
+            });
+        }
+
+        // Add user message to history
+        chatSession.messages.push({
+            role: "user",
+            content: message,
+        });
+
+        // Get AI response from Ollama
+        let aiResponse = "I'm your AI assistant. How can I help you today?";
+        let audioUrl = null;
+
+        // Try RAG service first for document-aware responses
+        const ragService = require('../services/ragService');
+        const ragHealth = await ragService.checkRAGHealth();
+
+        if (ragHealth.available) {
+            try {
+                console.log('🤖 Using RAG service for enhanced response');
+
+                const ragResponse = await ragService.chatWithRAG(message, true, language);
+
+                if (ragResponse.success) {
+                    aiResponse = ragResponse.data.response || ragResponse.data.message;
+                    const contextUsed = ragResponse.data.context_used || false;
+                    const numChunks = ragResponse.data.num_chunks || 0;
+
+                    if (!aiResponse) {
+                        throw new Error('RAG service returned empty response');
+                    }
+
+                    if (contextUsed) {
+                        console.log(`✅ RAG response with ${numChunks} context chunks`);
+                    } else {
+                        console.log('✅ RAG response (no relevant context found)');
+                    }
+                } else {
+                    throw new Error('RAG service returned error');
+                }
+            } catch (ragError) {
+                console.warn('⚠️ RAG service failed, falling back to direct Ollama:', ragError.message);
+                // Fall through to direct Ollama call below
+            }
+        } else {
+            console.log('ℹ️ RAG service not available, using direct Ollama');
+        }
+
+        // Fallback to direct Ollama if RAG didn't work
+        if (aiResponse === "I'm your AI assistant. How can I help you today?") {
+            try {
+                console.log(`🤖 Calling Ollama(${LLM_MODEL}) for message: `, message);
+
+                // Build conversation history for context
+                const conversationHistory = chatSession.messages.slice(-10).map(msg => ({
+                    role: msg.role === 'user' ? 'user' : 'assistant',
+                    content: msg.content
+                }));
+
+                const systemPrompt = getSystemPrompt(language);
+                const languageName = LANGUAGE_NAMES[language] || 'English';
+
+                // Reinforce language in the last message
+                const currentConversation = [...conversationHistory];
+                if (language !== 'en' && currentConversation.length > 0) {
+                    const lastMsg = currentConversation[currentConversation.length - 1];
+                    if (lastMsg.role === 'user') {
+                        // Prepend for maximum visibility to the AI
+                        lastMsg.content = `[INSTRUCTION: Answer ONLY in ${languageName}] ${lastMsg.content}`;
+                    }
+                }
+
+                // Call Ollama API
+                const ollamaResponse = await axios.post(
+                    `${OLLAMA_BASE_URL}/api/chat`,
+                    {
+                        model: LLM_MODEL,
+                        messages: [
+                            {
+                                role: 'system',
+                                content: systemPrompt
                             },
-                            ...conversationHistory
+                            ...currentConversation
                         ],
                         stream: false
                     },
@@ -168,11 +243,12 @@ Always prioritize clarity and understanding over brevity. If a student asks a ma
             audioUrl,
         });
     } catch (error) {
-        console.error("Chat Error:", error);
+        console.error("❌ Chat Controller Error:", error);
         res.status(500).json({
             success: false,
             message: "Error processing chat message",
             error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 };
@@ -281,9 +357,19 @@ exports.streamMessage = async (req, res) => {
 
         // Find or create chat session
         let chatSession;
-        if (sessionId) {
-            chatSession = await ChatHistory.findById(sessionId);
-        } else {
+        try {
+            if (sessionId && mongoose.Types.ObjectId.isValid(sessionId)) {
+                chatSession = await ChatHistory.findById(sessionId);
+            }
+
+            if (!chatSession) {
+                chatSession = await ChatHistory.create({
+                    userId,
+                    language,
+                    messages: [],
+                });
+            }
+        } catch (sessionError) {
             chatSession = await ChatHistory.create({
                 userId,
                 language,
@@ -308,20 +394,36 @@ exports.streamMessage = async (req, res) => {
             try {
                 console.log('🤖 Using RAG service for streaming response');
 
-                // For now, use non-streaming RAG and simulate streaming
-                // TODO: Implement actual streaming from RAG service
-                const ragResponse = await ragService.chatWithRAG(message, true);
+                const response = await axios.post(
+                    `${require('../services/ragService').RAG_SERVICE_URL}/chat/stream`,
+                    {
+                        message,
+                        use_rag: true,
+                        language: language
+                    },
+                    {
+                        responseType: 'stream',
+                        timeout: 60000,
+                    }
+                );
 
-                if (ragResponse.success) {
-                    fullResponse = ragResponse.data.response || ragResponse.data.message;
-                    usedRAG = true;
+                usedRAG = true;
 
-                    // Simulate streaming by sending words gradually
-                    const words = fullResponse.split(' ');
-                    for (let i = 0; i < words.length; i++) {
-                        const chunk = (i === 0 ? '' : ' ') + words[i];
-                        res.write(`data: ${JSON.stringify({ chunk, done: false })}\n\n`);
-                        await new Promise(resolve => setTimeout(resolve, 50)); // 50ms delay between words
+                // Pipe the RAG stream directly
+                for await (const chunk of response.data) {
+                    const lines = chunk.toString().split('\n').filter(line => line.trim());
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const json = JSON.parse(line.slice(6));
+                                if (json.content) {
+                                    fullResponse += json.content;
+                                    res.write(`data: ${JSON.stringify({ chunk: json.content, done: false })} \n\n`);
+                                }
+                            } catch (e) {
+                                // Skip invalid JSON
+                            }
+                        }
                     }
                 }
             } catch (ragError) {
@@ -339,6 +441,19 @@ exports.streamMessage = async (req, res) => {
             }));
 
             try {
+                const systemPrompt = getSystemPrompt(language);
+                const languageName = LANGUAGE_NAMES[language] || 'English';
+
+                // Reinforce language in the last message
+                const currentConversation = [...conversationHistory];
+                if (language !== 'en' && currentConversation.length > 0) {
+                    const lastMsg = currentConversation[currentConversation.length - 1];
+                    if (lastMsg.role === 'user') {
+                        // Prepend for maximum visibility to the AI
+                        lastMsg.content = `[INSTRUCTION: Answer ONLY in ${languageName}] ${lastMsg.content}`;
+                    }
+                }
+
                 const ollamaResponse = await axios.post(
                     `${OLLAMA_BASE_URL}/api/chat`,
                     {
@@ -346,35 +461,9 @@ exports.streamMessage = async (req, res) => {
                         messages: [
                             {
                                 role: 'system',
-                                content: `You are an expert educational AI tutor designed to help students learn effectively. Follow these guidelines:
-
-1. **For Math/Science Questions:**
-   - Break down solutions into clear, numbered steps
-   - Explain the reasoning behind each step
-   - Show all calculations and formulas used
-   - Use simple language that students can understand
-   - Provide examples when helpful
-
-2. **For Conceptual Questions:**
-   - Start with a simple definition
-   - Provide detailed explanations with examples
-   - Use analogies to make concepts relatable
-   - Break complex topics into smaller parts
-
-3. **Formatting:**
-   - Use clear headings and bullet points
-   - Highlight important formulas or key points
-   - Number your steps for math problems
-   - Keep explanations organized and easy to follow
-
-4. **Tone:**
-   - Be encouraging and patient
-   - Avoid jargon unless necessary (then explain it)
-   - Make learning engaging and accessible
-
-Always prioritize clarity and understanding over brevity. If a student asks a math question, show every step of the solution with clear explanations.`
+                                content: systemPrompt
                             },
-                            ...conversationHistory
+                            ...currentConversation
                         ],
                         stream: true
                     },
@@ -393,7 +482,7 @@ Always prioritize clarity and understanding over brevity. If a student asks a ma
                             const json = JSON.parse(line);
                             if (json.message?.content) {
                                 fullResponse += json.message.content;
-                                res.write(`data: ${JSON.stringify({ chunk: json.message.content, done: false })}\n\n`);
+                                res.write(`data: ${JSON.stringify({ chunk: json.message.content, done: false })} \n\n`);
                             }
                             if (json.done) {
                                 break;
@@ -409,12 +498,12 @@ Always prioritize clarity and understanding over brevity. If a student asks a ma
                 if (ollamaError.code === 'ECONNREFUSED') {
                     fullResponse = "Ollama is not running. Please start the Ollama service on your computer.";
                 } else if (ollamaError.response?.status === 404) {
-                    fullResponse = `The AI model (${LLM_MODEL}) is not found. Please run: ollama pull ${LLM_MODEL}`;
+                    fullResponse = `The AI model(${LLM_MODEL}) is not found.Please run: ollama pull ${LLM_MODEL} `;
                 } else {
                     fullResponse = "I apologize, but I'm having technical difficulties. Please check if Ollama is running.";
                 }
 
-                res.write(`data: ${JSON.stringify({ chunk: fullResponse, done: false })}\n\n`);
+                res.write(`data: ${JSON.stringify({ chunk: fullResponse, done: false })} \n\n`);
             }
         }
 
@@ -432,7 +521,8 @@ Always prioritize clarity and understanding over brevity. If a student asks a ma
             done: true,
             sessionId: chatSession._id,
             fullResponse: fullResponse
-        })}\n\n`);
+        })
+            } \n\n`);
 
         res.end();
 
@@ -441,7 +531,8 @@ Always prioritize clarity and understanding over brevity. If a student asks a ma
         res.write(`data: ${JSON.stringify({
             error: error.message,
             done: true
-        })}\n\n`);
+        })
+            } \n\n`);
         res.end();
     }
 };
