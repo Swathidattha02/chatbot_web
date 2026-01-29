@@ -235,10 +235,10 @@ function ChatWithAvatar() {
         setCurrentLanguage(language);
         console.log('Language changed to:', language);
 
-        const langName = translationService.getLanguageName(language);
+        const translatedMsg = translationService.getLanguageChangeMessage(language);
         const systemMsg = {
             role: 'assistant',
-            content: `Language changed to ${langName}. I will now respond in ${langName}.`,
+            content: translatedMsg,
             timestamp: new Date()
         };
         setMessages(prev => [...prev, systemMsg]);

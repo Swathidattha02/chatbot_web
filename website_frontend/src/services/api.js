@@ -48,7 +48,7 @@ export const authAPI = {
 // Chat API
 export const chatAPI = {
     sendMessage: (data) => api.post("/chat/message", data),
-    streamMessage: async (data, onChunk, onComplete, onError) => {
+    streamMessage: async (data, onChunk, onComplete, onError, signal) => {
         try {
             const token = localStorage.getItem("token");
             const response = await fetch(`${API_BASE_URL}/chat/stream`, {
@@ -57,7 +57,8 @@ export const chatAPI = {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify(data),
+                signal: signal // Pass the abort signal to fetch
             });
 
             if (!response.ok) {
@@ -102,7 +103,12 @@ export const chatAPI = {
                 }
             }
         } catch (error) {
-            onError(error);
+            if (error.name === 'AbortError') {
+                console.log('Stream aborted by user');
+                onComplete({ aborted: true });
+            } else {
+                onError(error);
+            }
         }
     },
     getHistory: (sessionId) =>

@@ -33,6 +33,7 @@ function PDFViewer() {
     const messagesEndRef = useRef(null);
     const recognitionRef = useRef(null);
     const timeTrackingRef = useRef(null);
+    const abortControllerRef = useRef(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -170,43 +171,96 @@ function PDFViewer() {
         setInputMessage("");
         setLoading(true);
 
+        // Add a placeholder for the AI response that we will stream into
+        const aiPlaceholder = {
+            role: "assistant",
+            content: "",
+            timestamp: new Date(),
+            isStreaming: true
+        };
+        setMessages(prev => [...prev, aiPlaceholder]);
+
+        let fullContent = "";
+
+        // Create new AbortController for this request
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
         try {
-            const response = await chatAPI.sendMessage({
-                message: messageText,
-                sessionId,
-                language: currentLanguage,
-                context: `Subject: ${subject?.name}, Chapter: ${chapter?.title}`
-            });
+            await chatAPI.streamMessage(
+                {
+                    message: messageText,
+                    sessionId: sessionId,
+                    language: currentLanguage,
+                    context: `Subject: ${subject?.name}, Chapter: ${chapter?.title}`
+                },
+                (chunk) => {
+                    // onChunk callback
+                    fullContent += chunk;
+                    setMessages(prev => {
+                        const next = [...prev];
+                        const last = next[next.length - 1];
+                        if (last && last.role === 'assistant') {
+                            last.content = fullContent;
+                        }
+                        return next;
+                    });
+                },
+                (data) => {
+                    // onComplete callback
+                    setLoading(false);
+                    abortControllerRef.current = null;
+                    if (data.sessionId && !sessionId) {
+                        setSessionId(data.sessionId);
+                    }
 
-            const aiMessage = {
-                role: "assistant",
-                content: response.data.response,
-                timestamp: new Date(),
-                audioUrl: response.data.audioUrl,
-            };
+                    // Remove streaming flag
+                    setMessages(prev => {
+                        const next = [...prev];
+                        const last = next[next.length - 1];
+                        if (last && last.role === 'assistant') {
+                            last.isStreaming = false;
+                        }
+                        return next;
+                    });
 
-            setMessages((prev) => [...prev, aiMessage]);
-
-            if (!sessionId) {
-                setSessionId(response.data.sessionId);
-            }
-
-            if (response.data.audioUrl) {
-                const audio = new Audio(response.data.audioUrl);
-                audio.play().catch((err) => console.error("Audio play error:", err));
-            }
+                    // Handle expressions if returned
+                    if (fullContent.includes('[EXPRESSION:')) {
+                        const match = fullContent.match(/\[EXPRESSION:\s*(\w+)\]/);
+                        if (match && match[1]) {
+                            setCurrentExpression(match[1].toLowerCase());
+                        }
+                    }
+                },
+                (error) => {
+                    // onError callback
+                    console.error("Streaming error:", error);
+                    abortControllerRef.current = null;
+                    setMessages(prev => {
+                        const next = [...prev];
+                        next[next.length - 1] = {
+                            role: "assistant",
+                            content: "Sorry, I encountered an error. Please try again.",
+                            timestamp: new Date(),
+                            isError: true
+                        };
+                        return next;
+                    });
+                    setLoading(false);
+                },
+                controller.signal
+            );
         } catch (error) {
-            console.error("Chat error:", error);
+            console.error("Chat setup error:", error);
+            abortControllerRef.current = null;
+            setLoading(false);
+        }
+    };
 
-            const errorMessage = {
-                role: "assistant",
-                content: "Sorry, I encountered an error. Please try again.",
-                timestamp: new Date(),
-                isError: true,
-            };
-
-            setMessages((prev) => [...prev, errorMessage]);
-        } finally {
+    const handleStopResponse = () => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
             setLoading(false);
         }
     };
@@ -233,10 +287,10 @@ function PDFViewer() {
 
     const handleLanguageChange = (language) => {
         setCurrentLanguage(language);
-        const langName = translationService.getLanguageName(language);
+        const translatedMsg = translationService.getLanguageChangeMessage(language);
         const systemMsg = {
             role: 'assistant',
-            content: `Language changed to ${langName}. I will now respond in ${langName}.`,
+            content: translatedMsg,
             timestamp: new Date()
         };
         setMessages(prev => [...prev, systemMsg]);
@@ -313,9 +367,6 @@ function PDFViewer() {
                     ← Back to Chapters
                 </button>
                 <div className="chapter-info-header">
-                    <span className="subject-badge" style={{ background: subject.color }}>
-                        {subject.icon} {subject.name}
-                    </span>
                     <h2>{chapter.title}</h2>
                 </div>
             </div>
@@ -326,7 +377,7 @@ function PDFViewer() {
                     <div className="pdf-container">
                         {chapter.pdfUrl ? (
                             <iframe
-                                src={chapter.pdfUrl}
+                                src={`${chapter.pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
                                 title={chapter.title || chapter.name}
                                 className="pdf-iframe"
                                 style={{
@@ -457,13 +508,24 @@ function PDFViewer() {
                                 >
                                     {isListening ? '🎤' : '🎙️'}
                                 </button>
-                                <button
-                                    type="submit"
-                                    className="send-button-pdf"
-                                    disabled={loading || !inputMessage.trim()}
-                                >
-                                    {loading ? '⏳' : '📤'}
-                                </button>
+                                {loading ? (
+                                    <button
+                                        type="button"
+                                        className="stop-button-pdf"
+                                        onClick={handleStopResponse}
+                                        title="Stop generating"
+                                    >
+                                        ■
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="submit"
+                                        className="send-button-pdf"
+                                        disabled={loading || !inputMessage.trim()}
+                                    >
+                                        📤
+                                    </button>
+                                )}
                             </form>
                         </div>
                     </div>

@@ -6,11 +6,14 @@ import "../styles/Auth.css";
 function Signup() {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
+    const [phone, setPhone] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [selectedClass, setSelectedClass] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const { signup } = useAuth();
     const navigate = useNavigate();
 
@@ -36,7 +39,7 @@ function Signup() {
 
         setLoading(true);
 
-        const result = await signup(name, email, password, selectedClass);
+        const result = await signup(name, email, password, selectedClass, phone);
 
         if (result.success) {
             navigate("/dashboard");
@@ -94,6 +97,20 @@ function Signup() {
                     </div>
 
                     <div className="form-group">
+                        <label htmlFor="phone" className="form-label">
+                            Phone Number
+                        </label>
+                        <input
+                            type="tel"
+                            id="phone"
+                            className="form-input"
+                            placeholder="1234567890"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="form-group">
                         <label htmlFor="class" className="form-label">
                             Select Your Class
                         </label>
@@ -117,32 +134,52 @@ function Signup() {
                         <label htmlFor="password" className="form-label">
                             Password
                         </label>
-                        <input
-                            type="password"
-                            id="password"
-                            className="form-input"
-                            placeholder="••••••••"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                            minLength="6"
-                        />
+                        <div className="password-input-wrapper">
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                id="password"
+                                className="form-input"
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                                minLength="6"
+                            />
+                            <button
+                                type="button"
+                                className="password-toggle"
+                                onClick={() => setShowPassword(!showPassword)}
+                                aria-label={showPassword ? "Hide password" : "Show password"}
+                            >
+                                {showPassword ? "👁️‍🗨️" : "👁️"}
+                            </button>
+                        </div>
                     </div>
 
                     <div className="form-group">
                         <label htmlFor="confirmPassword" className="form-label">
                             Confirm Password
                         </label>
-                        <input
-                            type="password"
-                            id="confirmPassword"
-                            className="form-input"
-                            placeholder="••••••••"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            required
-                            minLength="6"
-                        />
+                        <div className="password-input-wrapper">
+                            <input
+                                type={showConfirmPassword ? "text" : "password"}
+                                id="confirmPassword"
+                                className="form-input"
+                                placeholder="••••••••"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                required
+                                minLength="6"
+                            />
+                            <button
+                                type="button"
+                                className="password-toggle"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                            >
+                                {showConfirmPassword ? "👁️‍🗨️" : "👁️"}
+                            </button>
+                        </div>
                     </div>
 
                     <button type="submit" className="btn btn-primary btn-full" disabled={loading}>

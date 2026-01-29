@@ -1,18 +1,18 @@
 .pdf-viewer-container {
     min-height: 100vh;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 80px 20px 20px;
+    padding: 20px 30px 10px;
 }
 
 .pdf-viewer-header {
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 }
 
 .back-button {
     background: rgba(255, 255, 255, 0.2);
     color: white;
     border: 2px solid rgba(255, 255, 255, 0.3);
-    padding: 12px 24px;
+    padding: 8px 24px;
     border-radius: 12px;
     font-size: 16px;
     font-weight: 600;
@@ -54,8 +54,9 @@
 .pdf-viewer-content {
     display: grid;
     grid-template-columns: 1fr 400px;
-    gap: 20px;
-    height: calc(100vh - 200px);
+    gap: 10px;
+    height: calc(100vh - 120px);
+    overflow: hidden;
 }
 
 /* PDF Section - Left Side */
@@ -64,6 +65,7 @@
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    position: relative;
 }
 
 .pdf-container {
@@ -107,6 +109,8 @@
 .chatbot-section {
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+    position: relative;
 }
 
 .chat-interface-pdf {
@@ -460,6 +464,32 @@
 .send-button-pdf:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.stop-button-pdf {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FF4B2B 0%, #FF416C 100%);
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 15px rgba(255, 65, 108, 0.3);
+}
+
+.stop-button-pdf:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(255, 65, 108, 0.4);
+}
+
+.stop-button-pdf:active {
+    transform: scale(0.95);
 }
 
 .error-message {

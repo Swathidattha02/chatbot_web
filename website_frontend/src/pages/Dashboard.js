@@ -10,6 +10,12 @@ function Dashboard() {
     const [subjects, setSubjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
+    const [stats, setStats] = useState({
+        totalChats: 0,
+        docsUploaded: 0,
+        hoursLearned: 0,
+        memberSince: "New"
+    });
 
     // Load subjects based on user's class and fetch progress
     useEffect(() => {
@@ -35,6 +41,58 @@ function Dashboard() {
                         }
                     } catch (error) {
                         console.error("Error fetching user progress:", error);
+                    }
+
+                    // Fetch monthly analytics for stats cards
+                    try {
+                        const token = localStorage.getItem('token');
+                        const analyticsResponse = await fetch('http://localhost:5000/api/progress/analytics/monthly', {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+                        const analyticsData = await analyticsResponse.json();
+                        if (analyticsData.success) {
+                            const { totalTime, totalMinutes, aiTutorQueries } = analyticsData.analytics;
+
+                            // Format Member Since
+                            let memberSinceStr = "Jan 2026";
+                            if (user?.createdAt || localStorage.getItem('user')) {
+                                const userData = user || JSON.parse(localStorage.getItem('user'));
+                                if (userData.createdAt) {
+                                    const date = new Date(userData.createdAt);
+                                    memberSinceStr = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                                }
+                            }
+
+                            setStats(prev => ({
+                                ...prev,
+                                totalChats: aiTutorQueries || 0,
+                                hoursLearned: totalTime || 0,
+                                memberSince: memberSinceStr
+                            }));
+                        }
+                    } catch (error) {
+                        console.error("Error fetching monthly analytics:", error);
+                    }
+
+                    // Fetch documents for count
+                    try {
+                        const token = localStorage.getItem('token');
+                        const docsResponse = await fetch('http://localhost:5000/api/documents/list', {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+                        const docsData = await docsResponse.json();
+                        if (docsData.success) {
+                            setStats(prev => ({
+                                ...prev,
+                                docsUploaded: docsData.documents?.length || 0
+                            }));
+                        }
+                    } catch (error) {
+                        console.error("Error fetching documents:", error);
                     }
 
                     // Add progress and chapter counts to subjects
@@ -290,22 +348,22 @@ function Dashboard() {
                 <div className="stats-grid">
                     <div className="stat-card">
                         <div className="stat-icon">💬</div>
-                        <div className="stat-value">0</div>
+                        <div className="stat-value">{stats.totalChats}</div>
                         <div className="stat-label">Total Chats</div>
                     </div>
                     <div className="stat-card">
                         <div className="stat-icon">📄</div>
-                        <div className="stat-value">0</div>
+                        <div className="stat-value">{stats.docsUploaded}</div>
                         <div className="stat-label">Documents Uploaded</div>
                     </div>
                     <div className="stat-card">
                         <div className="stat-icon">⏱️</div>
-                        <div className="stat-value">0</div>
+                        <div className="stat-value">{stats.hoursLearned}h</div>
                         <div className="stat-label">Hours Learned</div>
                     </div>
                     <div className="stat-card">
                         <div className="stat-icon">🎯</div>
-                        <div className="stat-value">New</div>
+                        <div className="stat-value">{stats.memberSince}</div>
                         <div className="stat-label">Member Since</div>
                     </div>
                 </div>
