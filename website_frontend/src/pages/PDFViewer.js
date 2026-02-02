@@ -37,6 +37,8 @@ function PDFViewer() {
     const recognitionRef = useRef(null);
     const timeTrackingRef = useRef(null);
     const abortControllerRef = useRef(null);
+    const mouthAnimationFrameRef = useRef(null);
+    const utteranceRef = useRef(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -292,6 +294,12 @@ function PDFViewer() {
             if (recognitionRef.current) {
                 recognitionRef.current.stop();
             }
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+            if (mouthAnimationFrameRef.current) {
+                cancelAnimationFrame(mouthAnimationFrameRef.current);
+            }
         };
     }, [currentLanguage, handleSendMessage]);
 
@@ -336,14 +344,41 @@ function PDFViewer() {
         setMessages(prev => [...prev, systemMsg]);
     };
 
+    const stopSpeaking = () => {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+
+            if (mouthAnimationFrameRef.current) {
+                cancelAnimationFrame(mouthAnimationFrameRef.current);
+                mouthAnimationFrameRef.current = null;
+            }
+
+            // Gradually close mouth
+            let closeValue = mouthValue;
+            const closeInterval = setInterval(() => {
+                closeValue *= 0.7;
+                setMouthValue(closeValue);
+                if (closeValue < 0.05) {
+                    clearInterval(closeInterval);
+                    setMouthValue(0);
+                }
+            }, 30);
+
+            setIsAvatarSpeaking(false);
+            utteranceRef.current = null;
+        }
+    };
+
     const handleReadAgain = (message) => {
-        if (isAvatarSpeaking) return;
+        if (isAvatarSpeaking) {
+            stopSpeaking();
+            return;
+        }
 
         if ('speechSynthesis' in window) {
             const utterance = new SpeechSynthesisUtterance(message);
+            utteranceRef.current = utterance;
             utterance.lang = currentLanguage === 'en' ? 'en-US' : 'hi-IN';
-
-            let mouthAnimationFrame = null;
 
             const animateMouth = () => {
                 const now = Date.now();
@@ -355,17 +390,17 @@ function PDFViewer() {
                 let intensity = 0.25 + fast + medium + slow + microVariation;
                 intensity = Math.max(0.08, Math.min(0.5, intensity));
                 setMouthValue(intensity);
-                mouthAnimationFrame = requestAnimationFrame(animateMouth);
+                mouthAnimationFrameRef.current = requestAnimationFrame(animateMouth);
             };
 
             utterance.onstart = () => {
                 setIsAvatarSpeaking(true);
-                mouthAnimationFrame = requestAnimationFrame(animateMouth);
+                mouthAnimationFrameRef.current = requestAnimationFrame(animateMouth);
             };
 
             utterance.onend = () => {
-                if (mouthAnimationFrame) {
-                    cancelAnimationFrame(mouthAnimationFrame);
+                if (mouthAnimationFrameRef.current) {
+                    cancelAnimationFrame(mouthAnimationFrameRef.current);
                 }
                 let closeValue = mouthValue;
                 const closeInterval = setInterval(() => {
@@ -377,6 +412,11 @@ function PDFViewer() {
                     }
                 }, 30);
                 setIsAvatarSpeaking(false);
+                utteranceRef.current = null;
+            };
+
+            utterance.onerror = () => {
+                stopSpeaking();
             };
 
             window.speechSynthesis.speak(utterance);
@@ -492,7 +532,12 @@ function PDFViewer() {
                             <div className="chat-header-pdf">
                                 <h3>Ask Questions</h3>
                                 {isAvatarSpeaking && (
-                                    <span className="speaking-indicator">🎤 Speaking...</span>
+                                    <div className="speaking-control-pdf">
+                                        <span className="speaking-indicator">🎤 Speaking...</span>
+                                        <button onClick={stopSpeaking} className="btn-stop-speaking-pdf" title="Stop speaking">
+                                            Stop ⏹
+                                        </button>
+                                    </div>
                                 )}
                             </div>
 

@@ -28,6 +28,8 @@ function ChatWithAvatar() {
     const [loadedDocument, setLoadedDocument] = useState(null);
     const messagesEndRef = useRef(null);
     const recognitionRef = useRef(null);
+    const mouthAnimationFrameRef = useRef(null);
+    const utteranceRef = useRef(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -92,6 +94,12 @@ function ChatWithAvatar() {
         return () => {
             if (recognitionRef.current) {
                 recognitionRef.current.stop();
+            }
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+            if (mouthAnimationFrameRef.current) {
+                cancelAnimationFrame(mouthAnimationFrameRef.current);
             }
         };
     }, [currentLanguage]);
@@ -249,18 +257,42 @@ function ChatWithAvatar() {
         setMessages(prev => [...prev, systemMsg]);
     };
 
+    const stopSpeaking = () => {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+
+            if (mouthAnimationFrameRef.current) {
+                cancelAnimationFrame(mouthAnimationFrameRef.current);
+                mouthAnimationFrameRef.current = null;
+            }
+
+            // Gradually close mouth
+            let closeValue = mouthValue;
+            const closeInterval = setInterval(() => {
+                closeValue *= 0.7;
+                setMouthValue(closeValue);
+                if (closeValue < 0.05) {
+                    clearInterval(closeInterval);
+                    setMouthValue(0);
+                }
+            }, 30);
+
+            setIsAvatarSpeaking(false);
+            utteranceRef.current = null;
+        }
+    };
+
     const handleReadAgain = (message) => {
         if (isAvatarSpeaking) {
-            console.log('Avatar is already speaking');
+            stopSpeaking();
             return;
         }
 
         // Use Web Speech API to read the message
         if ('speechSynthesis' in window) {
             const utterance = new SpeechSynthesisUtterance(message);
+            utteranceRef.current = utterance;
             utterance.lang = currentLanguage === 'en' ? 'en-US' : 'hi-IN';
-
-            let mouthAnimationFrame = null;
 
             // Animate mouth while speaking
             const animateMouth = () => {
@@ -273,17 +305,17 @@ function ChatWithAvatar() {
                 let intensity = 0.25 + fast + medium + slow + microVariation;
                 intensity = Math.max(0.08, Math.min(0.5, intensity));
                 setMouthValue(intensity);
-                mouthAnimationFrame = requestAnimationFrame(animateMouth);
+                mouthAnimationFrameRef.current = requestAnimationFrame(animateMouth);
             };
 
             utterance.onstart = () => {
                 setIsAvatarSpeaking(true);
-                mouthAnimationFrame = requestAnimationFrame(animateMouth);
+                mouthAnimationFrameRef.current = requestAnimationFrame(animateMouth);
             };
 
             utterance.onend = () => {
-                if (mouthAnimationFrame) {
-                    cancelAnimationFrame(mouthAnimationFrame);
+                if (mouthAnimationFrameRef.current) {
+                    cancelAnimationFrame(mouthAnimationFrameRef.current);
                 }
                 // Gradually close mouth
                 let closeValue = mouthValue;
@@ -296,6 +328,11 @@ function ChatWithAvatar() {
                     }
                 }, 30);
                 setIsAvatarSpeaking(false);
+                utteranceRef.current = null;
+            };
+
+            utterance.onerror = () => {
+                stopSpeaking();
             };
 
             window.speechSynthesis.speak(utterance);
@@ -362,7 +399,12 @@ function ChatWithAvatar() {
                             AI Educational Tutor
                         </h3>
                         {isAvatarSpeaking && (
-                            <span className="speaking-indicator">🎤 Speaking...</span>
+                            <div className="speaking-control">
+                                <span className="speaking-indicator">🎤 Speaking...</span>
+                                <button onClick={stopSpeaking} className="btn-stop-speaking" title="Stop speaking">
+                                    Stop ⏹
+                                </button>
+                            </div>
                         )}
                         <button onClick={handleNewChat} className="btn-new-chat">
                             New Chat

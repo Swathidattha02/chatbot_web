@@ -45,6 +45,12 @@
     font-size: 28px;
 }
 
+.speaking-control {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
 .speaking-indicator {
     font-size: 14px;
     color: rgba(255, 255, 255, 0.9);
@@ -52,6 +58,24 @@
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+.btn-stop-speaking {
+    padding: 6px 12px;
+    background: #ff4757;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(255, 71, 87, 0.3);
+}
+
+.btn-stop-speaking:hover {
+    background: #ff6b81;
+    transform: translateY(-1px);
 }
 
 .btn-new-chat {
