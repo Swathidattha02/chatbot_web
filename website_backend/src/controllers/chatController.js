@@ -392,13 +392,14 @@ exports.streamMessage = async (req, res) => {
 
         if (ragHealth.available) {
             try {
-                console.log('🤖 Using RAG service for streaming response');
+                const useRAG = req.body.use_rag !== false; // Default to true unless explicitly false
+                console.log(`🤖 Requesting from RAG Service - use_rag: ${useRAG}, lang: ${language}`);
 
                 const response = await axios.post(
                     `${require('../services/ragService').RAG_SERVICE_URL}/chat/stream`,
                     {
                         message,
-                        use_rag: true,
+                        use_rag: useRAG,
                         language: language
                     },
                     {
