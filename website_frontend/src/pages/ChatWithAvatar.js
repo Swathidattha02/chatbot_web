@@ -41,21 +41,25 @@ function ChatWithAvatar() {
     useEffect(() => {
         if (location.state?.uploadedDocument) {
             const doc = location.state.uploadedDocument;
-            setLoadedDocument(doc);
 
-            // Add system message about document loading
-            const documentMessage = {
-                role: 'assistant',
-                content: `📄 ${doc.message}`,
-                timestamp: new Date(),
-                isSystemMessage: true
-            };
-            setMessages(prev => [...prev, documentMessage]);
+            // Use a functional update to avoid closures and double-adding
+            setMessages(prev => {
+                const alreadyAdded = prev.some(m => m.isSystemMessage && m.content.includes(doc.name));
+                if (alreadyAdded) return prev;
 
-            // Clear the navigation state to prevent re-adding on refresh
+                setLoadedDocument(doc);
+                return [...prev, {
+                    role: 'assistant',
+                    content: `📄 ${doc.message}`,
+                    timestamp: new Date(),
+                    isSystemMessage: true
+                }];
+            });
+
+            // Clear the navigation state
             window.history.replaceState({}, document.title);
         }
-    }, [location]);
+    }, [location.state]);
 
     // Initialize voice recognition
     useEffect(() => {
@@ -123,6 +127,7 @@ function ChatWithAvatar() {
                     message: messageText,
                     sessionId,
                     language: currentLanguage,
+                    use_rag: !!loadedDocument // Explicitly enable RAG if a document is loaded
                 },
                 // onChunk - called for each chunk received
                 (chunk) => {

@@ -1,5 +1,7 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { getSubjectsForClass } from "../config/syllabus";
 import { Canvas } from "@react-three/fiber";
 import { chatAPI } from "../services/api";
 import LanguageSelector from "../components/LanguageSelector";
@@ -9,6 +11,7 @@ import "../styles/PDFViewer.css";
 
 function PDFViewer() {
     const { subjectId, chapterId } = useParams();
+    const { user } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
     const { chapter, subject } = location.state || {};
@@ -29,7 +32,7 @@ function PDFViewer() {
     const [currentExpression, setCurrentExpression] = useState('neutral');
     const [isListening, setIsListening] = useState(false);
     const [isVoiceSupported, setIsVoiceSupported] = useState(false);
-    const [timeSpent, setTimeSpent] = useState(0); // Track time in seconds
+    // Remove visible timeSpent state as timer is removed from UI
     const messagesEndRef = useRef(null);
     const recognitionRef = useRef(null);
     const timeTrackingRef = useRef(null);
@@ -43,29 +46,67 @@ function PDFViewer() {
         scrollToBottom();
     }, [messages]);
 
+    const [currentChapter, setCurrentChapter] = useState(chapter);
+    const [currentSubject, setCurrentSubject] = useState(subject);
+
+    useEffect(() => {
+        // Recover chapter data
+        if ((!currentChapter || !currentSubject) && user?.class) {
+            const subjects = getSubjectsForClass(user.class);
+            const foundSubject = subjects.find(s => s.id === parseInt(subjectId));
+            if (foundSubject) {
+                const foundChapter = (foundSubject.chapters || []).find(c => c.id === parseInt(chapterId));
+                if (foundChapter) {
+                    setCurrentSubject(foundSubject);
+                    setCurrentChapter(foundChapter);
+                }
+            }
+        }
+    }, [user, subjectId, chapterId, currentChapter, currentSubject]);
+
     // Track time spent on chapter using Refs to avoid re-render issues
     const timeSpentRef = useRef(0);
     const lastSavedTimeRef = useRef(0);
 
     useEffect(() => {
-        // Start tracking time
+        if (!user) return;
+
+        // Fetch existing progress to initialize values
+        const fetchInitialValue = async () => {
+            try {
+                const token = localStorage.getItem("token");
+                const response = await fetch(`http://localhost:5000/api/progress/user`, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    const existing = data.progress.find(p => p.chapterId === parseInt(chapterId));
+                    if (existing) {
+                        const seconds = Math.floor((existing.timeSpent || 0) * 60);
+                        timeSpentRef.current = seconds;
+                        lastSavedTimeRef.current = seconds;
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching initial progress:", error);
+            }
+        };
+
+        fetchInitialValue();
+
+        // Start tracking time in background
         timeTrackingRef.current = setInterval(() => {
             timeSpentRef.current += 1;
-            // Optional: Update state only for UI display if needed, but throttle it
-            if (timeSpentRef.current % 60 === 0) {
-                setTimeSpent(timeSpentRef.current);
-            }
         }, 1000);
 
-        // Save progress every 10 seconds (more frequent updates)
+        // Save progress every 15 seconds
         const saveInterval = setInterval(async () => {
             const currentTime = timeSpentRef.current;
             const deltaSeconds = currentTime - lastSavedTimeRef.current;
 
-            if (deltaSeconds > 0 && chapter && subject) {
+            if (deltaSeconds >= 5 && currentChapter && currentSubject) {
                 try {
                     const token = localStorage.getItem("token");
-                    // Send fractional minutes (e.g., 0.5 minutes for 30s)
                     const minutesToSend = deltaSeconds / 60;
 
                     await fetch("http://localhost:5000/api/progress/update", {
@@ -76,9 +117,9 @@ function PDFViewer() {
                         },
                         body: JSON.stringify({
                             subjectId: parseInt(subjectId),
-                            subjectName: subject.name,
+                            subjectName: currentSubject.name,
                             chapterId: parseInt(chapterId),
-                            chapterName: chapter.title || chapter.name,
+                            chapterName: currentChapter.title || currentChapter.name,
                             timeSpent: minutesToSend,
                         }),
                     });
@@ -88,77 +129,39 @@ function PDFViewer() {
                     console.error("Error saving progress:", error);
                 }
             }
-        }, 10000); // Save every 10 seconds
+        }, 15000);
 
-        // Cleanup on unmount
         return () => {
             clearInterval(timeTrackingRef.current);
             clearInterval(saveInterval);
 
-            // Final save when leaving page
             const currentTime = timeSpentRef.current;
             const deltaSeconds = currentTime - lastSavedTimeRef.current;
 
-            if (deltaSeconds > 0 && chapter && subject) {
+            if (deltaSeconds > 0 && currentChapter && currentSubject) {
                 const token = localStorage.getItem("token");
-                // Send fractional minutes
                 const minutesToSend = deltaSeconds / 60;
 
                 fetch("http://localhost:5000/api/progress/update", {
-                    method: "POST", // Keep-alive or standard POST
-                    keepalive: true, // Important for updates during unmount
+                    method: "POST",
+                    keepalive: true,
                     headers: {
                         "Content-Type": "application/json",
                         "Authorization": `Bearer ${token}`,
                     },
                     body: JSON.stringify({
                         subjectId: parseInt(subjectId),
-                        subjectName: subject.name,
+                        subjectName: currentSubject.name,
                         chapterId: parseInt(chapterId),
-                        chapterName: chapter.title || chapter.name,
+                        chapterName: currentChapter.title || currentChapter.name,
                         timeSpent: minutesToSend,
                     }),
                 }).catch(err => console.error("Error saving final progress:", err));
             }
         };
-    }, []); // Empty dependency array ensures intervals are stable
+    }, [user, subjectId, chapterId, currentChapter, currentSubject]);
 
-    // Initialize voice recognition
-    useEffect(() => {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-        if (SpeechRecognition) {
-            setIsVoiceSupported(true);
-            recognitionRef.current = new SpeechRecognition();
-            recognitionRef.current.continuous = false;
-            recognitionRef.current.interimResults = false;
-            recognitionRef.current.lang = currentLanguage === 'en' ? 'en-US' : 'hi-IN';
-
-            recognitionRef.current.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                if (transcript && transcript.trim()) {
-                    handleSendMessage(transcript);
-                }
-            };
-
-            recognitionRef.current.onerror = (event) => {
-                console.error('Speech recognition error:', event.error);
-                setIsListening(false);
-            };
-
-            recognitionRef.current.onend = () => {
-                setIsListening(false);
-            };
-        }
-
-        return () => {
-            if (recognitionRef.current) {
-                recognitionRef.current.stop();
-            }
-        };
-    }, [currentLanguage]);
-
-    const handleSendMessage = async (messageText) => {
+    const handleSendMessage = useCallback(async (messageText) => {
         if (!messageText.trim() || loading) return;
 
         const userMessage = {
@@ -192,7 +195,7 @@ function PDFViewer() {
                     message: messageText,
                     sessionId: sessionId,
                     language: currentLanguage,
-                    context: `Subject: ${subject?.name}, Chapter: ${chapter?.title}`
+                    context: `Subject: ${currentSubject?.name}, Chapter: ${currentChapter?.name || currentChapter?.title}`
                 },
                 (chunk) => {
                     // onChunk callback
@@ -255,7 +258,44 @@ function PDFViewer() {
             abortControllerRef.current = null;
             setLoading(false);
         }
-    };
+    }, [loading, sessionId, currentLanguage, currentSubject, currentChapter]);
+
+    // Initialize voice recognition
+    useEffect(() => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (SpeechRecognition) {
+            setIsVoiceSupported(true);
+            recognitionRef.current = new SpeechRecognition();
+            recognitionRef.current.continuous = false;
+            recognitionRef.current.interimResults = false;
+            recognitionRef.current.lang = currentLanguage === 'en' ? 'en-US' : 'hi-IN';
+
+            recognitionRef.current.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                if (transcript && transcript.trim()) {
+                    handleSendMessage(transcript);
+                }
+            };
+
+            recognitionRef.current.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                setIsListening(false);
+            };
+
+            recognitionRef.current.onend = () => {
+                setIsListening(false);
+            };
+        }
+
+        return () => {
+            if (recognitionRef.current) {
+                recognitionRef.current.stop();
+            }
+        };
+    }, [currentLanguage, handleSendMessage]);
+
+
 
     const handleStopResponse = () => {
         if (abortControllerRef.current) {
@@ -347,7 +387,17 @@ function PDFViewer() {
         navigate(`/subjects/${subjectId}/chapters`);
     };
 
-    if (!chapter || !subject) {
+    if ((!currentChapter || !currentSubject) && !user) {
+        return (
+            <div className="pdf-viewer-container">
+                <div className="error-message">
+                    <h2>Loading Chapter...</h2>
+                </div>
+            </div>
+        );
+    }
+
+    if (!currentChapter || !currentSubject) {
         return (
             <div className="pdf-viewer-container">
                 <div className="error-message">
@@ -367,7 +417,7 @@ function PDFViewer() {
                     ← Back to Chapters
                 </button>
                 <div className="chapter-info-header">
-                    <h2>{chapter.title}</h2>
+                    <h2>{currentChapter.name || currentChapter.title}</h2>
                 </div>
             </div>
 
@@ -375,10 +425,10 @@ function PDFViewer() {
                 {/* PDF Section - Left Side */}
                 <div className="pdf-section">
                     <div className="pdf-container">
-                        {chapter.pdfUrl ? (
+                        {currentChapter.pdfUrl ? (
                             <iframe
-                                src={`${chapter.pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-                                title={chapter.title || chapter.name}
+                                src={`${currentChapter.pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                                title={currentChapter.name || currentChapter.title}
                                 className="pdf-iframe"
                                 style={{
                                     width: '100%',
@@ -391,7 +441,7 @@ function PDFViewer() {
                             <div className="pdf-placeholder">
                                 <div className="pdf-icon">📄</div>
                                 <h3>No PDF Available</h3>
-                                <p>PDF for "{chapter.title || chapter.name}" is not available yet.</p>
+                                <p>PDF for "{currentChapter.name || currentChapter.title}" is not available yet.</p>
                             </div>
                         )}
                     </div>

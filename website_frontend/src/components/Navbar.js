@@ -8,8 +8,7 @@ function Navbar() {
     const navigate = useNavigate();
 
     const handleLogout = () => {
-        logout();
-        navigate("/");
+        navigate("/logout-confirm");
     };
 
     return (
@@ -24,6 +23,9 @@ function Navbar() {
                     <Link to="/" className="nav-link">
                         Home
                     </Link>
+                    <a href="#contact-info" className="nav-link">
+                        Contact
+                    </a>
 
                     {isAuthenticated ? (
                         <>

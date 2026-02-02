@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import Footer from "../components/Footer";
 import "../styles/Home.css";
 
 function Home() {
@@ -156,6 +157,7 @@ function Home() {
                     )}
                 </div>
             </section>
+            <Footer />
         </div>
     );
 }

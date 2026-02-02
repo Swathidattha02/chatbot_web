@@ -93,7 +93,7 @@ function Analytics() {
                         <div className="card-header-flex">
                             <div>
                                 <span className="card-subtitle">DAILY STUDY TIME</span>
-                                <h2 className="card-title-lg">{dailyData.totalHours} <span className="unit">Hours</span></h2>
+                                <h2 className="card-title-lg">{dailyData.totalHours} <span className="unit">Hours</span> {dailyData.totalMinutes} <span className="unit">Min</span></h2>
                             </div>
                             <div className="trend-badge positive">
                                 <span className="arrow">↗</span> Dynamic
@@ -109,7 +109,11 @@ function Analytics() {
                                         ))}
                                     </Bar>
                                     <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#999' }} />
-                                    <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                                    <Tooltip
+                                        cursor={{ fill: 'transparent' }}
+                                        contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                        formatter={(value) => [`${value}m`, 'Time Spent']}
+                                    />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
@@ -151,16 +155,15 @@ function Analytics() {
                                     <p className="sub-detail">{sub.chapterName}</p>
                                 </div>
                                 <div className="subject-stats">
-                                    <div className="time-stat">{Math.floor(sub.timeSpent / 60)}h {sub.timeSpent % 60}m</div>
-                                    <div className="status-stat">✨ AI Assistant active</div>
+                                    <div className="time-stat">{Math.floor(sub.timeSpent / 60)}h {Math.round(sub.timeSpent % 60)}m</div>
+                                    <div className={`status-stat ${sub.status === 'Completed' ? 'status-done' : 'status-ongoing'}`}>
+                                        {sub.status === 'Completed' ? '✅ Completed' : '⏳ In Progress'}
+                                    </div>
                                 </div>
                             </div>
                         )) : (
                             <div className="no-data-placeholder">No subjects studied yet today. Start learning!</div>
                         )}
-                        <div className="view-all-footer">
-                            <button className="view-all-btn">+ View all {dailyData.subjects.length} subjects</button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -170,15 +173,12 @@ function Analytics() {
     const renderWeekView = () => {
         if (!weeklyData) return null;
 
-        const weekChartData = [
-            { day: 'MON', actual: 120, goal: 150 },
-            { day: 'TUE', actual: 180, goal: 150 },
-            { day: 'WED', actual: 140, goal: 150 },
-            { day: 'THU', actual: 200, goal: 150 },
-            { day: 'FRI', actual: 90, goal: 150 },
-            { day: 'SAT', actual: 60, goal: 120 },
-            { day: 'SUN', actual: 30, goal: 120 },
-        ];
+        const daysOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const weekChartData = daysOrder.map(day => ({
+            day,
+            actual: Math.round(weeklyData.dailyData[day] || 0),
+            goal: 120
+        }));
 
         return (
             <div className="analytics-view-container week-view">
@@ -187,7 +187,7 @@ function Analytics() {
                         <span className="box-label">Total Study Time</span>
                         <div className="box-value-row">
                             <span className="value">
-                                {Math.floor(weeklyData.totalTime / 60)}h {weeklyData.totalTime % 60}m
+                                {Math.floor(weeklyData.totalTime / 60)}h {Math.round(weeklyData.totalTime % 60)}m
                             </span>
                             <span className="trend positive">↗ Dynamic</span>
                         </div>
@@ -198,7 +198,7 @@ function Analytics() {
                             <span className="value">
                                 {Math.floor((weeklyData.totalTime / 7) / 60)}h {Math.round((weeklyData.totalTime / 7) % 60)}m
                             </span>
-                            <span className="target">Target: 3h</span>
+                            <span className="target">Target: 2h</span>
                         </div>
                     </div>
                     <div className="stat-box-card">
@@ -214,7 +214,7 @@ function Analytics() {
 
                 <div className="chart-card-full">
                     <div className="card-header-flex">
-                        <h3 className="section-title">STUDY TIME PER DAY</h3>
+                        <h3 className="section-title">STUDY TIME PER DAY (MINUTES)</h3>
                         <div className="legend-flex">
                             <div className="legend-item"><span className="dot blue"></span> Actual</div>
                             <div className="legend-item"><span className="dot light"></span> Goal</div>
@@ -227,7 +227,7 @@ function Analytics() {
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F0" />
                                 <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#666' }} />
                                 <YAxis hide />
-                                <Tooltip cursor={{ fill: '#F9FAFB' }} />
+                                <Tooltip cursor={{ fill: '#F9FAFB' }} formatter={(value) => [`${value}m`, 'Time']} />
                                 <Bar dataKey="actual" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={30} />
                                 <Bar dataKey="goal" fill="#E5E7EB" radius={[4, 4, 0, 0]} barSize={30} />
                             </BarChart>
@@ -236,28 +236,26 @@ function Analytics() {
                 </div>
 
                 <div className="subject-distribution-section">
-                    <h3 className="section-title">Subject Distribution</h3>
+                    <h3 className="section-title">Subject Performance</h3>
                     <div className="subject-cards-grid">
-                        {[
-                            { name: 'Mathematics', val: '4h 20m', change: '+25%', color: '#3B82F6', icon: 'Σ' },
-                            { name: 'Science', val: '3h 15m', change: 'Stable', color: '#8B5CF6', icon: '⚛️' },
-                            { name: 'English', val: '2h 45m', change: '-5%', color: '#F59E0B', icon: '📖' },
-                            { name: 'History', val: '1h 45m', change: '+10%', color: '#10B981', icon: '🌍' }
-                        ].map((s, i) => (
+                        {weeklyData.subjectProgress?.map((s, i) => (
                             <div key={i} className="mini-subject-card">
                                 <div className="mini-header">
-                                    <div className="mini-icon" style={{ backgroundColor: `${s.color}20`, color: s.color }}>{s.icon}</div>
-                                    <span className={`mini-trend ${s.change.includes('+') ? 'pos' : s.change.includes('-') ? 'neg' : 'stable'}`}>
-                                        {s.change} vs last week
+                                    <div className="mini-icon" style={{ backgroundColor: '#E8F0FE', color: '#3B82F6' }}>📚</div>
+                                    <span className={`mini-trend pos`}>
+                                        {Math.round((s.topicsCompleted / s.totalTopics) * 100) || 0}% Done
                                     </span>
                                 </div>
                                 <h4 className="mini-name">{s.name}</h4>
-                                <div className="mini-value">{s.val} total</div>
+                                <div className="mini-value">{Math.floor(s.timeSpent / 60)}h {Math.round(s.timeSpent % 60)}m total</div>
                                 <div className="mini-progress-track">
-                                    <div className="mini-progress-fill" style={{ width: '70%', backgroundColor: s.color }}></div>
+                                    <div className="mini-progress-fill" style={{ width: `${(s.topicsCompleted / s.totalTopics) * 100}%`, backgroundColor: '#3B82F6' }}></div>
                                 </div>
                             </div>
                         ))}
+                        {(!weeklyData.subjectProgress || weeklyData.subjectProgress.length === 0) && (
+                            <div className="no-data-placeholder">No subject data for this week.</div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -267,12 +265,11 @@ function Analytics() {
     const renderMonthView = () => {
         if (!monthlyData) return null;
 
-        const monthChartData = [
-            { week: 'Week 1', value: 30, goal: 40 },
-            { week: 'Week 2', value: 45, goal: 40 },
-            { week: 'Week 3', value: 55, goal: 40 },
-            { week: 'Week 4', value: 35, goal: 40 },
-        ];
+        const monthChartData = (monthlyData.weeklyData || []).map((val, i) => ({
+            week: `Week ${i + 1}`,
+            value: Math.round(val),
+            goal: 600 // 10 hours per week goal (in minutes)
+        }));
 
         return (
             <div className="analytics-view-container month-view">
@@ -292,15 +289,15 @@ function Analytics() {
 
                 <div className="chart-card-full month-chart">
                     <div className="card-header-flex">
-                        <h3 className="section-title">Weekly Aggregated Study Time</h3>
-                        <div className="legend-item"><span className="dot blue"></span> Study Hours</div>
+                        <h3 className="section-title">Weekly Aggregate (Minutes)</h3>
+                        <div className="legend-item"><span className="dot blue"></span> Study Minutes</div>
                     </div>
 
                     <div className="chart-wrapper-full">
                         <ResponsiveContainer width="100%" height={250}>
                             <BarChart data={monthChartData}>
                                 <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#666' }} />
-                                <Tooltip cursor={{ fill: '#F9FAFB' }} />
+                                <Tooltip cursor={{ fill: '#F9FAFB' }} formatter={(value) => [`${value}m`, 'Time']} />
                                 <Bar dataKey="value" fill="#2563EB" radius={[6, 6, 0, 0]} barSize={60} />
                                 <Bar dataKey="goal" fill="#DBEAFE" radius={[6, 6, 0, 0]} barSize={60} />
                             </BarChart>

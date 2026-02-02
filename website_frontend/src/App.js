@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
 // Pages
@@ -11,6 +11,7 @@ import ChatWithAvatar from "./pages/ChatWithAvatar";
 import SubjectChapters from "./pages/SubjectChapters";
 import PDFViewer from "./pages/PDFViewer";
 import Analytics from "./pages/Analytics";
+import LogoutConfirmation from "./pages/LogoutConfirmation";
 
 // Components
 import Navbar from "./components/Navbar";
@@ -30,10 +31,13 @@ const ProtectedRoute = ({ children }) => {
   return isAuthenticated ? children : <Navigate to="/login" />;
 };
 
-function AppRoutes() {
+function AppContent() {
+  const location = useLocation();
+  const isChatPage = location.pathname === '/chat';
+
   return (
-    <Router>
-      <Navbar />
+    <>
+      {!isChatPage && <Navbar />}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
@@ -78,7 +82,23 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/logout-confirm"
+          element={
+            <ProtectedRoute>
+              <LogoutConfirmation />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
+    </>
+  );
+}
+
+function AppRoutes() {
+  return (
+    <Router>
+      <AppContent />
     </Router>
   );
 }

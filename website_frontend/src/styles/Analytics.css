@@ -275,8 +275,20 @@
 
 .status-stat {
     font-size: 11px;
-    color: #94A3B8;
+    font-weight: 600;
     margin-top: 4px;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.status-stat.status-done {
+    background: #DCFCE7;
+    color: #15803D;
+}
+
+.status-stat.status-ongoing {
+    background: #FEF3C7;
+    color: #B45309;
 }
 
 .view-all-footer {
