@@ -11,6 +11,6 @@ until curl -s http://localhost:11434/api/tags > /dev/null; do
 done
 echo "Ollama server is ready!"
 
-# Start the FastAPI wrapper
-echo "Starting FastAPI wrapper..."
-exec uvicorn main:app --host 0.0.0.0 --port 8000
+# Start the RunPod worker (Brain of the serverless endpoint)
+echo "Starting RunPod Worker..."
+exec python3 handler.py

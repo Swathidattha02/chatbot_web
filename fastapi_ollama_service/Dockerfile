@@ -27,6 +27,7 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Copy application code and scripts
 COPY main.py .
+COPY handler.py .
 COPY pull-model.sh .
 RUN chmod +x pull-model.sh
 
