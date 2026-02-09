@@ -9,12 +9,13 @@ ENV PYTHONUNBUFFERED=1
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install Python and system dependencies
-# We combine update, install, and cleanup to keep the image small
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     python3-dev \
+    python3-venv \
     build-essential \
+    git \
     curl \
     procps \
     && apt-get clean \
@@ -25,8 +26,8 @@ WORKDIR /app
 
 # Copy Python requirements first to leverage Docker cache
 COPY requirements.txt .
-RUN pip3 install --upgrade pip && \
-    pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install --upgrade pip --break-system-packages && \
+    pip3 install --no-cache-dir -r requirements.txt --break-system-packages
 
 # Copy application code and scripts
 COPY main.py .
