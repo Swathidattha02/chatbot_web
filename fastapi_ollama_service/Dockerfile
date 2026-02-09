@@ -15,6 +15,8 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     python3-venv \
     build-essential \
+    libffi-dev \
+    libssl-dev \
     git \
     curl \
     procps \
@@ -24,10 +26,14 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
+# Create and use a virtual environment
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
 # Copy Python requirements first to leverage Docker cache
 COPY requirements.txt .
-RUN pip3 install --upgrade pip --break-system-packages && \
-    pip3 install --no-cache-dir -r requirements.txt --break-system-packages
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy application code and scripts
 COPY main.py .
