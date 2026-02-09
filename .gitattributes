@@ -1,0 +1,3 @@
+# Force shell scripts to always use LF (Linux) line endings
+*.sh text eol=lf
+fastapi_ollama_service/*.sh text eol=lf
