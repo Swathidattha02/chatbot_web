@@ -164,58 +164,84 @@ exports.sendMessage = async (req, res) => {
         // Fallback to direct Ollama if RAG didn't work
         if (aiResponse === "I'm your AI assistant. How can I help you today?") {
             try {
-                console.log(`🤖 Calling Ollama(${LLM_MODEL}) for message: `, message);
+                // Call AI Service (Detect RunPod or Local Ollama)
+                const RUNPOD_API_KEY = process.env.RUNPOD_API_KEY;
+                const RUNPOD_ENDPOINT_ID = process.env.RUNPOD_ENDPOINT_ID;
 
-                // Build conversation history for context
-                const conversationHistory = chatSession.messages.slice(-10).map(msg => ({
-                    role: msg.role === 'user' ? 'user' : 'assistant',
-                    content: msg.content
-                }));
+                if (RUNPOD_API_KEY && RUNPOD_ENDPOINT_ID) {
+                    console.log('🚀 Using RunPod Serverless Endpoint:', RUNPOD_ENDPOINT_ID);
 
-                const systemPrompt = getSystemPrompt(language);
-                const languageName = LANGUAGE_NAMES[language] || 'English';
-
-                // Reinforce language in the last message
-                const currentConversation = [...conversationHistory];
-                if (language !== 'en' && currentConversation.length > 0) {
-                    const lastMsg = currentConversation[currentConversation.length - 1];
-                    if (lastMsg.role === 'user') {
-                        // Prepend for maximum visibility to the AI
-                        lastMsg.content = `[INSTRUCTION: Answer ONLY in ${languageName}] ${lastMsg.content}`;
-                    }
-                }
-
-                // Call Ollama API
-                const ollamaResponse = await axios.post(
-                    `${OLLAMA_BASE_URL}/api/chat`,
-                    {
-                        model: LLM_MODEL,
-                        messages: [
-                            {
-                                role: 'system',
-                                content: systemPrompt
+                    const runpodResponse = await axios.post(
+                        `https://api.runpod.ai/v1/${RUNPOD_ENDPOINT_ID}/runsync`,
+                        {
+                            input: {
+                                method_name: "chat", // Most ollama workers use this or generic 'input'
+                                input: {
+                                    model: LLM_MODEL,
+                                    messages: [
+                                        { role: 'system', content: systemPrompt },
+                                        ...currentConversation
+                                    ],
+                                    stream: false
+                                }
+                            }
+                        },
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${RUNPOD_API_KEY}`,
+                                'Content-Type': 'application/json'
                             },
-                            ...currentConversation
-                        ],
-                        stream: false
-                    },
-                    {
-                        timeout: 60000,
-                        headers: {
-                            'Content-Type': 'application/json'
+                            timeout: 120000 // 2 minutes for cold starts
                         }
-                    }
-                );
+                    );
 
-                if (ollamaResponse.data && ollamaResponse.data.message) {
-                    aiResponse = ollamaResponse.data.message.content;
-                    console.log('✅ Ollama response received:', aiResponse.substring(0, 100) + '...');
+                    if (runpodResponse.data && runpodResponse.data.output) {
+                        // Handle different worker output formats
+                        const output = runpodResponse.data.output;
+                        if (typeof output === 'string') {
+                            aiResponse = output;
+                        } else if (output.message && output.message.content) {
+                            aiResponse = output.message.content;
+                        } else if (output.response) {
+                            aiResponse = output.response;
+                        }
+                    } else if (runpodResponse.data && runpodResponse.data.error) {
+                        throw new Error(`RunPod Error: ${runpodResponse.data.error}`);
+                    }
+                } else {
+                    // Call Local Ollama API
+                    const ollamaResponse = await axios.post(
+                        `${OLLAMA_BASE_URL}/api/chat`,
+                        {
+                            model: LLM_MODEL,
+                            messages: [
+                                {
+                                    role: 'system',
+                                    content: systemPrompt
+                                },
+                                ...currentConversation
+                            ],
+                            stream: false
+                        },
+                        {
+                            timeout: 60000,
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        }
+                    );
+
+                    if (ollamaResponse.data && ollamaResponse.data.message) {
+                        aiResponse = ollamaResponse.data.message.content;
+                        console.log('✅ Ollama response received:', aiResponse.substring(0, 100) + '...');
+                    }
                 }
             } catch (aiError) {
-                console.error("❌ Ollama Service Error:", aiError.message);
+                console.error("❌ AI Service Error:", aiError.message);
 
-                // Check if Ollama is running
-                if (aiError.code === 'ECONNREFUSED') {
+                if (aiError.message.includes('RunPod')) {
+                    aiResponse = "I'm having trouble connecting to my remote AI service on RunPod. It might be starting up (Cold Start) or the API key is invalid.";
+                } else if (aiError.code === 'ECONNREFUSED') {
                     console.error('⚠️ Ollama is not running. Please start Ollama service.');
                     aiResponse = "I'm having trouble connecting to my AI service. Please make sure Ollama is running with llama3.2 model installed.";
                 } else if (aiError.response?.status === 404) {
@@ -432,79 +458,131 @@ exports.streamMessage = async (req, res) => {
             }
         }
 
-        // Fallback to Ollama streaming if RAG didn't work
+        // Fallback to AI Service streaming if RAG didn't work
         if (!usedRAG) {
-            console.log('🤖 Using Ollama streaming');
+            const RUNPOD_API_KEY = process.env.RUNPOD_API_KEY;
+            const RUNPOD_ENDPOINT_ID = process.env.RUNPOD_ENDPOINT_ID;
 
             const conversationHistory = chatSession.messages.slice(-10).map(msg => ({
                 role: msg.role === 'user' ? 'user' : 'assistant',
                 content: msg.content
             }));
 
-            try {
-                const systemPrompt = getSystemPrompt(language);
-                const languageName = LANGUAGE_NAMES[language] || 'English';
+            const systemPrompt = getSystemPrompt(language);
+            const languageName = LANGUAGE_NAMES[language] || 'English';
 
-                // Reinforce language in the last message
-                const currentConversation = [...conversationHistory];
-                if (language !== 'en' && currentConversation.length > 0) {
-                    const lastMsg = currentConversation[currentConversation.length - 1];
-                    if (lastMsg.role === 'user') {
-                        // Prepend for maximum visibility to the AI
-                        lastMsg.content = `[INSTRUCTION: Answer ONLY in ${languageName}] ${lastMsg.content}`;
-                    }
+            // Reinforce language in the last message
+            const currentConversation = [...conversationHistory];
+            if (language !== 'en' && currentConversation.length > 0) {
+                const lastMsg = currentConversation[currentConversation.length - 1];
+                if (lastMsg.role === 'user') {
+                    lastMsg.content = `[INSTRUCTION: Answer ONLY in ${languageName}] ${lastMsg.content}`;
                 }
+            }
 
-                const ollamaResponse = await axios.post(
-                    `${OLLAMA_BASE_URL}/api/chat`,
-                    {
-                        model: LLM_MODEL,
-                        messages: [
-                            {
-                                role: 'system',
-                                content: systemPrompt
+            if (RUNPOD_API_KEY && RUNPOD_ENDPOINT_ID) {
+                console.log('🚀 Using RunPod Serverless for streaming (as fake stream)');
+                try {
+                    const runpodResponse = await axios.post(
+                        `https://api.runpod.ai/v1/${RUNPOD_ENDPOINT_ID}/runsync`,
+                        {
+                            input: {
+                                method_name: "chat",
+                                input: {
+                                    model: LLM_MODEL,
+                                    messages: [
+                                        { role: 'system', content: systemPrompt },
+                                        ...currentConversation
+                                    ],
+                                    stream: false
+                                }
+                            }
+                        },
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${RUNPOD_API_KEY}`,
+                                'Content-Type': 'application/json'
                             },
-                            ...currentConversation
-                        ],
-                        stream: true
-                    },
-                    {
-                        responseType: 'stream',
-                        timeout: 60000,
+                            timeout: 120000
+                        }
+                    );
+
+                    if (runpodResponse.data && runpodResponse.data.output) {
+                        const output = runpodResponse.data.output;
+                        let content = "";
+                        if (typeof output === 'string') {
+                            content = output;
+                        } else if (output.message && output.message.content) {
+                            content = output.message.content;
+                        } else if (output.response) {
+                            content = output.response;
+                        }
+
+                        fullResponse = content;
+                        // "Fake" stream for the client
+                        res.write(`data: ${JSON.stringify({ chunk: fullResponse, done: false })} \n\n`);
+                    } else if (runpodResponse.data && runpodResponse.data.error) {
+                        throw new Error(`RunPod Error: ${runpodResponse.data.error}`);
                     }
-                );
+                } catch (runpodError) {
+                    console.error('❌ RunPod streaming error:', runpodError.message);
+                    fullResponse = "I'm having trouble connecting to my remote AI service on RunPod.";
+                    res.write(`data: ${JSON.stringify({ chunk: fullResponse, done: false })} \n\n`);
+                }
+            } else {
+                console.log('🤖 Using Local Ollama streaming');
+                try {
+                    const ollamaResponse = await axios.post(
+                        `${OLLAMA_BASE_URL}/api/chat`,
+                        {
+                            model: LLM_MODEL,
+                            messages: [
+                                {
+                                    role: 'system',
+                                    content: systemPrompt
+                                },
+                                ...currentConversation
+                            ],
+                            stream: true
+                        },
+                        {
+                            responseType: 'stream',
+                            timeout: 60000,
+                        }
+                    );
 
-                // Stream Ollama response
-                for await (const chunk of ollamaResponse.data) {
-                    const lines = chunk.toString().split('\n').filter(line => line.trim());
+                    // Stream Ollama response
+                    for await (const chunk of ollamaResponse.data) {
+                        const lines = chunk.toString().split('\n').filter(line => line.trim());
 
-                    for (const line of lines) {
-                        try {
-                            const json = JSON.parse(line);
-                            if (json.message?.content) {
-                                fullResponse += json.message.content;
-                                res.write(`data: ${JSON.stringify({ chunk: json.message.content, done: false })} \n\n`);
+                        for (const line of lines) {
+                            try {
+                                const json = JSON.parse(line);
+                                if (json.message?.content) {
+                                    fullResponse += json.message.content;
+                                    res.write(`data: ${JSON.stringify({ chunk: json.message.content, done: false })} \n\n`);
+                                }
+                                if (json.done) {
+                                    break;
+                                }
+                            } catch (e) {
+                                // Skip invalid JSON
                             }
-                            if (json.done) {
-                                break;
-                            }
-                        } catch (e) {
-                            // Skip invalid JSON
                         }
                     }
-                }
-            } catch (ollamaError) {
-                console.error('❌ Ollama streaming error:', ollamaError.message);
+                } catch (ollamaError) {
+                    console.error('❌ Ollama streaming error:', ollamaError.message);
 
-                if (ollamaError.code === 'ECONNREFUSED') {
-                    fullResponse = "Ollama is not running. Please start the Ollama service on your computer.";
-                } else if (ollamaError.response?.status === 404) {
-                    fullResponse = `The AI model(${LLM_MODEL}) is not found.Please run: ollama pull ${LLM_MODEL} `;
-                } else {
-                    fullResponse = "I apologize, but I'm having technical difficulties. Please check if Ollama is running.";
-                }
+                    if (ollamaError.code === 'ECONNREFUSED') {
+                        fullResponse = "Ollama is not running. Please start the Ollama service on your computer.";
+                    } else if (ollamaError.response?.status === 404) {
+                        fullResponse = `The AI model(${LLM_MODEL}) is not found.Please run: ollama pull ${LLM_MODEL} `;
+                    } else {
+                        fullResponse = "I apologize, but I'm having technical difficulties. Please check if Ollama is running.";
+                    }
 
-                res.write(`data: ${JSON.stringify({ chunk: fullResponse, done: false })} \n\n`);
+                    res.write(`data: ${JSON.stringify({ chunk: fullResponse, done: false })} \n\n`);
+                }
             }
         }
 

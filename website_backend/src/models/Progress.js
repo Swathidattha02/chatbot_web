@@ -44,6 +44,9 @@ const progressSchema = new mongoose.Schema(
                 duration: {
                     type: Number, // duration of this specific session
                     required: true,
+                },
+                endTime: {
+                    type: Date
                 }
             }
         ]

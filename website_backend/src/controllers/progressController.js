@@ -18,14 +18,31 @@ exports.updateProgress = async (req, res) => {
             progress.timeSpent += timeSpent;
             progress.lastAccessed = Date.now();
 
-            // Add session to history
             if (!progress.sessions) {
                 progress.sessions = [];
             }
-            progress.sessions.push({
-                date: new Date(),
-                duration: timeSpent
-            });
+
+            // Check if last session was recent (within 2 minutes) to MERGE
+            const lastSession = progress.sessions.length > 0 ? progress.sessions[progress.sessions.length - 1] : null;
+            const now = new Date();
+
+            // If last session exists and was updated/created less than 2 minutes ago
+            // compare lastSession.endTime if it exists, else lastSession.date
+            const lastActiveTime = lastSession?.endTime || lastSession?.date;
+            const isRecent = lastActiveTime && (now - new Date(lastActiveTime)) < 120000; // 2 minutes
+
+            if (isRecent) {
+                // Update existing session
+                lastSession.duration += timeSpent;
+                lastSession.endTime = now;
+            } else {
+                // Start a new session
+                progress.sessions.push({
+                    date: now,
+                    duration: timeSpent,
+                    endTime: now
+                });
+            }
 
             // Mark as completed if spent at least 2 minutes (total)
             if (progress.timeSpent >= 2) {
@@ -33,10 +50,11 @@ exports.updateProgress = async (req, res) => {
             }
 
             await progress.save();
-            console.log(`💾 Progress saved - Total time: ${progress.timeSpent} min, Completed: ${progress.completed}, Sessions: ${progress.sessions.length}`);
+            console.log(`💾 Progress saved - Sessions: ${progress.sessions.length}, Last session duration: ${progress.sessions[progress.sessions.length - 1].duration.toFixed(2)}m`);
 
         } else {
             // Create new progress entry
+            const now = new Date();
             progress = await Progress.create({
                 userId,
                 subjectId,
@@ -46,11 +64,12 @@ exports.updateProgress = async (req, res) => {
                 timeSpent,
                 completed: timeSpent >= 2,
                 sessions: [{
-                    date: new Date(),
-                    duration: timeSpent
+                    date: now,
+                    duration: timeSpent,
+                    endTime: now
                 }]
             });
-            console.log(`🆕 New progress created - Time: ${timeSpent} min, Completed: ${progress.completed}`);
+            console.log(`🆕 New progress created - Time: ${timeSpent} min`);
         }
 
         res.status(200).json({
@@ -176,9 +195,9 @@ exports.getDailyAnalytics = async (req, res) => {
             'sessions.date': { $gte: targetDate, $lt: nextDate }
         });
 
-        // Calculate hourly time spent
-        const hourlyData = Array(12).fill(0); // 12 slots for 2-hour segments (0-2, 2-4, ..., 22-24)
-        const labels = ['12AM', '2AM', '4AM', '6AM', '8AM', '10AM', '12PM', '2PM', '4PM', '6PM', '8PM', '10PM'];
+        // Calculate hourly time spent from 6 AM to 12 AM
+        const hourlyData = Array(10).fill(0); // 10 slots for 2-hour segments (6-8, 8-10, ..., 22-24, 24-2)
+        const labels = ['6AM', '8AM', '10AM', '12PM', '2PM', '4PM', '6PM', '8PM', '10PM', '12AM'];
 
         const subjectsToday = {};
         let totalMinutesToday = 0;
@@ -189,22 +208,34 @@ exports.getDailyAnalytics = async (req, res) => {
                     const sessionDate = new Date(session.date);
                     if (sessionDate >= targetDate && sessionDate < nextDate) {
                         const hour = sessionDate.getHours();
-                        const slotIndex = Math.floor(hour / 2);
-                        const duration = session.duration || 0;
 
-                        hourlyData[slotIndex] += duration;
-                        totalMinutesToday += duration;
+                        // Only count sessions from 6 AM onwards
+                        if (hour >= 6) {
+                            const slotIndex = Math.floor((hour - 6) / 2);
+                            const duration = session.duration || 0;
 
-                        if (!subjectsToday[p.subjectName]) {
-                            subjectsToday[p.subjectName] = {
-                                name: p.subjectName,
-                                chapterName: p.chapterName,
-                                timeSpent: 0,
-                                status: p.completed ? 'Completed' : 'In Progress',
-                                icon: p.subjectId // Frontend can map this to an icon
-                            };
+                            if (slotIndex < 10) {
+                                hourlyData[slotIndex] += duration;
+                            }
+                            totalMinutesToday += duration;
+
+                            if (!subjectsToday[p.subjectName]) {
+                                subjectsToday[p.subjectName] = {
+                                    name: p.subjectName,
+                                    chapterName: p.chapterName,
+                                    timeSpent: 0,
+                                    status: p.completed ? 'Completed' : 'In Progress',
+                                    icon: p.subjectId,
+                                    sessions: []
+                                };
+                            }
+                            subjectsToday[p.subjectName].timeSpent += duration;
+                            subjectsToday[p.subjectName].sessions.push({
+                                startTime: sessionDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+                                endTime: session.endTime ? new Date(session.endTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : null,
+                                duration: duration
+                            });
                         }
-                        subjectsToday[p.subjectName].timeSpent += duration;
                     }
                 });
             }
@@ -305,9 +336,13 @@ exports.getWeeklyAnalytics = async (req, res) => {
                                 timeSpent: 0,
                                 topicsCompleted: 0,
                                 totalTopics: 0,
+                                dailyBreakdown: {}
                             };
+                            // Initialize days for breakdown
+                            days.forEach(d => { subjectProgress[p.subjectName].dailyBreakdown[d] = 0; });
                         }
                         subjectProgress[p.subjectName].timeSpent += duration;
+                        subjectProgress[p.subjectName].dailyBreakdown[dayName] += duration;
                     }
                 });
             } else {
