@@ -166,6 +166,11 @@ function PDFViewer() {
     const handleSendMessage = useCallback(async (messageText) => {
         if (!messageText.trim() || loading) return;
 
+        // Stop current speech when sending a new message
+        if (isAvatarSpeaking) {
+            stopSpeaking();
+        }
+
         const userMessage = {
             role: "user",
             content: messageText,
@@ -322,6 +327,11 @@ function PDFViewer() {
         if (!isVoiceSupported) {
             alert('Speech recognition is not supported in your browser. Please use Chrome or Edge.');
             return;
+        }
+
+        // Stop current speech when starting voice input
+        if (!isListening && isAvatarSpeaking) {
+            stopSpeaking();
         }
 
         if (isListening) {
@@ -491,7 +501,11 @@ function PDFViewer() {
                 <div className="chatbot-section">
                     <div className="chat-interface-pdf">
                         {/* Avatar Header */}
-                        <div className="chat-avatar-header-pdf">
+                        <div
+                            className={`chat-avatar-header-pdf ${isAvatarSpeaking ? 'speaking' : ''}`}
+                            onClick={isAvatarSpeaking ? stopSpeaking : null}
+                            title={isAvatarSpeaking ? "Click to stop speaking" : ""}
+                        >
                             <div className="avatar-canvas-container-pdf">
                                 <Canvas
                                     camera={{

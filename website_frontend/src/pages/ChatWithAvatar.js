@@ -107,6 +107,11 @@ function ChatWithAvatar() {
     const handleSendMessage = async (messageText) => {
         if (!messageText.trim() || loading) return;
 
+        // Stop current speech when sending a new message
+        if (isAvatarSpeaking) {
+            stopSpeaking();
+        }
+
         const userMessage = {
             role: "user",
             content: messageText,
@@ -235,6 +240,10 @@ function ChatWithAvatar() {
             return;
         }
 
+        // Stop current speech when starting voice input
+        if (!isListening && isAvatarSpeaking) {
+            stopSpeaking();
+        }
         if (isListening) {
             recognitionRef.current.stop();
             setIsListening(false);
@@ -354,7 +363,11 @@ function ChatWithAvatar() {
         <div className="chat-page">
             <div className="chat-interface">
                 {/* Avatar Header - Top 30% */}
-                <div className="chat-avatar-header">
+                <div
+                    className={`chat-avatar-header ${isAvatarSpeaking ? 'speaking' : ''}`}
+                    onClick={isAvatarSpeaking ? stopSpeaking : null}
+                    title={isAvatarSpeaking ? "Click to stop speaking" : ""}
+                >
                     <div className="avatar-canvas-container">
                         <Canvas
                             camera={{

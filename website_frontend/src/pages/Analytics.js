@@ -19,7 +19,7 @@ function Analytics() {
     const fetchDailyAnalytics = useCallback(async (date) => {
         try {
             const token = localStorage.getItem("token");
-            const dateStr = date.toISOString().split('T')[0];
+            const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
             const response = await fetch(`http://localhost:5000/api/progress/analytics/daily?date=${dateStr}`, {
                 headers: { "Authorization": `Bearer ${token}` },
             });
@@ -103,7 +103,7 @@ function Analytics() {
                         <div className="chart-wrapper-h">
                             <ResponsiveContainer width="100%" height={200}>
                                 <BarChart data={dailyData.hourlyData}>
-                                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                                    <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={30}>
                                         {dailyData.hourlyData.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={entry.value > 0 ? "#7B9FE8" : "#F0F0F0"} />
                                         ))}
@@ -141,12 +141,19 @@ function Analytics() {
 
                 <div className="subjects-studied-section">
                     <div className="section-header-flex">
-                        <h3 className="section-title"><span className="icon">📖</span> Subjects Studied Today</h3>
+                        <h3 className="section-title"><span className="icon">📖</span> Today's Learning Activity</h3>
                     </div>
 
                     <div className="subjects-list">
+                        {console.log("Daily Subjects Data:", dailyData.subjects)}
                         {dailyData.subjects.length > 0 ? dailyData.subjects.map((sub, i) => (
-                            <div key={i} className="subject-row-item">
+                            <div
+                                key={i}
+                                className="subject-row-item"
+                                title={sub.sessions && sub.sessions.length > 0
+                                    ? `Study Sessions:\n${sub.sessions.map(s => `• ${s.startTime}${s.endTime ? ` to ${s.endTime}` : ''} (${Math.round(s.duration)} min)`).join('\n')}`
+                                    : 'No session details'}
+                            >
                                 <div className="subject-icon-box" style={{ backgroundColor: i % 2 === 0 ? '#E8F0FE' : '#F3E8FF' }}>
                                     {i % 2 === 0 ? '📐' : '⚛️'}
                                 </div>
@@ -155,6 +162,27 @@ function Analytics() {
                                     <p className="sub-detail">{sub.chapterName}</p>
                                 </div>
                                 <div className="subject-stats">
+                                    {sub.sessions && sub.sessions.length > 0 && (() => {
+                                        // Get the earliest start time and latest end time
+                                        const firstSession = sub.sessions[0];
+                                        const lastSession = sub.sessions[sub.sessions.length - 1];
+
+                                        // If endTime is not available, calculate it from startTime + duration
+                                        let endTimeDisplay = lastSession.endTime;
+                                        if (!endTimeDisplay && lastSession.startTime) {
+                                            // This is a fallback - ideally all sessions should have endTime
+                                            endTimeDisplay = lastSession.startTime;
+                                        }
+
+                                        return (
+                                            <div className="session-time-display">
+                                                <span className="time-label">⏰ Session:</span>
+                                                <span className="time-value">
+                                                    {firstSession.startTime} - {endTimeDisplay || 'Unknown'}
+                                                </span>
+                                            </div>
+                                        );
+                                    })()}
                                     <div className="time-stat">{Math.floor(sub.timeSpent / 60)}h {Math.round(sub.timeSpent % 60)}m</div>
                                     <div className={`status-stat ${sub.status === 'Completed' ? 'status-done' : 'status-ongoing'}`}>
                                         {sub.status === 'Completed' ? '✅ Completed' : '⏳ In Progress'}
@@ -174,11 +202,15 @@ function Analytics() {
         if (!weeklyData) return null;
 
         const daysOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        const weekChartData = daysOrder.map(day => ({
-            day,
-            actual: Math.round(weeklyData.dailyData[day] || 0),
-            goal: 120
-        }));
+        const subjects = weeklyData.subjectProgress || [];
+
+        // Activity Levels for Heatmap
+        const getActivityLevel = (minutes) => {
+            if (minutes <= 0) return 'level-0';
+            if (minutes < 30) return 'level-1';
+            if (minutes < 60) return 'level-2';
+            return 'level-3';
+        };
 
         return (
             <div className="analytics-view-container week-view">
@@ -202,60 +234,82 @@ function Analytics() {
                         </div>
                     </div>
                     <div className="stat-box-card">
-                        <span className="box-label">Top Subject</span>
+                        <span className="box-label">Current Streak</span>
                         <div className="box-value-row">
-                            <span className="value">
-                                {weeklyData.subjectProgress?.sort((a, b) => b.timeSpent - a.timeSpent)[0]?.name || 'N/A'}
-                            </span>
-                            <span className="icon-sigma">Σ</span>
+                            <span className="value">{weeklyData.streak} Days</span>
+                            <span className="fire-icon-mini">🔥</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="chart-card-full">
+                <div className="chart-card-full heatmap-card">
                     <div className="card-header-flex">
-                        <h3 className="section-title">STUDY TIME PER DAY (MINUTES)</h3>
-                        <div className="legend-flex">
-                            <div className="legend-item"><span className="dot blue"></span> Actual</div>
-                            <div className="legend-item"><span className="dot light"></span> Goal</div>
+                        <div>
+                            <h3 className="section-title">Learning Activity</h3>
+                            <p className="section-subtitle">Subjects vs Last 7 Days</p>
+                        </div>
+                        <div className="heatmap-legend">
+                            <span>Less</span>
+                            <div className="legend-cells">
+                                <div className="legend-cell level-0"></div>
+                                <div className="legend-cell level-1"></div>
+                                <div className="legend-cell level-2"></div>
+                                <div className="legend-cell level-3"></div>
+                            </div>
+                            <span>More</span>
                         </div>
                     </div>
 
-                    <div className="chart-wrapper-full">
-                        <ResponsiveContainer width="100%" height={250}>
-                            <BarChart data={weekChartData}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F0F0F0" />
-                                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#666' }} />
-                                <YAxis hide />
-                                <Tooltip cursor={{ fill: '#F9FAFB' }} formatter={(value) => [`${value}m`, 'Time']} />
-                                <Bar dataKey="actual" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={30} />
-                                <Bar dataKey="goal" fill="#E5E7EB" radius={[4, 4, 0, 0]} barSize={30} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                    <div className="heatmap-container-scroll">
+                        <div className="heatmap-grid">
+                            <div className="heatmap-header-row">
+                                <div className="subject-label-empty"></div>
+                                {daysOrder.map(day => (
+                                    <div key={day} className="day-label">{day}</div>
+                                ))}
+                            </div>
+
+                            {subjects.length > 0 ? subjects.map((sub, i) => (
+                                <div key={i} className="heatmap-row">
+                                    <div className="subject-label" title={sub.name}>{sub.name}</div>
+                                    {daysOrder.map(day => {
+                                        const minutes = sub.dailyBreakdown?.[day] || 0;
+                                        return (
+                                            <div
+                                                key={day}
+                                                className={`heatmap-cell ${getActivityLevel(minutes)}`}
+                                                title={`${sub.name} - ${day}: ${Math.floor(minutes / 60)}h ${Math.round(minutes % 60)}m`}
+                                            >
+                                                {minutes > 0 && <span className="cell-value">{Math.round(minutes)}</span>}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )) : (
+                                <div className="no-data-placeholder">Not enough data to show activity heatmap.</div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
                 <div className="subject-distribution-section">
-                    <h3 className="section-title">Subject Performance</h3>
+                    <h3 className="section-title">Weekly Growth</h3>
                     <div className="subject-cards-grid">
-                        {weeklyData.subjectProgress?.map((s, i) => (
+                        {subjects.map((s, i) => (
                             <div key={i} className="mini-subject-card">
                                 <div className="mini-header">
                                     <div className="mini-icon" style={{ backgroundColor: '#E8F0FE', color: '#3B82F6' }}>📚</div>
-                                    <span className={`mini-trend pos`}>
-                                        {Math.round((s.topicsCompleted / s.totalTopics) * 100) || 0}% Done
+                                    <span className="mini-trend pos">
+                                        {Math.round((s.topicsCompleted / s.totalTopics) * 100) || 0}% Mastery
                                     </span>
                                 </div>
                                 <h4 className="mini-name">{s.name}</h4>
-                                <div className="mini-value">{Math.floor(s.timeSpent / 60)}h {Math.round(s.timeSpent % 60)}m total</div>
+                                <div className="mini-value">{Math.floor(s.timeSpent / 60)}h {Math.round(s.timeSpent % 60)}m active</div>
                                 <div className="mini-progress-track">
                                     <div className="mini-progress-fill" style={{ width: `${(s.topicsCompleted / s.totalTopics) * 100}%`, backgroundColor: '#3B82F6' }}></div>
                                 </div>
                             </div>
                         ))}
-                        {(!weeklyData.subjectProgress || weeklyData.subjectProgress.length === 0) && (
-                            <div className="no-data-placeholder">No subject data for this week.</div>
-                        )}
                     </div>
                 </div>
             </div>

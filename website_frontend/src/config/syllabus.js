@@ -10,51 +10,15 @@ export const syllabusData = {
                 chapters: [
                     {
                         id: 1,
-                        name: "Number Play",
-                        pdfUrl: "/pdfs/class6/math/number-play.pdf",
-                        description: "Introduction to numbers and basic operations"
-                    },
-                    {
-                        id: 2,
                         name: "Fractions",
                         pdfUrl: "/pdfs/class6/math/fractions.pdf",
                         description: "Understanding fractions and their operations"
                     },
                     {
-                        id: 3,
-                        name: "Lines and Angles",
-                        pdfUrl: "/pdfs/class6/math/lines-and-angles.pdf",
-                        description: "Basic geometry concepts"
-                    },
-                    {
-                        id: 4,
-                        name: "Patterns in Mathematics",
-                        pdfUrl: "/pdfs/class6/math/patterns-in-mathematics.pdf",
-                        description: "Discovering mathematical patterns"
-                    },
-                    {
-                        id: 5,
-                        name: "Perimeter and Area",
-                        pdfUrl: "/pdfs/class6/math/perimeter-and-area.pdf",
-                        description: "Calculating perimeter and area of shapes"
-                    },
-                    {
-                        id: 6,
+                        id: 2,
                         name: "Data Handling",
                         pdfUrl: "/pdfs/class6/math/data-handling.pdf",
                         description: "Introduction to data representation"
-                    },
-                    {
-                        id: 7,
-                        name: "Playing with Constructions",
-                        pdfUrl: "/pdfs/class6/math/playing with constructions.pdf",
-                        description: "Geometric constructions and drawings"
-                    },
-                    {
-                        id: 8,
-                        name: "Symmetry",
-                        pdfUrl: "/pdfs/class6/math/symmetry.pdf",
-                        description: "Understanding symmetry in shapes"
                     }
                 ]
             },
@@ -72,38 +36,64 @@ export const syllabusData = {
                     },
                     {
                         id: 2,
-                        name: "Sorting Materials into Groups",
-                        pdfUrl: "/pdfs/class6/science/sorting-materials-into-groups.pdf",
-                        description: "Classification of materials"
-                    },
-                    {
-                        id: 3,
-                        name: "Separation of Substances",
-                        pdfUrl: "/pdfs/class6/science/separations-of-substances.pdf",
-                        description: "Methods of separating mixtures"
-                    },
-                    {
-                        id: 4,
-                        name: "Getting to Know Plants",
-                        pdfUrl: "/pdfs/class6/science/getting-to-know-plants.pdf",
-                        description: "Plant structure and functions"
-                    },
-                    {
-                        id: 5,
                         name: "Body Movements",
                         pdfUrl: "/pdfs/class6/science/body-movements.pdf",
                         description: "Understanding human and animal movements"
                     },
                     {
+                        id: 3,
+                        name: "Exploring Magnets",
+                        pdfUrl: "/pdfs/class6/science/exploring-magnets.pdf",
+                        description: "Properties and uses of magnets"
+                    },
+                    {
+                        id: 4,
+                        name: "Measurements of Length and Motion",
+                        pdfUrl: "/pdfs/class6/science/measurements-of-length-and-motion.pdf",
+                        description: "Understanding measurement concepts"
+                    },
+                    {
+                        id: 5,
+                        name: "States of Water",
+                        pdfUrl: "/pdfs/class6/science/states-of-water.pdf",
+                        description: "Solid, liquid, and gas states of water"
+                    },
+                    {
                         id: 6,
-                        name: "Living Organisms",
-                        pdfUrl: "/pdfs/class6/science/livingorganisms.pdf",
-                        description: "Characteristics of living organisms"
+                        name: "Temperature and Measurements",
+                        pdfUrl: "/pdfs/class6/science/temperature-and-measurements.pdf",
+                        description: "Understanding temperature and its measurement"
                     }
                 ]
             },
             {
                 id: 3,
+                name: "Biology",
+                icon: "🧬",
+                color: "#764ba2",
+                chapters: [
+                    {
+                        id: 1,
+                        name: "Diversity in the Living World",
+                        pdfUrl: "/pdfs/class6/biology/diversity-in-the-living-world.pdf",
+                        description: "Understanding biodiversity"
+                    },
+                    {
+                        id: 2,
+                        name: "Healthy Body",
+                        pdfUrl: "/pdfs/class6/biology/healthy-body.pdf",
+                        description: "Maintaining health and hygiene"
+                    },
+                    {
+                        id: 3,
+                        name: "Materials Around Us",
+                        pdfUrl: "/pdfs/class6/biology/materials around us.pdf",
+                        description: "Understanding different materials"
+                    }
+                ]
+            },
+            {
+                id: 4,
                 name: "English",
                 icon: "📚",
                 color: "#fa709a",
@@ -123,10 +113,24 @@ export const syllabusData = {
                 ]
             },
             {
-                id: 4,
+                id: 5,
                 name: "Social Studies",
                 icon: "🌍",
                 color: "#43e97b",
+                chapters: []
+            },
+            {
+                id: 6,
+                name: "Hindi",
+                icon: "🇮🇳",
+                color: "#f093fb",
+                chapters: []
+            },
+            {
+                id: 7,
+                name: "Telugu",
+                icon: "📖",
+                color: "#fa8231",
                 chapters: []
             }
         ]
@@ -203,50 +207,69 @@ export const syllabusData = {
                     },
                     {
                         id: 4,
-                        name: "Transportation in Animals and Plants",
-                        pdfUrl: "/pdfs/class7/science/transpiration-in-animals-and-in-plants.pdf",
-                        description: "Circulatory and transport systems"
-                    },
-                    {
-                        id: 5,
                         name: "Physical and Chemical Changes",
                         pdfUrl: "/pdfs/class7/science/physical-and-chemical-changes.pdf",
                         description: "Understanding different types of changes"
                     },
                     {
-                        id: 6,
-                        name: "Wastewater Story",
-                        pdfUrl: "/pdfs/class7/science/wastewater.pdf",
-                        description: "Water treatment and conservation"
+                        id: 5,
+                        name: "World of Science",
+                        pdfUrl: "/pdfs/class7/science/world-of-science.pdf",
+                        description: "Exploring the scientific world"
                     }
                 ]
             },
             {
                 id: 3,
+                name: "Biology",
+                icon: "🧬",
+                color: "#764ba2",
+                chapters: [
+                    {
+                        id: 1,
+                        name: "Changes Around Us",
+                        pdfUrl: "/pdfs/class7/biology/changes-around-us.pdf",
+                        description: "Understanding physical and chemical changes"
+                    },
+                    {
+                        id: 2,
+                        name: "Earth, Moon and the Sun",
+                        pdfUrl: "/pdfs/class7/biology/earth-moon-the sun.pdf",
+                        description: "Celestial bodies and their relationships"
+                    },
+                    {
+                        id: 3,
+                        name: "Life Processes in Animals",
+                        pdfUrl: "/pdfs/class7/biology/life-processes-in-animals.pdf",
+                        description: "Understanding animal life processes"
+                    },
+                    {
+                        id: 4,
+                        name: "Life Processes in Plants",
+                        pdfUrl: "/pdfs/class7/biology/life-processes-in-plants.pdf",
+                        description: "Understanding plant life processes"
+                    }
+                ]
+            },
+            {
+                id: 4,
                 name: "English",
                 icon: "📚",
                 color: "#fa709a",
                 chapters: []
             },
             {
-                id: 4,
+                id: 5,
                 name: "Social Studies",
                 icon: "🌍",
                 color: "#43e97b",
                 chapters: []
             },
             {
-                id: 5,
+                id: 6,
                 name: "Hindi",
                 icon: "🇮🇳",
                 color: "#f093fb",
-                chapters: []
-            },
-            {
-                id: 6,
-                name: "Biology",
-                icon: "🧬",
-                color: "#764ba2",
                 chapters: []
             },
             {
@@ -297,21 +320,103 @@ export const syllabusData = {
                         name: "Microorganisms",
                         pdfUrl: "/pdfs/class8/science/micro-organisms.pdf",
                         description: "Friend and foe - understanding microorganisms"
+                    },
+                    {
+                        id: 3,
+                        name: "Electricity",
+                        pdfUrl: "/pdfs/class8/science/electricity.pdf",
+                        description: "Understanding electrical circuits and current"
+                    },
+                    {
+                        id: 4,
+                        name: "Exploring Forces",
+                        pdfUrl: "/pdfs/class8/science/exploring-forces.pdf",
+                        description: "Forces and their effects"
+                    },
+                    {
+                        id: 5,
+                        name: "Light, Mirrors and Lenses",
+                        pdfUrl: "/pdfs/class8/science/light-mirrors-and-lenses.pdf",
+                        description: "Understanding light and optical instruments"
+                    },
+                    {
+                        id: 6,
+                        name: "Pollution of Air and Water",
+                        pdfUrl: "/pdfs/class8/science/pollution-of-air-and-water.pdf",
+                        description: "Environmental pollution and conservation"
+                    },
+                    {
+                        id: 7,
+                        name: "Sound",
+                        pdfUrl: "/pdfs/class8/science/sound.pdf",
+                        description: "Understanding sound waves and properties"
                     }
                 ]
             },
             {
                 id: 3,
+                name: "Biology",
+                icon: "🧬",
+                color: "#764ba2",
+                chapters: [
+                    {
+                        id: 1,
+                        name: "Earth",
+                        pdfUrl: "/pdfs/class8/biology/earth.pdf",
+                        description: "Understanding our planet"
+                    },
+                    {
+                        id: 2,
+                        name: "Health",
+                        pdfUrl: "/pdfs/class8/biology/health.pdf",
+                        description: "Maintaining health and wellness"
+                    },
+                    {
+                        id: 3,
+                        name: "How Nature Works in Harmony",
+                        pdfUrl: "/pdfs/class8/biology/how-nature-works-in-harmony.pdf",
+                        description: "Ecosystems and balance in nature"
+                    },
+                    {
+                        id: 4,
+                        name: "Living World",
+                        pdfUrl: "/pdfs/class8/biology/living-world.pdf",
+                        description: "Diversity of living organisms"
+                    },
+                    {
+                        id: 5,
+                        name: "Nature",
+                        pdfUrl: "/pdfs/class8/biology/nature.pdf",
+                        description: "Understanding natural processes"
+                    }
+                ]
+            },
+            {
+                id: 4,
                 name: "English",
                 icon: "📚",
                 color: "#fa709a",
                 chapters: []
             },
             {
-                id: 4,
+                id: 5,
                 name: "Social Studies",
                 icon: "🌍",
                 color: "#43e97b",
+                chapters: []
+            },
+            {
+                id: 6,
+                name: "Hindi",
+                icon: "🇮🇳",
+                color: "#f093fb",
+                chapters: []
+            },
+            {
+                id: 7,
+                name: "Telugu",
+                icon: "📖",
+                color: "#fa8231",
                 chapters: []
             }
         ]
@@ -340,27 +445,6 @@ export const syllabusData = {
             },
             {
                 id: 2,
-                name: "Physics",
-                icon: "⚛️",
-                color: "#764ba2",
-                chapters: []
-            },
-            {
-                id: 3,
-                name: "Chemistry",
-                icon: "🧪",
-                color: "#f093fb",
-                chapters: []
-            },
-            {
-                id: 4,
-                name: "Biology",
-                icon: "🧬",
-                color: "#4facfe",
-                chapters: []
-            },
-            {
-                id: 5,
                 name: "Science",
                 icon: "🔬",
                 color: "#4facfe",
@@ -376,8 +460,90 @@ export const syllabusData = {
                         name: "Atoms and Molecules",
                         pdfUrl: "/pdfs/class9/science/atoms-and-molecules.pdf",
                         description: "Basic building blocks of matter"
+                    },
+                    {
+                        id: 3,
+                        name: "Force and Laws of Motion",
+                        pdfUrl: "/pdfs/class9/science/force-and-laws-of-motion.pdf",
+                        description: "Newton's laws and their applications"
+                    },
+                    {
+                        id: 4,
+                        name: "Gravitation",
+                        pdfUrl: "/pdfs/class9/science/gravitation.pdf",
+                        description: "Universal law of gravitation"
+                    },
+                    {
+                        id: 5,
+                        name: "Motion",
+                        pdfUrl: "/pdfs/class9/science/motion.pdf",
+                        description: "Understanding motion and its types"
+                    },
+                    {
+                        id: 6,
+                        name: "Sound",
+                        pdfUrl: "/pdfs/class9/science/sound.pdf",
+                        description: "Properties and characteristics of sound"
+                    },
+                    {
+                        id: 7,
+                        name: "Structure of the Atom",
+                        pdfUrl: "/pdfs/class9/science/structure-of-the-atom.pdf",
+                        description: "Atomic structure and models"
                     }
                 ]
+            },
+            {
+                id: 3,
+                name: "Biology",
+                icon: "🧬",
+                color: "#764ba2",
+                chapters: [
+                    {
+                        id: 1,
+                        name: "Cell: The Fundamental Unit of Life",
+                        pdfUrl: "/pdfs/class9/biology/cell-the-fundamental-unit-of-life.pdf",
+                        description: "Understanding cell structure and function"
+                    },
+                    {
+                        id: 2,
+                        name: "Diversity in Living Organisms",
+                        pdfUrl: "/pdfs/class9/biology/diversity-in-living-organisms.pdf",
+                        description: "Classification of living organisms"
+                    },
+                    {
+                        id: 3,
+                        name: "Improvement in Food Resources",
+                        pdfUrl: "/pdfs/class9/biology/improvement-in-food-resources.pdf",
+                        description: "Agricultural improvements and food production"
+                    },
+                    {
+                        id: 4,
+                        name: "Natural Resources",
+                        pdfUrl: "/pdfs/class9/biology/natural-resources.pdf",
+                        description: "Understanding and conserving natural resources"
+                    },
+                    {
+                        id: 5,
+                        name: "Tissues",
+                        pdfUrl: "/pdfs/class9/biology/tissues.pdf",
+                        description: "Types and functions of tissues"
+                    }
+                ]
+            },
+            {
+                id: 4,
+                name: "Physics",
+                icon: "⚛️",
+                color: "#764ba2",
+                chapters: []
+            },
+            {
+                id: 5,
+                name: "Chemistry",
+                icon: "🧪",
+                color: "#f093fb",
+                chapters: []
             },
             {
                 id: 6,
@@ -391,6 +557,20 @@ export const syllabusData = {
                 name: "Social Studies",
                 icon: "🌍",
                 color: "#43e97b",
+                chapters: []
+            },
+            {
+                id: 8,
+                name: "Hindi",
+                icon: "🇮🇳",
+                color: "#f093fb",
+                chapters: []
+            },
+            {
+                id: 9,
+                name: "Telugu",
+                icon: "📖",
+                color: "#fa8231",
                 chapters: []
             }
         ]
@@ -419,27 +599,6 @@ export const syllabusData = {
             },
             {
                 id: 2,
-                name: "Physics",
-                icon: "⚛️",
-                color: "#764ba2",
-                chapters: []
-            },
-            {
-                id: 3,
-                name: "Chemistry",
-                icon: "🧪",
-                color: "#f093fb",
-                chapters: []
-            },
-            {
-                id: 4,
-                name: "Biology",
-                icon: "🧬",
-                color: "#4facfe",
-                chapters: []
-            },
-            {
-                id: 5,
                 name: "Science",
                 icon: "🔬",
                 color: "#4facfe",
@@ -455,8 +614,66 @@ export const syllabusData = {
                         name: "Acids, Bases and Salts",
                         pdfUrl: "/pdfs/class10/science/acid-bases-salts.pdf",
                         description: "Properties of acids, bases and salts"
+                    },
+                    {
+                        id: 3,
+                        name: "Magnetic Effects of Electric Current",
+                        pdfUrl: "/pdfs/class10/science/magnetic-effects-of-electric-current.pdf",
+                        description: "Electromagnetism and its applications"
                     }
                 ]
+            },
+            {
+                id: 3,
+                name: "Biology",
+                icon: "🧬",
+                color: "#764ba2",
+                chapters: [
+                    {
+                        id: 1,
+                        name: "Control and Coordination",
+                        pdfUrl: "/pdfs/class10/biology/control-and-coordination.pdf",
+                        description: "Nervous and hormonal control systems"
+                    },
+                    {
+                        id: 2,
+                        name: "Heredity",
+                        pdfUrl: "/pdfs/class10/biology/heridity.pdf",
+                        description: "Genetics and inheritance"
+                    },
+                    {
+                        id: 3,
+                        name: "Life Processes",
+                        pdfUrl: "/pdfs/class10/biology/life-processes.pdf",
+                        description: "Essential life processes in organisms"
+                    },
+                    {
+                        id: 4,
+                        name: "Our Environment",
+                        pdfUrl: "/pdfs/class10/biology/our-environment.pdf",
+                        description: "Ecosystems and environmental conservation"
+                    },
+                    {
+                        id: 5,
+                        name: "Reproduction",
+                        pdfUrl: "/pdfs/class10/biology/reproduction.pdf",
+                        description: "Reproductive processes in organisms"
+                    }
+                ]
+            },
+            {
+                id: 4,
+                name: "Physics",
+                icon: "⚛️",
+                color: "#764ba2",
+                chapters: []
+            },
+            {
+                id: 5,
+                name: "Chemistry",
+                icon: "🧪",
+                color: "#f093fb",
+                chapters: []
             },
             {
                 id: 6,
@@ -474,6 +691,20 @@ export const syllabusData = {
             },
             {
                 id: 8,
+                name: "Hindi",
+                icon: "🇮🇳",
+                color: "#f093fb",
+                chapters: []
+            },
+            {
+                id: 9,
+                name: "Telugu",
+                icon: "📖",
+                color: "#fa8231",
+                chapters: []
+            },
+            {
+                id: 10,
                 name: "Computer Science",
                 icon: "💻",
                 color: "#43e97b",
@@ -487,5 +718,3 @@ export const syllabusData = {
 export const getSubjectsForClass = (className) => {
     return syllabusData[className]?.subjects || [];
 };
-
-

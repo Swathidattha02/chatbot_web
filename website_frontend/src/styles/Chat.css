@@ -109,9 +109,8 @@
     }
 }
 
-/* Avatar Section - Removed/Hidden */
-.chat-avatar-header {
-    display: none;
+.chat-avatar-header.speaking {
+    cursor: pointer;
 }
 
 /* Main Chat Content */

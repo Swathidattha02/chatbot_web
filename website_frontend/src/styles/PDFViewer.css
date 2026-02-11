@@ -171,6 +171,10 @@
     flex-shrink: 0;
 }
 
+.chat-avatar-header-pdf.speaking {
+    cursor: pointer;
+}
+
 .avatar-canvas-container-pdf {
     position: absolute;
     top: 0;

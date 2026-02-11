@@ -12,6 +12,7 @@ import SubjectChapters from "./pages/SubjectChapters";
 import PDFViewer from "./pages/PDFViewer";
 import Analytics from "./pages/Analytics";
 import LogoutConfirmation from "./pages/LogoutConfirmation";
+import Contact from "./pages/Contact";
 
 // Components
 import Navbar from "./components/Navbar";
@@ -82,6 +83,7 @@ function AppContent() {
             </ProtectedRoute>
           }
         />
+        <Route path="/contact" element={<Contact />} />
         <Route
           path="/logout-confirm"
           element={

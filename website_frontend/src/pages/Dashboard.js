@@ -16,6 +16,7 @@ function Dashboard() {
         hoursLearned: 0,
         streak: 0
     });
+    const [todayActivity, setTodayActivity] = useState([]);
 
     // Load subjects based on user's class and fetch progress
     useEffect(() => {
@@ -64,6 +65,21 @@ function Dashboard() {
                         }
                     } catch (error) {
                         console.error("Error fetching monthly analytics:", error);
+                    }
+
+                    // Fetch today's activity
+                    try {
+                        const token = localStorage.getItem('token');
+                        const todayStr = new Date().toISOString().split('T')[0];
+                        const dailyResponse = await fetch(`http://localhost:5000/api/progress/analytics/daily?date=${todayStr}`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        const dailyData = await dailyResponse.json();
+                        if (dailyData.success) {
+                            setTodayActivity(dailyData.analytics.subjects || []);
+                        }
+                    } catch (error) {
+                        console.error("Error fetching today's activity:", error);
                     }
 
                     // Fetch documents for count
@@ -331,6 +347,32 @@ function Dashboard() {
                     </div>
                 )}
             </div>
+
+            {/* Today's Activity Section */}
+            {todayActivity.length > 0 && (
+                <div className="subjects-section today-activity-section">
+                    <div className="section-header">
+                        <h2 className="section-title">Studied Today</h2>
+                        <span className="date-badge">{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                    </div>
+                    <div className="today-activity-grid">
+                        {todayActivity.map((sub, i) => (
+                            <div key={i} className="today-activity-chip">
+                                <span className="chip-icon">📖</span>
+                                <div className="chip-info">
+                                    <span className="chip-name">{sub.name}</span>
+                                    <span className="chip-time">
+                                        {sub.sessions && sub.sessions.length > 0
+                                            ? `${sub.sessions[sub.sessions.length - 1].startTime} - ${sub.sessions[sub.sessions.length - 1].endTime || 'now'}`
+                                            : `${Math.round(sub.timeSpent)} min`
+                                        }
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Stats Section */}
             <div className="stats-section">

@@ -23,9 +23,9 @@ function Navbar() {
                     <Link to="/" className="nav-link">
                         Home
                     </Link>
-                    <a href="#contact-info" className="nav-link">
+                    <Link to="/contact" className="nav-link">
                         Contact
-                    </a>
+                    </Link>
 
                     {isAuthenticated ? (
                         <>
