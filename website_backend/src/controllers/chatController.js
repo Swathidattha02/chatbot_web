@@ -172,7 +172,7 @@ exports.sendMessage = async (req, res) => {
                     console.log('🚀 Using RunPod Serverless Endpoint:', RUNPOD_ENDPOINT_ID);
 
                     const runpodResponse = await axios.post(
-                        `https://api.runpod.ai/v1/${RUNPOD_ENDPOINT_ID}/runsync`,
+                        `https://api.runpod.ai/v2/${RUNPOD_ENDPOINT_ID}/runsync`,
                         {
                             input: {
                                 method_name: "chat", // Most ollama workers use this or generic 'input'
@@ -483,8 +483,9 @@ exports.streamMessage = async (req, res) => {
             if (RUNPOD_API_KEY && RUNPOD_ENDPOINT_ID) {
                 console.log('🚀 Using RunPod Serverless for streaming (as fake stream)');
                 try {
+                    const runpodUrl = `https://api.runpod.ai/v2/${RUNPOD_ENDPOINT_ID}/runsync`;
                     const runpodResponse = await axios.post(
-                        `https://api.runpod.ai/v1/${RUNPOD_ENDPOINT_ID}/runsync`,
+                        runpodUrl,
                         {
                             input: {
                                 method_name: "chat",
