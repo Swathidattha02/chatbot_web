@@ -1,7 +1,7 @@
 .chat-page {
     width: 100%;
     height: 100vh;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #ffffff;
     position: relative;
     overflow: hidden;
     display: flex;
@@ -109,8 +109,17 @@
     }
 }
 
+/* Avatar Header Section - Hidden for clean interface */
+.chat-avatar-header {
+    display: none;
+}
+
 .chat-avatar-header.speaking {
     cursor: pointer;
+}
+
+.avatar-canvas-container {
+    display: none;
 }
 
 /* Main Chat Content */

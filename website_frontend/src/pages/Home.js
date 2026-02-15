@@ -149,12 +149,29 @@ function Home() {
                     <p className="cta-subtitle">
                         Join thousands of learners already using our AI avatar tutor
                     </p>
-                    {!isAuthenticated && (
-                        <Link to="/signup" className="btn btn-primary btn-large">
-                            Start Your Free Trial
-                            <span className="btn-icon">→</span>
-                        </Link>
-                    )}
+                    <div className="cta-buttons">
+                        {isAuthenticated ? (
+                            <>
+                                <Link to="/dashboard" className="btn btn-secondary btn-large">
+                                    Go to Dashboard
+                                    <span className="btn-icon">→</span>
+                                </Link>
+                                <Link to="/chat" className="btn btn-outline btn-large">
+                                    Start Learning
+                                </Link>
+                            </>
+                        ) : (
+                            <>
+                                <Link to="/signup" className="btn btn-secondary btn-large">
+                                    Sign Up Now
+                                    <span className="btn-icon">→</span>
+                                </Link>
+                                <Link to="/login" className="btn btn-outline btn-large">
+                                    Already have an account?
+                                </Link>
+                            </>
+                        )}
+                    </div>
                 </div>
             </section>
             <Footer />

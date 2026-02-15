@@ -234,6 +234,15 @@
   margin-bottom: 2rem;
 }
 
+.cta-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .hero-section {
