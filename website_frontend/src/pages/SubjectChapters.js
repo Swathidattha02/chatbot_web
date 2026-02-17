@@ -11,7 +11,6 @@ function SubjectChapters() {
     const [subject, setSubject] = useState(null);
     const [chapters, setChapters] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [userProgress, setUserProgress] = useState({});
 
     useEffect(() => {
         // Load subject and chapters based on user's class

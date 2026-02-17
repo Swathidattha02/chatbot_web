@@ -104,7 +104,7 @@ function Dashboard() {
                     // Add progress and chapter counts to subjects
                     const subjectsWithProgress = classSubjects.map(subject => {
                         // Filter progress for this specific subject
-                        const subjectProgressEntries = userProgress.filter(p => p.subjectId == subject.id);
+                        const subjectProgressEntries = userProgress.filter(p => p.subjectId === subject.id);
 
                         // Calculate granular progress (sum of all chapter percentages / total chapters)
                         let totalProgressPoints = 0;
@@ -113,7 +113,7 @@ function Dashboard() {
                         if (totalChaptersCount > 0) {
                             subject.chapters.forEach(chapter => {
                                 // Loose equality for ID matching to be safe
-                                const p = subjectProgressEntries.find(entry => entry.chapterId == chapter.id);
+                                const p = subjectProgressEntries.find(entry => entry.chapterId === chapter.id);
                                 if (p) {
                                     if (p.completed) {
                                         totalProgressPoints += 100;
