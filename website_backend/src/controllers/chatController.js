@@ -508,8 +508,27 @@ exports.streamMessage = async (req, res) => {
                         }
                     );
 
-                    if (runpodResponse.data && runpodResponse.data.output) {
-                        const output = runpodResponse.data.output;
+                    // Handle IN_QUEUE or IN_PROGRESS - poll for result
+                    let finalData = runpodResponse.data;
+                    if (finalData.status === 'IN_QUEUE' || finalData.status === 'IN_PROGRESS') {
+                        const jobId = finalData.id;
+                        console.log(`⏳ RunPod job queued: ${jobId}, polling for result...`);
+
+                        // Poll up to 24 times (2 min total with 5s intervals)
+                        for (let i = 0; i < 24; i++) {
+                            await new Promise(r => setTimeout(r, 5000)); // wait 5s
+                            const pollResponse = await axios.get(
+                                `https://api.runpod.ai/v2/${RUNPOD_ENDPOINT_ID}/status/${jobId}`,
+                                { headers: { 'Authorization': `Bearer ${RUNPOD_API_KEY}` } }
+                            );
+                            finalData = pollResponse.data;
+                            console.log(`🔄 Poll ${i + 1}: status = ${finalData.status}`);
+                            if (finalData.status === 'COMPLETED' || finalData.status === 'FAILED') break;
+                        }
+                    }
+
+                    if (finalData.status === 'COMPLETED' && finalData.output) {
+                        const output = finalData.output;
                         let content = "";
                         if (typeof output === 'string') {
                             content = output;
@@ -517,17 +536,35 @@ exports.streamMessage = async (req, res) => {
                             content = output.message.content;
                         } else if (output.response) {
                             content = output.response;
+                        } else if (output.choices && output.choices[0]?.message?.content) {
+                            content = output.choices[0].message.content;
                         }
 
-                        fullResponse = content;
-                        // "Fake" stream for the client
-                        res.write(`data: ${JSON.stringify({ chunk: fullResponse, done: false })} \n\n`);
-                    } else if (runpodResponse.data && runpodResponse.data.error) {
-                        throw new Error(`RunPod Error: ${runpodResponse.data.error}`);
+                        if (content) {
+                            fullResponse = content;
+                        } else {
+                            fullResponse = "I received a response but couldn't parse it. Please try again.";
+                        }
+                    } else if (finalData.status === 'FAILED') {
+                        throw new Error(`RunPod job failed: ${JSON.stringify(finalData.error || 'Unknown error')}`);
+                    } else if (runpodResponse.data && runpodResponse.data.output) {
+                        // Synchronous response (runsync immediate result)
+                        const output = runpodResponse.data.output;
+                        let content = "";
+                        if (typeof output === 'string') content = output;
+                        else if (output.message?.content) content = output.message.content;
+                        else if (output.response) content = output.response;
+                        fullResponse = content || "I received a response but couldn't parse it.";
+                    } else {
+                        fullResponse = "I'm processing your request. The AI service is warming up - please try again in a moment.";
                     }
+
+                    // Send the response to frontend
+                    res.write(`data: ${JSON.stringify({ chunk: fullResponse, done: false })} \n\n`);
+
                 } catch (runpodError) {
                     console.error('❌ RunPod streaming error:', runpodError.message);
-                    fullResponse = "I'm having trouble connecting to my remote AI service on RunPod.";
+                    fullResponse = "I'm having trouble connecting to my remote AI service on RunPod. It may be starting up - please try again in 30 seconds.";
                     res.write(`data: ${JSON.stringify({ chunk: fullResponse, done: false })} \n\n`);
                 }
             } else {
@@ -587,13 +624,14 @@ exports.streamMessage = async (req, res) => {
             }
         }
 
-        // Save AI response to history
-        chatSession.messages.push({
-            role: "assistant",
-            content: fullResponse,
-        });
-
-        await chatSession.save();
+        // Save AI response to history (only if we have content)
+        if (fullResponse && fullResponse.trim()) {
+            chatSession.messages.push({
+                role: "assistant",
+                content: fullResponse,
+            });
+            await chatSession.save();
+        }
 
         // Send completion event
         res.write(`data: ${JSON.stringify({
