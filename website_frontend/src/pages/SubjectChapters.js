@@ -4,6 +4,8 @@ import { useAuth } from "../context/AuthContext";
 import { getSubjectsForClass } from "../config/syllabus";
 import "../styles/SubjectChapters.css";
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+
 function SubjectChapters() {
     const { subjectId } = useParams();
     const { user } = useAuth();
@@ -26,7 +28,7 @@ function SubjectChapters() {
                         let progressData = [];
 
                         try {
-                            const response = await fetch(`http://localhost:5000/api/progress/subject/${subjectId}`, {
+                            const response = await fetch(`${API_BASE_URL}/progress/subject/${subjectId}`, {
                                 headers: {
                                     "Authorization": `Bearer ${token}`,
                                 },

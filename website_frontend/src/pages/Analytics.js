@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from 'recharts';
 import "../styles/Analytics.css";
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+
 function Analytics() {
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -20,7 +22,7 @@ function Analytics() {
         try {
             const token = localStorage.getItem("token");
             const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-            const response = await fetch(`http://localhost:5000/api/progress/analytics/daily?date=${dateStr}`, {
+            const response = await fetch(`${API_BASE_URL}/progress/analytics/daily?date=${dateStr}`, {
                 headers: { "Authorization": `Bearer ${token}` },
             });
             const data = await response.json();
@@ -33,7 +35,7 @@ function Analytics() {
     const fetchWeeklyAnalytics = useCallback(async () => {
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch("http://localhost:5000/api/progress/analytics/weekly", {
+            const response = await fetch(`${API_BASE_URL}/progress/analytics/weekly`, {
                 headers: { "Authorization": `Bearer ${token}` },
             });
             const data = await response.json();
@@ -46,7 +48,7 @@ function Analytics() {
     const fetchMonthlyAnalytics = useCallback(async () => {
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch("http://localhost:5000/api/progress/analytics/monthly", {
+            const response = await fetch(`${API_BASE_URL}/progress/analytics/monthly`, {
                 headers: { "Authorization": `Bearer ${token}` },
             });
             const data = await response.json();

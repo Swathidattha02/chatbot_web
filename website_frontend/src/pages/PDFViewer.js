@@ -9,6 +9,8 @@ import LipSyncAvatar from "../components/LipSyncAvatar";
 import translationService from "../services/translationService";
 import "../styles/PDFViewer.css";
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+
 function PDFViewer() {
     const { subjectId, chapterId } = useParams();
     const { user } = useAuth();
@@ -77,7 +79,7 @@ function PDFViewer() {
         const fetchInitialValue = async () => {
             try {
                 const token = localStorage.getItem("token");
-                const response = await fetch(`http://localhost:5000/api/progress/user`, {
+                const response = await fetch(`${API_BASE_URL}/progress/user`, {
                     headers: { "Authorization": `Bearer ${token}` }
                 });
                 const data = await response.json();
@@ -111,7 +113,7 @@ function PDFViewer() {
                     const token = localStorage.getItem("token");
                     const minutesToSend = deltaSeconds / 60;
 
-                    await fetch("http://localhost:5000/api/progress/update", {
+                    await fetch(`${API_BASE_URL}/progress/update`, {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
@@ -144,7 +146,7 @@ function PDFViewer() {
                 const token = localStorage.getItem("token");
                 const minutesToSend = deltaSeconds / 60;
 
-                fetch("http://localhost:5000/api/progress/update", {
+                fetch(`${API_BASE_URL}/progress/update`, {
                     method: "POST",
                     keepalive: true,
                     headers: {

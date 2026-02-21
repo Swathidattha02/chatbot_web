@@ -4,6 +4,8 @@ import { useAuth } from "../context/AuthContext";
 import { getSubjectsForClass } from "../config/syllabus";
 import "../styles/Dashboard.css";
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+
 function Dashboard() {
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -30,7 +32,7 @@ function Dashboard() {
                     try {
                         const token = localStorage.getItem('token');
                         if (token) {
-                            const response = await fetch('http://localhost:5000/api/progress/user', {
+                            const response = await fetch(`${API_BASE_URL}/progress/user`, {
                                 headers: {
                                     'Authorization': `Bearer ${token}`
                                 }
@@ -47,7 +49,7 @@ function Dashboard() {
                     // Fetch monthly analytics for stats cards
                     try {
                         const token = localStorage.getItem('token');
-                        const analyticsResponse = await fetch('http://localhost:5000/api/progress/analytics/monthly', {
+                        const analyticsResponse = await fetch(`${API_BASE_URL}/progress/analytics/monthly`, {
                             headers: {
                                 'Authorization': `Bearer ${token}`
                             }
@@ -71,7 +73,7 @@ function Dashboard() {
                     try {
                         const token = localStorage.getItem('token');
                         const todayStr = new Date().toISOString().split('T')[0];
-                        const dailyResponse = await fetch(`http://localhost:5000/api/progress/analytics/daily?date=${todayStr}`, {
+                        const dailyResponse = await fetch(`${API_BASE_URL}/progress/analytics/daily?date=${todayStr}`, {
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
                         const dailyData = await dailyResponse.json();
@@ -85,7 +87,7 @@ function Dashboard() {
                     // Fetch documents for count
                     try {
                         const token = localStorage.getItem('token');
-                        const docsResponse = await fetch('http://localhost:5000/api/documents/list', {
+                        const docsResponse = await fetch(`${API_BASE_URL}/documents/list`, {
                             headers: {
                                 'Authorization': `Bearer ${token}`
                             }
@@ -181,7 +183,7 @@ function Dashboard() {
             formData.append('userId', user?.id || 'guest');
 
             // Upload to backend
-            const response = await fetch('http://localhost:5000/api/documents/upload', {
+            const response = await fetch(`${API_BASE_URL}/documents/upload`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
