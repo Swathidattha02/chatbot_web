@@ -4,3 +4,6 @@ node_modules/
 .DS_Store
 uploads/
 .vscode/
+
+# Markdown docs - not needed on GitHub
+*.md
