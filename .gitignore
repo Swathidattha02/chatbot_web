@@ -7,3 +7,12 @@ uploads/
 
 # Markdown docs - not needed on GitHub
 *.md
+
+# Only keep: website_backend, website_frontend, fastapi_ollama_service
+app_backend/
+app_frontend/
+Ai_Avatar/
+*.bat
+.github/
+.gitattributes
+.gitignore.backup
