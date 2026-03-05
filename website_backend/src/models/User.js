@@ -28,15 +28,35 @@ const userSchema = new mongoose.Schema(
             type: String,
             trim: true,
         },
+        rollNumber: {
+            type: String,
+            trim: true,
+        },
         class: {
             type: String,
             required: [true, "Class is required"],
             enum: ["Class 6", "Class 7", "Class 8", "Class 9", "Class 10"],
         },
+        section: {
+            type: String,
+            trim: true,
+        },
+        school: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Admin",
+        },
+        schoolName: {
+            type: String,
+            trim: true,
+        },
+        classTeacher: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Teacher",
+        },
         role: {
             type: String,
-            enum: ["user", "admin"],
-            default: "user",
+            enum: ["student", "user", "admin"],
+            default: "student",
         },
     },
     {

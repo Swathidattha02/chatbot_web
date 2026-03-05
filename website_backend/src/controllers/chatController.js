@@ -513,10 +513,9 @@ exports.streamMessage = async (req, res) => {
                     if (finalData.status === 'IN_QUEUE' || finalData.status === 'IN_PROGRESS') {
                         const jobId = finalData.id;
                         console.log(`⏳ RunPod job queued: ${jobId}, polling for result...`);
-
                         // Poll up to 24 times (2 min total with 5s intervals)
                         for (let i = 0; i < 24; i++) {
-                            await new Promise(r => setTimeout(r, 5000)); // wait 5s
+                            await new Promise(r => setTimeout(r, 5000));
                             const pollResponse = await axios.get(
                                 `https://api.runpod.ai/v2/${RUNPOD_ENDPOINT_ID}/status/${jobId}`,
                                 { headers: { 'Authorization': `Bearer ${RUNPOD_API_KEY}` } }
@@ -536,35 +535,25 @@ exports.streamMessage = async (req, res) => {
                             content = output.message.content;
                         } else if (output.response) {
                             content = output.response;
-                        } else if (output.choices && output.choices[0]?.message?.content) {
-                            content = output.choices[0].message.content;
                         }
-
-                        if (content) {
-                            fullResponse = content;
-                        } else {
-                            fullResponse = "I received a response but couldn't parse it. Please try again.";
-                        }
+                        fullResponse = content || "I received a response but couldn't parse it. Please try again.";
                     } else if (finalData.status === 'FAILED') {
-                        throw new Error(`RunPod job failed: ${JSON.stringify(finalData.error || 'Unknown error')}`);
+                        throw new Error(`RunPod job failed`);
                     } else if (runpodResponse.data && runpodResponse.data.output) {
-                        // Synchronous response (runsync immediate result)
                         const output = runpodResponse.data.output;
                         let content = "";
                         if (typeof output === 'string') content = output;
-                        else if (output.message?.content) content = output.message.content;
+                        else if (output.message && output.message.content) content = output.message.content;
                         else if (output.response) content = output.response;
                         fullResponse = content || "I received a response but couldn't parse it.";
                     } else {
-                        fullResponse = "I'm processing your request. The AI service is warming up - please try again in a moment.";
+                        fullResponse = "The AI service is warming up. Please try again in 30 seconds.";
                     }
-
                     // Send the response to frontend
                     res.write(`data: ${JSON.stringify({ chunk: fullResponse, done: false })} \n\n`);
-
                 } catch (runpodError) {
                     console.error('❌ RunPod streaming error:', runpodError.message);
-                    fullResponse = "I'm having trouble connecting to my remote AI service on RunPod. It may be starting up - please try again in 30 seconds.";
+                    fullResponse = "I'm having trouble connecting to my remote AI service on RunPod.";
                     res.write(`data: ${JSON.stringify({ chunk: fullResponse, done: false })} \n\n`);
                 }
             } else {

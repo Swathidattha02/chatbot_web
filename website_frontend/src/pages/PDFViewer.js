@@ -465,9 +465,6 @@ function PDFViewer() {
     return (
         <div className="pdf-viewer-container">
             <div className="pdf-viewer-header">
-                <button onClick={handleBack} className="back-button">
-                    ← Back to Chapters
-                </button>
                 <div className="chapter-info-header">
                     <h2>{currentChapter.name || currentChapter.title}</h2>
                 </div>

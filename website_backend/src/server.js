@@ -37,12 +37,16 @@ const authRoutes = require("./routes/authRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const documentRoutes = require("./routes/documentRoutes");
 const progressRoutes = require("./routes/progress");
+const teacherRoutes = require("./routes/teacherRoutes");
+const quizRoutes = require("./routes/quizRoutes");
 
 // API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/progress", progressRoutes);
+app.use("/api", teacherRoutes);
+app.use("/api/quiz", quizRoutes);
 
 // Health check route
 app.get("/", (req, res) => {

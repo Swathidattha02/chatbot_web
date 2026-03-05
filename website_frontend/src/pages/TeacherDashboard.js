@@ -1,0 +1,466 @@
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import "../styles/TeacherDashboard.css";
+
+const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+
+const SUBJECTS = ["Mathematics", "Science", "Social Studies", "Telugu", "English", "Hindi"];
+
+function TeacherDashboard() {
+    const navigate = useNavigate();
+    const [teacher, setTeacher] = useState(null);
+    const [stats, setStats] = useState(null);
+    const [students, setStudents] = useState([]);
+    const [filtered, setFiltered] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    // View controls
+    const [view, setView] = useState("Daily"); // Daily | Weekly | Monthly
+    const [searchQuery, setSearchQuery] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const studentsPerPage = 10;
+
+    // Get stored teacher from localStorage
+    const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+    const token = localStorage.getItem("token");
+
+    const fetchDashboard = useCallback(async () => {
+        try {
+            setLoading(true);
+            const res = await axios.get(`${API_BASE}/teacher/dashboard`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.data.success) {
+                setTeacher(res.data.teacher);
+                setStats(res.data.stats);
+                setStudents(res.data.students);
+                setFiltered(res.data.students);
+            } else {
+                setError("Failed to load dashboard");
+            }
+        } catch (err) {
+            if (err.response?.status === 401) {
+                navigate("/login");
+            } else {
+                // Use fallback demo data if backend unavailable
+                loadDemoData();
+            }
+        } finally {
+            setLoading(false);
+        }
+    }, [token, navigate]);
+
+    const loadDemoData = () => {
+        const demoTeacher = {
+            name: storedUser.name || "Mr. Sharma",
+            schoolName: storedUser.schoolName || "Global Public School",
+            assignedClass: storedUser.assignedClass || "10",
+            assignedSection: storedUser.assignedSection || "A",
+        };
+
+        const demoStudents = [
+            {
+                _id: "1", name: "Aditya Rao", rollNumber: "10101", totalCompletion: 91,
+                subjectProgress: {
+                    "Mathematics": { chapter: "Sets & Relations", completion: 95 },
+                    "Science": { chapter: "Refraction", completion: 88 },
+                    "Social Studies": { chapter: "Indian Economy", completion: 100 },
+                    "Telugu": { chapter: "Vemana Satakam", completion: 92 },
+                    "English": { chapter: "Julius Caesar", completion: 85 },
+                    "Hindi": { chapter: "Gully Danda", completion: 90 },
+                },
+            },
+            {
+                _id: "2", name: "Sneha Reddy", rollNumber: "10102", totalCompletion: 82,
+                subjectProgress: {
+                    "Mathematics": { chapter: "Sets & Relations", completion: 78 },
+                    "Science": { chapter: "Refraction", completion: 82 },
+                    "Social Studies": { chapter: "Indian Economy", completion: 75 },
+                    "Telugu": { chapter: "Vemana Satakam", completion: 88 },
+                    "English": { chapter: "Julius Caesar", completion: 90 },
+                    "Hindi": { chapter: "Gully Danda", completion: 80 },
+                },
+            },
+            {
+                _id: "3", name: "Vikram Singh", rollNumber: "10103", totalCompletion: 51,
+                subjectProgress: {
+                    "Mathematics": { chapter: "Sets & Relations", completion: 45 },
+                    "Science": { chapter: "Refraction", completion: 52 },
+                    "Social Studies": { chapter: "Indian Economy", completion: 60 },
+                    "Telugu": { chapter: "Vemana Satakam", completion: 48 },
+                    "English": { chapter: "Julius Caesar", completion: 55 },
+                    "Hindi": { chapter: "Gully Danda", completion: 50 },
+                },
+            },
+            {
+                _id: "4", name: "Priya Sharma", rollNumber: "10104", totalCompletion: 76,
+                subjectProgress: {
+                    "Mathematics": { chapter: "Sets & Relations", completion: 80 },
+                    "Science": { chapter: "Refraction", completion: 74 },
+                    "Social Studies": { chapter: "Indian Economy", completion: 82 },
+                    "Telugu": { chapter: "Vemana Satakam", completion: 70 },
+                    "English": { chapter: "Julius Caesar", completion: 78 },
+                    "Hindi": { chapter: "Gully Danda", completion: 72 },
+                },
+            },
+            {
+                _id: "5", name: "Rahul Mehta", rollNumber: "10105", totalCompletion: 65,
+                subjectProgress: {
+                    "Mathematics": { chapter: "Sets & Relations", completion: 62 },
+                    "Science": { chapter: "Refraction", completion: 70 },
+                    "Social Studies": { chapter: "Indian Economy", completion: 65 },
+                    "Telugu": { chapter: "Vemana Satakam", completion: 60 },
+                    "English": { chapter: "Julius Caesar", completion: 68 },
+                    "Hindi": { chapter: "Gully Danda", completion: 65 },
+                },
+            },
+        ];
+
+        const classAvg = Math.round(demoStudents.reduce((s, st) => s + st.totalCompletion, 0) / demoStudents.length);
+
+        setTeacher(demoTeacher);
+        setStats({
+            topPerformer: demoStudents[0],
+            classAverage: classAvg,
+            atRiskCount: demoStudents.filter((s) => s.totalCompletion < 60).length,
+            totalStudents: demoStudents.length,
+        });
+        setStudents(demoStudents);
+        setFiltered(demoStudents);
+    };
+
+    useEffect(() => {
+        if (!token) {
+            navigate("/login");
+            return;
+        }
+        fetchDashboard();
+    }, [fetchDashboard, token, navigate]);
+
+    // Search filter
+    useEffect(() => {
+        const q = searchQuery.toLowerCase();
+        setFiltered(
+            students.filter(
+                (s) =>
+                    s.name.toLowerCase().includes(q) ||
+                    (s.rollNumber && s.rollNumber.toLowerCase().includes(q))
+            )
+        );
+        setCurrentPage(1);
+    }, [searchQuery, students]);
+
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login");
+    };
+
+    const getInitials = (name) =>
+        name
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .substring(0, 2)
+            .toUpperCase();
+
+    const getCompletionColor = (pct) => {
+        if (pct >= 85) return "#16a34a";
+        if (pct >= 60) return "#2563eb";
+        return "#dc2626";
+    };
+
+    const getTotalColor = (pct) => {
+        if (pct >= 85) return "#16a34a";
+        if (pct >= 60) return "#1a202c";
+        return "#dc2626";
+    };
+
+    // Pagination
+    const totalPages = Math.ceil(filtered.length / studentsPerPage);
+    const paginated = filtered.slice(
+        (currentPage - 1) * studentsPerPage,
+        currentPage * studentsPerPage
+    );
+
+    if (loading) {
+        return (
+            <div className="td-loading">
+                <div className="td-spinner"></div>
+                <p>Loading dashboard...</p>
+            </div>
+        );
+    }
+
+    const avatarColors = [
+        "#e0f2fe", "#dcfce7", "#fef9c3", "#fce7f3",
+        "#ede9fe", "#fee2e2", "#f0fdf4", "#fff7ed",
+    ];
+
+    return (
+        <div className="td-container">
+            {/* ── Top Navbar ─────────────────────────────────────── */}
+            <header className="td-navbar">
+                <div className="td-navbar-left">
+                    <div className="td-school-logo">📚</div>
+                    <div>
+                        <div className="td-school-name">
+                            {teacher?.schoolName || "School"}
+                        </div>
+                        <div className="td-class-info">
+                            Class {teacher?.assignedClass}-{teacher?.assignedSection} •{" "}
+                            Academic Year 2023-24
+                        </div>
+                    </div>
+                </div>
+
+                <nav className="td-nav-links">
+                    <button className="td-nav-link active">Dashboard</button>
+                    <button className="td-nav-link">Analytics</button>
+                </nav>
+
+                <div className="td-search-bar">
+                    <span>🔍</span>
+                    <input
+                        type="text"
+                        placeholder="Search student name or ID..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+
+                <div className="td-teacher-info" onClick={handleLogout} title="Click to logout">
+                    <div>
+                        <div className="td-teacher-name">{teacher?.name || storedUser.name}</div>
+                        <div className="td-teacher-role">CLASS TEACHER</div>
+                    </div>
+                    <div className="td-teacher-avatar">
+                        {getInitials(teacher?.name || storedUser.name || "T")}
+                    </div>
+                </div>
+            </header>
+
+            <main className="td-main">
+                {/* ── Stats Cards ─────────────────────────────────── */}
+                <div className="td-stats-row">
+                    {/* Top Performer */}
+                    <div className="td-stat-card td-stat-green">
+                        <div className="td-stat-label">
+                            {view === "Daily" ? "TOP PERFORMER" : "TOP PERFORMER (WEEKLY)"}
+                        </div>
+                        <div className="td-stat-icon td-icon-green">⭐</div>
+                        <div className="td-stat-value">
+                            {stats?.topPerformer
+                                ? `${stats.topPerformer.name} (${stats.topPerformer.totalCompletion}%)`
+                                : "—"}
+                        </div>
+                    </div>
+
+                    {/* Class Average */}
+                    <div className="td-stat-card td-stat-blue">
+                        <div className="td-stat-label">CLASS AVERAGE</div>
+                        <div className="td-stat-icon td-icon-blue">📊</div>
+                        <div className="td-stat-value">{stats?.classAverage ?? 0}%</div>
+                    </div>
+
+                    {/* At Risk */}
+                    <div className="td-stat-card td-stat-red">
+                        <div className="td-stat-label">AT RISK STUDENTS</div>
+                        <div className="td-stat-icon td-icon-red">⚠️</div>
+                        <div className="td-stat-value">{stats?.atRiskCount ?? 0} Students</div>
+                    </div>
+                </div>
+
+                {/* ── Progress Table Header ────────────────────────── */}
+                <div className="td-table-header-row">
+                    <div>
+                        <h2 className="td-section-title">
+                            {view === "Daily"
+                                ? "Daily Progress Tracker"
+                                : view === "Weekly"
+                                    ? "Weekly Performance"
+                                    : "Monthly Overview"}
+                        </h2>
+                        <p className="td-section-subtitle">
+                            {view === "Daily"
+                                ? `Real-time chapter completion for today.`
+                                : view === "Weekly"
+                                    ? "Aggregated progress for this week."
+                                    : "Monthly aggregated progress data."}
+                        </p>
+                    </div>
+
+                    <div className="td-controls">
+                        {/* View Toggle */}
+                        <div className="td-view-toggle">
+                            {["Daily", "Weekly", "Monthly"].map((v) => (
+                                <button
+                                    key={v}
+                                    className={`td-toggle-btn ${view === v ? "active" : ""}`}
+                                    onClick={() => setView(v)}
+                                >
+                                    {v}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Date */}
+                        <div className="td-date-picker">
+                            📅{" "}
+                            {new Date().toLocaleDateString("en-GB", {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric",
+                            })}
+                        </div>
+
+                        {/* Export */}
+                        <button className="td-export-btn">⬇️ Export</button>
+                    </div>
+                </div>
+
+                {/* ── Table ───────────────────────────────────────── */}
+                <div className="td-table-wrapper">
+                    <table className="td-table">
+                        <thead>
+                            <tr>
+                                <th className="td-th-name">STUDENT NAME</th>
+                                {SUBJECTS.map((s) => (
+                                    <th key={s} className="td-th-subj">
+                                        {s.toUpperCase()}
+                                    </th>
+                                ))}
+                                <th className="td-th-total">
+                                    {view === "Daily" ? "TOTAL" : "AVG COMPLETION"}
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {paginated.map((student, idx) => (
+                                <tr key={student._id} className="td-row">
+                                    {/* Student Name */}
+                                    <td className="td-student-cell">
+                                        <div className="td-student-info">
+                                            <div
+                                                className="td-avatar"
+                                                style={{
+                                                    background:
+                                                        avatarColors[idx % avatarColors.length],
+                                                }}
+                                            >
+                                                {getInitials(student.name)}
+                                            </div>
+                                            <div>
+                                                <div className="td-student-name">
+                                                    {student.name}
+                                                </div>
+                                                <div className="td-student-roll">
+                                                    Roll: {student.rollNumber || "—"}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    {/* Subject columns */}
+                                    {SUBJECTS.map((subj) => {
+                                        const data = student.subjectProgress?.[subj] || {
+                                            chapter: "-",
+                                            completion: 0,
+                                        };
+                                        return (
+                                            <td key={subj} className="td-subj-cell">
+                                                <div className="td-chapter-name">
+                                                    {data.chapter}
+                                                </div>
+                                                <div className="td-progress-bar-wrap">
+                                                    <div
+                                                        className="td-progress-bar-fill"
+                                                        style={{
+                                                            width: `${data.completion}%`,
+                                                            background: getCompletionColor(
+                                                                data.completion
+                                                            ),
+                                                        }}
+                                                    />
+                                                </div>
+                                                <span
+                                                    className="td-pct"
+                                                    style={{
+                                                        color: getCompletionColor(data.completion),
+                                                    }}
+                                                >
+                                                    {data.completion}%
+                                                </span>
+                                            </td>
+                                        );
+                                    })}
+
+                                    {/* Total */}
+                                    <td className="td-total-cell">
+                                        <span
+                                            className="td-total-pct"
+                                            style={{ color: getTotalColor(student.totalCompletion) }}
+                                        >
+                                            {student.totalCompletion}%
+                                        </span>
+                                        <span
+                                            className="td-trend"
+                                            style={{
+                                                color:
+                                                    student.totalCompletion >= 60
+                                                        ? "#16a34a"
+                                                        : "#dc2626",
+                                            }}
+                                        >
+                                            {student.totalCompletion >= 60 ? "↗" : "↘"}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    {filtered.length === 0 && (
+                        <div className="td-empty">No students found.</div>
+                    )}
+                </div>
+
+                {/* ── Pagination ──────────────────────────────────── */}
+                <div className="td-pagination">
+                    <span className="td-showing">
+                        Showing {paginated.length} of {filtered.length} students
+                    </span>
+                    <div className="td-pages">
+                        <button
+                            className="td-page-btn"
+                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                        >
+                            ‹
+                        </button>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                            <button
+                                key={p}
+                                className={`td-page-btn ${currentPage === p ? "active" : ""}`}
+                                onClick={() => setCurrentPage(p)}
+                            >
+                                {p}
+                            </button>
+                        ))}
+                        <button
+                            className="td-page-btn"
+                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                        >
+                            ›
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    );
+}
+
+export default TeacherDashboard;

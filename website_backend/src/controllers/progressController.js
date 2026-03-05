@@ -44,8 +44,8 @@ exports.updateProgress = async (req, res) => {
                 });
             }
 
-            // Mark as completed if spent at least 2 minutes (total)
-            if (progress.timeSpent >= 2) {
+            // Mark as completed only if BOTH time >= 2min AND quiz passed
+            if (progress.timeSpent >= 2 && progress.quizPassed) {
                 progress.completed = true;
             }
 

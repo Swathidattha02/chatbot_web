@@ -111,9 +111,6 @@ function Contact() {
         <div className="contact-page-wrapper">
             <div className="contact-container">
                 <div className="contact-header">
-                    <button className="back-btn" onClick={() => navigate(-1)}>
-                        ← Back
-                    </button>
                     <h1 className="contact-title">Get In Touch</h1>
                     <p className="contact-subtitle">
                         Have questions or feedback? We'd love to hear from you!

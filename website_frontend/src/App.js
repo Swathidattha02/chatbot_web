@@ -13,6 +13,8 @@ import PDFViewer from "./pages/PDFViewer";
 import Analytics from "./pages/Analytics";
 import LogoutConfirmation from "./pages/LogoutConfirmation";
 import Contact from "./pages/Contact";
+import TeacherDashboard from "./pages/TeacherDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 
 // Components
 import Navbar from "./components/Navbar";
@@ -32,13 +34,25 @@ const ProtectedRoute = ({ children }) => {
   return isAuthenticated ? children : <Navigate to="/login" />;
 };
 
+// Role-based Route — only allows a specific role, otherwise → /login
+const RoleRoute = ({ children, role }) => {
+  const stored = localStorage.getItem("user");
+  const token = localStorage.getItem("token");
+  if (!stored || !token) return <Navigate to="/login" />;
+  const u = JSON.parse(stored);
+  if (u.role !== role) return <Navigate to="/login" />;
+  return children;
+};
+
 function AppContent() {
   const location = useLocation();
   const isChatPage = location.pathname === '/chat';
+  const isTeacherPage = location.pathname.startsWith('/teacher');
+  const isAdminPage = location.pathname.startsWith('/admin');
 
   return (
     <>
-      {!isChatPage && <Navbar />}
+      {!isChatPage && !isTeacherPage && !isAdminPage && <Navbar />}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
@@ -84,6 +98,22 @@ function AppContent() {
           }
         />
         <Route path="/contact" element={<Contact />} />
+        <Route
+          path="/teacher/dashboard"
+          element={
+            <RoleRoute role="teacher">
+              <TeacherDashboard />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/admin/dashboard"
+          element={
+            <RoleRoute role="admin">
+              <AdminDashboard />
+            </RoleRoute>
+          }
+        />
         <Route
           path="/logout-confirm"
           element={

@@ -2,7 +2,6 @@ const jwt = require("jsonwebtoken");
 
 const authMiddleware = async (req, res, next) => {
     try {
-        // Get token from header
         const token = req.header("Authorization")?.replace("Bearer ", "");
 
         if (!token) {
@@ -12,9 +11,12 @@ const authMiddleware = async (req, res, next) => {
             });
         }
 
-        // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = { id: decoded.userId };
+        // Support both old tokens (userId) and new tokens (id + role)
+        req.user = {
+            id: decoded.id || decoded.userId,
+            role: decoded.role || "student",
+        };
         next();
     } catch (error) {
         res.status(401).json({
@@ -24,4 +26,8 @@ const authMiddleware = async (req, res, next) => {
     }
 };
 
+// Alias for named import
+const protect = authMiddleware;
+
 module.exports = authMiddleware;
+module.exports.protect = protect;
