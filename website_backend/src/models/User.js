@@ -58,6 +58,16 @@ const userSchema = new mongoose.Schema(
             enum: ["student", "user", "admin"],
             default: "student",
         },
+        // Teacher approval workflow
+        status: {
+            type: String,
+            enum: ["pending", "approved", "rejected"],
+            default: "pending",
+        },
+        rejectionReason: {
+            type: String,
+            default: "",
+        },
     },
     {
         timestamps: true,

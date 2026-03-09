@@ -7,7 +7,10 @@ const jwt = require("jsonwebtoken");
 // @access  Public
 exports.signup = async (req, res) => {
     try {
-        const { name, email, password, class: userClass, phone } = req.body;
+        const { name, email, password, class: userClass, phone,
+            section, schoolId, classTeacherId, rollNumber } = req.body;
+        const extraFields = { section, schoolId, classTeacherId, rollNumber };
+
 
         // Validation
         if (!name || !email || !password || !userClass) {
@@ -30,32 +33,31 @@ exports.signup = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Create user
+        // Create user with pending status
         const user = await User.create({
             name,
             email,
             password: hashedPassword,
             class: userClass,
             phone,
+            section: extraFields?.section,
+            school: extraFields?.schoolId,
+            classTeacher: extraFields?.classTeacherId,
+            rollNumber: extraFields?.rollNumber,
+            status: "pending", // Requires teacher approval
         });
 
-        // Generate JWT token
-        const token = jwt.sign({ userId: user._id.toString() }, process.env.JWT_SECRET, {
-            expiresIn: "30d",
-        });
-
+        // DO NOT return token — student must wait for teacher approval
         res.status(201).json({
             success: true,
-            message: "User registered successfully",
-            token,
+            pending: true,
+            message: "Registration submitted! Please wait for your class teacher to approve your account.",
             user: {
-                id: user._id,
                 name: user.name,
                 email: user.email,
-                avatar: user.avatar,
                 class: user.class,
-                phone: user.phone,
-                createdAt: user.createdAt,
+                section: user.section,
+                status: "pending",
             },
         });
     } catch (error) {
@@ -98,6 +100,23 @@ exports.login = async (req, res) => {
             return res.status(401).json({
                 success: false,
                 message: "Invalid email or password",
+            });
+        }
+
+        // Check approval status
+        if (user.status === "pending") {
+            return res.status(403).json({
+                success: false,
+                pending: true,
+                message: "Your account is pending approval from your class teacher. Please wait.",
+            });
+        }
+
+        if (user.status === "rejected") {
+            return res.status(403).json({
+                success: false,
+                rejected: true,
+                message: `Your registration was rejected. Reason: ${user.rejectionReason || "Contact your class teacher."}`,
             });
         }
 

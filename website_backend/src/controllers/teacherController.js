@@ -37,7 +37,7 @@ const getTeachersBySchool = async (req, res) => {
         if (cls) filter.assignedClass = cls;
         if (section) filter.assignedSection = section;
 
-        const teachers = await Teacher.find(filter, "name assignedClass assignedSection _id");
+        const teachers = await Teacher.find(filter, "name email phone assignedClass assignedSection status _id");
         res.json({ success: true, teachers });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
@@ -89,22 +89,21 @@ const registerTeacher = async (req, res) => {
             schoolName: school.schoolName,
             assignedClass,
             assignedSection,
+            status: "pending", // Needs admin approval
         });
 
-        const token = generateToken(teacher._id, "teacher");
-
+        // DO NOT return a token — teacher must wait for admin approval
         res.status(201).json({
             success: true,
-            message: "Teacher registered successfully",
-            token,
-            user: {
-                _id: teacher._id,
+            pending: true,
+            message: `Registration submitted! Please wait for ${school.schoolName} admin to approve your account.`,
+            teacher: {
                 name: teacher.name,
                 email: teacher.email,
-                role: "teacher",
                 schoolName: teacher.schoolName,
                 assignedClass: teacher.assignedClass,
                 assignedSection: teacher.assignedSection,
+                status: "pending",
             },
         });
     } catch (err) {
@@ -126,6 +125,23 @@ const loginTeacher = async (req, res) => {
         const isMatch = await bcrypt.compare(password, teacher.password);
         if (!isMatch) {
             return res.status(401).json({ success: false, message: "Invalid email or password" });
+        }
+
+        // Check approval status
+        if (teacher.status === "pending") {
+            return res.status(403).json({
+                success: false,
+                pending: true,
+                message: `Your account is pending approval from ${teacher.schoolName} admin. Please wait.`,
+            });
+        }
+
+        if (teacher.status === "rejected") {
+            return res.status(403).json({
+                success: false,
+                rejected: true,
+                message: `Your registration was rejected. Reason: ${teacher.rejectionReason || "Contact your school admin."}`,
+            });
         }
 
         const token = generateToken(teacher._id, "teacher");
@@ -291,6 +307,186 @@ const getTeacherDashboard = async (req, res) => {
     }
 };
 
+// ─── GET /api/admin/pending-teachers ─────────────────────────────────────────
+// Get all pending teacher registrations for this admin's school
+const getPendingTeachers = async (req, res) => {
+    try {
+        const admin = await Admin.findById(req.user.id);
+        if (!admin) return res.status(404).json({ success: false, message: "Admin not found" });
+
+        const pending = await Teacher.find({ school: admin._id, status: "pending" })
+            .select("name email phone assignedClass assignedSection createdAt status")
+            .sort({ createdAt: -1 });
+
+        res.json({ success: true, teachers: pending });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// ─── POST /api/admin/approve-teacher/:teacherId ───────────────────────────────
+const approveTeacher = async (req, res) => {
+    try {
+        const admin = await Admin.findById(req.user.id);
+        if (!admin) return res.status(404).json({ success: false, message: "Admin not found" });
+
+        const teacher = await Teacher.findOne({ _id: req.params.teacherId, school: admin._id });
+        if (!teacher) return res.status(404).json({ success: false, message: "Teacher not found" });
+
+        teacher.status = "approved";
+        await teacher.save();
+
+        console.log(`✅ Teacher approved: ${teacher.name} by admin: ${admin.name}`);
+        res.json({ success: true, message: `${teacher.name} has been approved successfully.` });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// ─── POST /api/admin/reject-teacher/:teacherId ────────────────────────────────
+const rejectTeacher = async (req, res) => {
+    try {
+        const admin = await Admin.findById(req.user.id);
+        if (!admin) return res.status(404).json({ success: false, message: "Admin not found" });
+
+        const teacher = await Teacher.findOne({ _id: req.params.teacherId, school: admin._id });
+        if (!teacher) return res.status(404).json({ success: false, message: "Teacher not found" });
+
+        teacher.status = "rejected";
+        teacher.rejectionReason = req.body.reason || "Not approved by school admin.";
+        await teacher.save();
+
+        console.log(`❌ Teacher rejected: ${teacher.name} by admin: ${admin.name}`);
+        res.json({ success: true, message: `${teacher.name} has been rejected.` });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// ─── GET /api/teacher/pending-students ────────────────────────────────────────
+// Returns students pending approval for this teacher's class+section
+const getPendingStudents = async (req, res) => {
+    try {
+        const teacher = await Teacher.findById(req.user.id);
+        if (!teacher) return res.status(404).json({ success: false, message: "Teacher not found" });
+
+        const students = await User.find({
+            school: teacher.school,
+            class: `Class ${teacher.assignedClass}`,
+            section: teacher.assignedSection,
+            status: "pending",
+        }).select("name email phone rollNumber class section createdAt status").sort({ createdAt: -1 });
+
+        res.json({ success: true, students });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// ─── POST /api/teacher/approve-student/:studentId ─────────────────────────────
+const approveStudent = async (req, res) => {
+    try {
+        const teacher = await Teacher.findById(req.user.id);
+        if (!teacher) return res.status(404).json({ success: false, message: "Teacher not found" });
+
+        // Only approve students in this teacher's class+section
+        const student = await User.findOne({
+            _id: req.params.studentId,
+            school: teacher.school,
+            class: `Class ${teacher.assignedClass}`,
+            section: teacher.assignedSection,
+        });
+        if (!student) return res.status(404).json({ success: false, message: "Student not found in your class" });
+
+        student.status = "approved";
+        student.classTeacher = teacher._id;   // ← link to teacher for quiz tracking
+        await student.save();
+
+        console.log(`✅ Student approved: ${student.name} by teacher: ${teacher.name} (classTeacher set)`);
+        res.json({ success: true, message: `${student.name} has been approved successfully.` });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// ─── POST /api/teacher/reject-student/:studentId ──────────────────────────────
+const rejectStudent = async (req, res) => {
+    try {
+        const teacher = await Teacher.findById(req.user.id);
+        if (!teacher) return res.status(404).json({ success: false, message: "Teacher not found" });
+
+        const student = await User.findOne({
+            _id: req.params.studentId,
+            school: teacher.school,
+            class: `Class ${teacher.assignedClass}`,
+            section: teacher.assignedSection,
+        });
+        if (!student) return res.status(404).json({ success: false, message: "Student not found in your class" });
+
+        student.status = "rejected";
+        student.rejectionReason = req.body.reason || "Not approved by class teacher.";
+        await student.save();
+
+        console.log(`❌ Student rejected: ${student.name} by teacher: ${teacher.name}`);
+        res.json({ success: true, message: `${student.name} has been rejected.` });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// ─── GET /api/admin/students ───────────────────────────────────────────────────
+// Returns all students for this admin's school
+const getStudentsBySchool = async (req, res) => {
+    try {
+        const admin = await Admin.findById(req.user.id);
+        if (!admin) return res.status(404).json({ success: false, message: "Admin not found" });
+
+        const students = await User.find({ school: admin._id })
+            .select("name email phone rollNumber class section status createdAt")
+            .sort({ createdAt: -1 });
+
+        res.json({ success: true, students });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// ─── DELETE /api/admin/delete-teacher/:teacherId ───────────────────────────────
+// Permanently deletes a teacher from the database
+const deleteTeacher = async (req, res) => {
+    try {
+        const admin = await Admin.findById(req.user.id);
+        if (!admin) return res.status(404).json({ success: false, message: "Admin not found" });
+
+        const teacher = await Teacher.findOne({ _id: req.params.teacherId, school: admin._id });
+        if (!teacher) return res.status(404).json({ success: false, message: "Teacher not found in your school" });
+
+        await Teacher.findByIdAndDelete(req.params.teacherId);
+        console.log(`🗑️ Teacher deleted: ${teacher.name} by admin: ${admin.name}`);
+        res.json({ success: true, message: `${teacher.name} has been permanently removed.` });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// ─── DELETE /api/admin/delete-student/:studentId ───────────────────────────────
+// Permanently deletes a student from the database
+const deleteStudent = async (req, res) => {
+    try {
+        const admin = await Admin.findById(req.user.id);
+        if (!admin) return res.status(404).json({ success: false, message: "Admin not found" });
+
+        const student = await User.findOne({ _id: req.params.studentId, school: admin._id });
+        if (!student) return res.status(404).json({ success: false, message: "Student not found in your school" });
+
+        await User.findByIdAndDelete(req.params.studentId);
+        console.log(`🗑️ Student deleted: ${student.name} by admin: ${admin.name}`);
+        res.json({ success: true, message: `${student.name} has been permanently removed.` });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
 module.exports = {
     getSchools,
     getTeachersBySchool,
@@ -298,4 +494,15 @@ module.exports = {
     loginTeacher,
     loginAdmin,
     getTeacherDashboard,
+    getPendingTeachers,
+    approveTeacher,
+    rejectTeacher,
+    getPendingStudents,
+    approveStudent,
+    rejectStudent,
+    getStudentsBySchool,
+    deleteTeacher,
+    deleteStudent,
 };
+
+
