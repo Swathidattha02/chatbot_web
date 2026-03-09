@@ -15,7 +15,7 @@ function Navbar() {
         <nav className="navbar">
             <div className="navbar-container">
                 <Link to="/" className="navbar-logo">
-                    <span className="logo-icon">🤖</span>
+                    <img src="/logo.png" alt="AI Avatar Logo" className="logo-img" />
                     <span className="logo-text">AI Avatar</span>
                 </Link>
 

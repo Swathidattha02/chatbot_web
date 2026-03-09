@@ -2,6 +2,13 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-y: scroll;
+  /* Forces vertical scrollbar to prevent layout shift */
+  overflow-x: hidden;
+  /* Prevents horizontal 'moving' or shifting */
+  scrollbar-gutter: stable;
+  /* Keeps content centered even if scrollbar appears */
+  width: 100%;
 }
 
 * {
@@ -11,6 +18,9 @@ html {
 }
 
 body {
+  width: 100%;
+  overflow-x: hidden;
+  /* Double layer protection for horizontal stability */
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
@@ -18,6 +28,17 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background: #ffffff;
   color: #1a202c;
+  line-height: 1.5;
+  position: relative;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
 }
 
 code {

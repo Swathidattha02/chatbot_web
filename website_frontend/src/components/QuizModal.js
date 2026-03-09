@@ -21,10 +21,14 @@ function QuizModal({ chapter, subject, onClose, onPassed }) {
     const generateQuiz = async () => {
         setPhase("loading");
         setErrorMsg("");
+        // Ollama can be slow locally — give it 3 minutes
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 180000);
         try {
             const token = localStorage.getItem("token");
             const res = await fetch(`${API_BASE_URL}/quiz/generate`, {
                 method: "POST",
+                signal: controller.signal,
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
@@ -36,6 +40,7 @@ function QuizModal({ chapter, subject, onClose, onPassed }) {
                     subjectId: subject.id,
                 }),
             });
+            clearTimeout(timeout);
             const data = await res.json();
             if (!data.success) throw new Error(data.message || "Failed to generate quiz");
             setQuestions(data.questions);
@@ -43,10 +48,16 @@ function QuizModal({ chapter, subject, onClose, onPassed }) {
             setCurrentQ(0);
             setPhase("quiz");
         } catch (err) {
-            setErrorMsg(err.message);
+            clearTimeout(timeout);
+            if (err.name === "AbortError") {
+                setErrorMsg("Quiz generation timed out. Ollama may be busy — please try again.");
+            } else {
+                setErrorMsg(err.message);
+            }
             setPhase("error");
         }
     };
+
 
     const handleAnswer = (questionId, option) => {
         setAnswers((prev) => ({ ...prev, [questionId]: option }));

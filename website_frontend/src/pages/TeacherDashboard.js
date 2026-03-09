@@ -12,9 +12,14 @@ function TeacherDashboard() {
     const [teacher, setTeacher] = useState(null);
     const [stats, setStats] = useState(null);
     const [students, setStudents] = useState([]);
+    const [pendingStudents, setPendingStudents] = useState([]);
+    const [quizResults, setQuizResults] = useState([]);
     const [filtered, setFiltered] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [activeTab, setActiveTab] = useState("dashboard"); // dashboard | pending | quizzes
+    const [actionMsg, setActionMsg] = useState("");
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
 
     // View controls
     const [view, setView] = useState("Daily"); // Daily | Weekly | Monthly
@@ -51,6 +56,52 @@ function TeacherDashboard() {
             setLoading(false);
         }
     }, [token, navigate]);
+
+    const fetchPendingStudents = useCallback(async () => {
+        try {
+            const res = await axios.get(`${API_BASE}/teacher/pending-students`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.data.success) setPendingStudents(res.data.students);
+        } catch { }
+    }, [token]);
+
+    const fetchQuizResults = useCallback(async () => {
+        try {
+            const res = await axios.get(`${API_BASE}/quiz/class-results`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.data.success) setQuizResults(res.data.quizzes);
+        } catch { }
+    }, [token]);
+
+    const handleApproveStudent = async (studentId, studentName) => {
+        try {
+            const res = await axios.post(`${API_BASE}/teacher/approve-student/${studentId}`, {}, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.data.success) {
+                setActionMsg(`✅ ${studentName} approved!`);
+                fetchPendingStudents();
+                fetchDashboard();
+                setTimeout(() => setActionMsg(""), 4000);
+            }
+        } catch { setActionMsg("Action failed."); }
+    };
+
+    const handleRejectStudent = async (studentId, studentName) => {
+        const reason = window.prompt(`Reason for rejecting ${studentName}:`) || "Not approved by class teacher.";
+        try {
+            const res = await axios.post(`${API_BASE}/teacher/reject-student/${studentId}`, { reason }, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.data.success) {
+                setActionMsg(`❌ ${studentName} rejected.`);
+                fetchPendingStudents();
+                setTimeout(() => setActionMsg(""), 4000);
+            }
+        } catch { setActionMsg("Action failed."); }
+    };
 
     const loadDemoData = () => {
         const demoTeacher = {
@@ -137,7 +188,9 @@ function TeacherDashboard() {
             return;
         }
         fetchDashboard();
-    }, [fetchDashboard, token, navigate]);
+        fetchPendingStudents();
+        fetchQuizResults();
+    }, [fetchDashboard, fetchPendingStudents, fetchQuizResults, token, navigate]);
 
     // Search filter
     useEffect(() => {
@@ -153,6 +206,10 @@ function TeacherDashboard() {
     }, [searchQuery, students]);
 
     const handleLogout = () => {
+        setShowLogoutModal(true);
+    };
+
+    const confirmLogout = () => {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         navigate("/login");
@@ -217,8 +274,30 @@ function TeacherDashboard() {
                 </div>
 
                 <nav className="td-nav-links">
-                    <button className="td-nav-link active">Dashboard</button>
-                    <button className="td-nav-link">Analytics</button>
+                    <button
+                        className={`td-nav-link ${activeTab === "dashboard" ? "active" : ""}`}
+                        onClick={() => setActiveTab("dashboard")}
+                    >Dashboard</button>
+                    <button
+                        className={`td-nav-link ${activeTab === "pending" ? "active" : ""}`}
+                        onClick={() => setActiveTab("pending")}
+                        style={{ position: "relative" }}
+                    >
+                        Student Approvals
+                        {pendingStudents.length > 0 && (
+                            <span className="td-pending-badge">{pendingStudents.length}</span>
+                        )}
+                    </button>
+                    <button
+                        className={`td-nav-link ${activeTab === "quizzes" ? "active" : ""}`}
+                        onClick={() => { setActiveTab("quizzes"); fetchQuizResults(); }}
+                        style={{ position: "relative" }}
+                    >
+                        📝 Quiz Results
+                        {quizResults.length > 0 && (
+                            <span className="td-pending-badge" style={{ background: "#6366f1" }}>{quizResults.length}</span>
+                        )}
+                    </button>
                 </nav>
 
                 <div className="td-search-bar">
@@ -243,223 +322,385 @@ function TeacherDashboard() {
             </header>
 
             <main className="td-main">
-                {/* ── Stats Cards ─────────────────────────────────── */}
-                <div className="td-stats-row">
-                    {/* Top Performer */}
-                    <div className="td-stat-card td-stat-green">
-                        <div className="td-stat-label">
-                            {view === "Daily" ? "TOP PERFORMER" : "TOP PERFORMER (WEEKLY)"}
-                        </div>
-                        <div className="td-stat-icon td-icon-green">⭐</div>
-                        <div className="td-stat-value">
-                            {stats?.topPerformer
-                                ? `${stats.topPerformer.name} (${stats.topPerformer.totalCompletion}%)`
-                                : "—"}
-                        </div>
-                    </div>
-
-                    {/* Class Average */}
-                    <div className="td-stat-card td-stat-blue">
-                        <div className="td-stat-label">CLASS AVERAGE</div>
-                        <div className="td-stat-icon td-icon-blue">📊</div>
-                        <div className="td-stat-value">{stats?.classAverage ?? 0}%</div>
-                    </div>
-
-                    {/* At Risk */}
-                    <div className="td-stat-card td-stat-red">
-                        <div className="td-stat-label">AT RISK STUDENTS</div>
-                        <div className="td-stat-icon td-icon-red">⚠️</div>
-                        <div className="td-stat-value">{stats?.atRiskCount ?? 0} Students</div>
-                    </div>
-                </div>
-
-                {/* ── Progress Table Header ────────────────────────── */}
-                <div className="td-table-header-row">
-                    <div>
-                        <h2 className="td-section-title">
-                            {view === "Daily"
-                                ? "Daily Progress Tracker"
-                                : view === "Weekly"
-                                    ? "Weekly Performance"
-                                    : "Monthly Overview"}
-                        </h2>
+                {/* ── Pending Students Tab ─────────────────────────── */}
+                {activeTab === "pending" && (
+                    <div className="td-pending-section">
+                        <h2 className="td-section-title">Pending Student Approvals</h2>
                         <p className="td-section-subtitle">
-                            {view === "Daily"
-                                ? `Real-time chapter completion for today.`
-                                : view === "Weekly"
-                                    ? "Aggregated progress for this week."
-                                    : "Monthly aggregated progress data."}
+                            Students from Class {teacher?.assignedClass}-{teacher?.assignedSection} waiting for your approval.
                         </p>
+                        {actionMsg && <div className="td-action-msg">{actionMsg}</div>}
+                        {pendingStudents.length === 0 ? (
+                            <div className="td-empty">🎉 No pending approvals. All registrations reviewed!</div>
+                        ) : (
+                            <div className="td-table-wrapper">
+                                <table className="td-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Roll No.</th>
+                                            <th>Class</th>
+                                            <th>Applied On</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {pendingStudents.map((s) => (
+                                            <tr key={s._id} className="td-row">
+                                                <td className="td-student-cell">
+                                                    <div className="td-student-info">
+                                                        <div className="td-avatar" style={{ background: "#dbeafe" }}>
+                                                            {s.name.charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <div className="td-student-name">{s.name}</div>
+                                                    </div>
+                                                </td>
+                                                <td style={{ fontSize: "13px", color: "#64748b" }}>{s.email}</td>
+                                                <td>{s.rollNumber || "—"}</td>
+                                                <td>{s.class} / {s.section}</td>
+                                                <td style={{ fontSize: "12px", color: "#94a3b8" }}>
+                                                    {new Date(s.createdAt).toLocaleDateString()}
+                                                </td>
+                                                <td>
+                                                    <div style={{ display: "flex", gap: "8px" }}>
+                                                        <button
+                                                            className="td-approve-btn"
+                                                            onClick={() => handleApproveStudent(s._id, s.name)}
+                                                        >✅ Approve</button>
+                                                        <button
+                                                            className="td-reject-btn"
+                                                            onClick={() => handleRejectStudent(s._id, s.name)}
+                                                        >❌ Reject</button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
                     </div>
+                )}
 
-                    <div className="td-controls">
-                        {/* View Toggle */}
-                        <div className="td-view-toggle">
-                            {["Daily", "Weekly", "Monthly"].map((v) => (
-                                <button
-                                    key={v}
-                                    className={`td-toggle-btn ${view === v ? "active" : ""}`}
-                                    onClick={() => setView(v)}
-                                >
-                                    {v}
-                                </button>
-                            ))}
+                {/* ── Dashboard Tab ────────────────────────────────── */}
+                {activeTab === "dashboard" && (
+                    <div className="td-stats-row">
+                        {/* Top Performer */}
+                        <div className="td-stat-card td-stat-green">
+                            <div className="td-stat-label">
+                                {view === "Daily" ? "TOP PERFORMER" : "TOP PERFORMER (WEEKLY)"}
+                            </div>
+                            <div className="td-stat-icon td-icon-green">⭐</div>
+                            <div className="td-stat-value">
+                                {stats?.topPerformer
+                                    ? `${stats.topPerformer.name} (${stats.topPerformer.totalCompletion}%)`
+                                    : "—"}
+                            </div>
                         </div>
 
-                        {/* Date */}
-                        <div className="td-date-picker">
-                            📅{" "}
-                            {new Date().toLocaleDateString("en-GB", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                            })}
+                        {/* Class Average */}
+                        <div className="td-stat-card td-stat-blue">
+                            <div className="td-stat-label">CLASS AVERAGE</div>
+                            <div className="td-stat-icon td-icon-blue">📊</div>
+                            <div className="td-stat-value">{stats?.classAverage ?? 0}%</div>
                         </div>
 
-                        {/* Export */}
-                        <button className="td-export-btn">⬇️ Export</button>
+                        {/* At Risk */}
+                        <div className="td-stat-card td-stat-red">
+                            <div className="td-stat-label">AT RISK STUDENTS</div>
+                            <div className="td-stat-icon td-icon-red">⚠️</div>
+                            <div className="td-stat-value">{stats?.atRiskCount ?? 0} Students</div>
+                        </div>
                     </div>
-                </div>
+                )}
 
-                {/* ── Table ───────────────────────────────────────── */}
-                <div className="td-table-wrapper">
-                    <table className="td-table">
-                        <thead>
-                            <tr>
-                                <th className="td-th-name">STUDENT NAME</th>
-                                {SUBJECTS.map((s) => (
-                                    <th key={s} className="td-th-subj">
-                                        {s.toUpperCase()}
-                                    </th>
-                                ))}
-                                <th className="td-th-total">
-                                    {view === "Daily" ? "TOTAL" : "AVG COMPLETION"}
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {paginated.map((student, idx) => (
-                                <tr key={student._id} className="td-row">
-                                    {/* Student Name */}
-                                    <td className="td-student-cell">
-                                        <div className="td-student-info">
-                                            <div
-                                                className="td-avatar"
-                                                style={{
-                                                    background:
-                                                        avatarColors[idx % avatarColors.length],
-                                                }}
-                                            >
-                                                {getInitials(student.name)}
-                                            </div>
-                                            <div>
-                                                <div className="td-student-name">
-                                                    {student.name}
-                                                </div>
-                                                <div className="td-student-roll">
-                                                    Roll: {student.rollNumber || "—"}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
+                {activeTab === "dashboard" && (
+                    <>
+                        {/* ── Progress Table Header ────────────────────────── */}
+                        <div className="td-table-header-row">
+                            <div>
+                                <h2 className="td-section-title">
+                                    {view === "Daily"
+                                        ? "Daily Progress Tracker"
+                                        : view === "Weekly"
+                                            ? "Weekly Performance"
+                                            : "Monthly Overview"}
+                                </h2>
+                                <p className="td-section-subtitle">
+                                    {view === "Daily"
+                                        ? `Real-time chapter completion for today.`
+                                        : view === "Weekly"
+                                            ? "Aggregated progress for this week."
+                                            : "Monthly aggregated progress data."}
+                                </p>
+                            </div>
 
-                                    {/* Subject columns */}
-                                    {SUBJECTS.map((subj) => {
-                                        const data = student.subjectProgress?.[subj] || {
-                                            chapter: "-",
-                                            completion: 0,
-                                        };
-                                        return (
-                                            <td key={subj} className="td-subj-cell">
-                                                <div className="td-chapter-name">
-                                                    {data.chapter}
-                                                </div>
-                                                <div className="td-progress-bar-wrap">
+                            <div className="td-controls">
+                                {/* View Toggle */}
+                                <div className="td-view-toggle">
+                                    {["Daily", "Weekly", "Monthly"].map((v) => (
+                                        <button
+                                            key={v}
+                                            className={`td-toggle-btn ${view === v ? "active" : ""}`}
+                                            onClick={() => setView(v)}
+                                        >
+                                            {v}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Date */}
+                                <div className="td-date-picker">
+                                    📅{" "}
+                                    {new Date().toLocaleDateString("en-GB", {
+                                        day: "2-digit",
+                                        month: "short",
+                                        year: "numeric",
+                                    })}
+                                </div>
+
+                                {/* Export */}
+                                <button className="td-export-btn">⬇️ Export</button>
+                            </div>
+                        </div>
+
+                        {/* ── Table ───────────────────────────────────────── */}
+                        <div className="td-table-wrapper">
+                            <table className="td-table">
+                                <thead>
+                                    <tr>
+                                        <th className="td-th-name">STUDENT NAME</th>
+                                        {SUBJECTS.map((s) => (
+                                            <th key={s} className="td-th-subj">
+                                                {s.toUpperCase()}
+                                            </th>
+                                        ))}
+                                        <th className="td-th-total">
+                                            {view === "Daily" ? "TOTAL" : "AVG COMPLETION"}
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {paginated.map((student, idx) => (
+                                        <tr key={student._id} className="td-row">
+                                            {/* Student Name */}
+                                            <td className="td-student-cell">
+                                                <div className="td-student-info">
                                                     <div
-                                                        className="td-progress-bar-fill"
+                                                        className="td-avatar"
                                                         style={{
-                                                            width: `${data.completion}%`,
-                                                            background: getCompletionColor(
-                                                                data.completion
-                                                            ),
+                                                            background:
+                                                                avatarColors[idx % avatarColors.length],
                                                         }}
-                                                    />
+                                                    >
+                                                        {getInitials(student.name)}
+                                                    </div>
+                                                    <div>
+                                                        <div className="td-student-name">
+                                                            {student.name}
+                                                        </div>
+                                                        <div className="td-student-roll">
+                                                            Roll: {student.rollNumber || "—"}
+                                                        </div>
+                                                    </div>
                                                 </div>
+                                            </td>
+
+                                            {/* Subject columns */}
+                                            {SUBJECTS.map((subj) => {
+                                                const data = student.subjectProgress?.[subj] || {
+                                                    chapter: "-",
+                                                    completion: 0,
+                                                };
+                                                return (
+                                                    <td key={subj} className="td-subj-cell">
+                                                        <div className="td-chapter-name">
+                                                            {data.chapter}
+                                                        </div>
+                                                        <div className="td-progress-bar-wrap">
+                                                            <div
+                                                                className="td-progress-bar-fill"
+                                                                style={{
+                                                                    width: `${data.completion}%`,
+                                                                    background: getCompletionColor(
+                                                                        data.completion
+                                                                    ),
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <span
+                                                            className="td-pct"
+                                                            style={{
+                                                                color: getCompletionColor(data.completion),
+                                                            }}
+                                                        >
+                                                            {data.completion}%
+                                                        </span>
+                                                    </td>
+                                                );
+                                            })}
+
+                                            {/* Total */}
+                                            <td className="td-total-cell">
                                                 <span
-                                                    className="td-pct"
+                                                    className="td-total-pct"
+                                                    style={{ color: getTotalColor(student.totalCompletion) }}
+                                                >
+                                                    {student.totalCompletion}%
+                                                </span>
+                                                <span
+                                                    className="td-trend"
                                                     style={{
-                                                        color: getCompletionColor(data.completion),
+                                                        color:
+                                                            student.totalCompletion >= 60
+                                                                ? "#16a34a"
+                                                                : "#dc2626",
                                                     }}
                                                 >
-                                                    {data.completion}%
+                                                    {student.totalCompletion >= 60 ? "↗" : "↘"}
                                                 </span>
                                             </td>
-                                        );
-                                    })}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
 
-                                    {/* Total */}
-                                    <td className="td-total-cell">
-                                        <span
-                                            className="td-total-pct"
-                                            style={{ color: getTotalColor(student.totalCompletion) }}
-                                        >
-                                            {student.totalCompletion}%
-                                        </span>
-                                        <span
-                                            className="td-trend"
-                                            style={{
-                                                color:
-                                                    student.totalCompletion >= 60
-                                                        ? "#16a34a"
-                                                        : "#dc2626",
-                                            }}
-                                        >
-                                            {student.totalCompletion >= 60 ? "↗" : "↘"}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            {filtered.length === 0 && (
+                                <div className="td-empty">No students found.</div>
+                            )}
+                        </div>
 
-                    {filtered.length === 0 && (
-                        <div className="td-empty">No students found.</div>
-                    )}
-                </div>
+                        {/* ── Pagination ──────────────────────────────────── */}
+                        <div className="td-pagination">
+                            <span className="td-showing">
+                                Showing {paginated.length} of {filtered.length} students
+                            </span>
+                            <div className="td-pages">
+                                <button
+                                    className="td-page-btn"
+                                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                >
+                                    ‹
+                                </button>
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                                    <button
+                                        key={p}
+                                        className={`td-page-btn ${currentPage === p ? "active" : ""}`}
+                                        onClick={() => setCurrentPage(p)}
+                                    >
+                                        {p}
+                                    </button>
+                                ))}
+                                <button
+                                    className="td-page-btn"
+                                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                    disabled={currentPage === totalPages}
+                                >
+                                    ›
+                                </button>
+                            </div>
+                        </div>
+                    </>
+                )}
 
-                {/* ── Pagination ──────────────────────────────────── */}
-                <div className="td-pagination">
-                    <span className="td-showing">
-                        Showing {paginated.length} of {filtered.length} students
-                    </span>
-                    <div className="td-pages">
-                        <button
-                            className="td-page-btn"
-                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                            disabled={currentPage === 1}
-                        >
-                            ‹
-                        </button>
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                {/* ── Quiz Results Tab ──────────────────────────────── */}
+                {activeTab === "quizzes" && (
+                    <div className="td-pending-section">
+                        <div className="td-pending-header">
+                            <h2 className="td-section-title">📝 Quiz Results — Class {teacher?.assignedClass}-{teacher?.assignedSection}</h2>
+                            <p className="td-section-subtitle">All quiz attempts by your students</p>
+                        </div>
+
+                        {quizResults.length === 0 ? (
+                            <div className="td-empty" style={{ padding: "3rem", textAlign: "center" }}>
+                                <div style={{ fontSize: "3rem" }}>📭</div>
+                                <h3>No quiz results yet</h3>
+                                <p>Results will appear here once students take quizzes.</p>
+                            </div>
+                        ) : (
+                            <div className="td-table-wrap">
+                                <table className="td-student-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Student</th>
+                                            <th>Subject</th>
+                                            <th>Chapter</th>
+                                            <th>Score</th>
+                                            <th>%</th>
+                                            <th>Status</th>
+                                            <th>Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {quizResults.map((q, i) => (
+                                            <tr key={q._id}>
+                                                <td>{i + 1}</td>
+                                                <td>
+                                                    <div className="td-student-name-cell">
+                                                        <div className="td-student-avatar" style={{ background: "#e0f2fe", color: "#0369a1" }}>
+                                                            {(q.studentName || "S").charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <span>{q.studentName || "—"}</span>
+                                                    </div>
+                                                </td>
+                                                <td style={{ fontSize: "13px" }}>{q.subjectName}</td>
+                                                <td style={{ fontSize: "13px", maxWidth: "160px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q.chapterName}</td>
+                                                <td style={{ fontWeight: 700 }}>{q.score}/{q.totalQ}</td>
+                                                <td style={{ fontWeight: 700, color: q.percentage >= 60 ? "#16a34a" : "#dc2626" }}>{q.percentage}%</td>
+                                                <td>
+                                                    <span style={{
+                                                        padding: "3px 10px", borderRadius: "100px",
+                                                        fontSize: "11px", fontWeight: 700,
+                                                        background: q.passed ? "#dcfce7" : "#fee2e2",
+                                                        color: q.passed ? "#15803d" : "#b91c1c",
+                                                    }}>
+                                                        {q.passed ? "✅ Passed" : "❌ Failed"}
+                                                    </span>
+                                                </td>
+                                                <td style={{ fontSize: "12px", color: "#94a3b8" }}>
+                                                    {new Date(q.lastAttempt).toLocaleDateString()}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </main>
+
+            {/* ── Custom Professional Logout Modal ──────────────── */}
+            {showLogoutModal && (
+                <div className="td-modal-overlay">
+                    <div className="td-confirm-modal">
+                        <div className="td-modal-icon">👋</div>
+                        <h2 className="td-modal-title">Already leaving?</h2>
+                        <p className="td-modal-text">
+                            Are you sure you want to log out of the Teacher Portal?
+                            Your dashboard state is saved and ready for your return.
+                        </p>
+                        <div className="td-modal-actions">
                             <button
-                                key={p}
-                                className={`td-page-btn ${currentPage === p ? "active" : ""}`}
-                                onClick={() => setCurrentPage(p)}
+                                className="td-modal-btn cancel"
+                                onClick={() => setShowLogoutModal(false)}
                             >
-                                {p}
+                                Stay Back
                             </button>
-                        ))}
-                        <button
-                            className="td-page-btn"
-                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                            disabled={currentPage === totalPages}
-                        >
-                            ›
-                        </button>
+                            <button
+                                className="td-modal-btn confirm"
+                                onClick={confirmLogout}
+                            >
+                                Yes, Logout
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </main>
-        </div>
+            )}
+        </div >
     );
 }
 

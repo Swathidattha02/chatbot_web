@@ -32,11 +32,29 @@ function Signup() {
     // UI state
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const [pendingInfo, setPendingInfo] = useState(null); // { schoolName, name }
 
     const schoolObj = schools.find((s) => s._id === selectedSchool);
     const availableClasses = schoolObj ? schoolObj.classes : [];
     const availableSections =
         schoolObj && selectedClass ? schoolObj.sectionsPerClass[selectedClass] || [] : [];
+
+    // Lock body scroll when showing the pending page
+    useEffect(() => {
+        if (pendingInfo) {
+            document.body.style.overflow = "hidden";
+            document.documentElement.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "";
+            document.documentElement.style.overflow = "";
+        }
+        return () => {
+            document.body.style.overflow = "";
+            document.documentElement.style.overflow = "";
+        };
+    }, [pendingInfo]);
+
+
 
     // Load schools
     useEffect(() => {
@@ -84,8 +102,21 @@ function Signup() {
                     classTeacherId: selectedTeacher,
                     rollNumber,
                 });
-                if (result.success) navigate("/dashboard");
-                else setError(result.message || "Registration failed");
+                if (result.success && result.pending) {
+                    // Show pending approval screen for student
+                    setPendingInfo({
+                        name,
+                        role: "student",
+                        schoolName: schoolObj?.name || "your school",
+                        assignedClass: selectedClass,
+                        assignedSection: selectedSection,
+                        approver: "your class teacher",
+                    });
+                } else if (result.success) {
+                    navigate("/dashboard");
+                } else {
+                    setError(result.message || "Registration failed");
+                }
             } else {
                 const res = await axios.post(`${API_BASE}/auth/teacher/register`, {
                     name, email, phone, password,
@@ -93,10 +124,16 @@ function Signup() {
                     assignedClass: selectedClass,
                     assignedSection: selectedSection,
                 });
-                if (res.data.success) {
-                    localStorage.setItem("token", res.data.token);
-                    localStorage.setItem("user", JSON.stringify(res.data.user));
-                    navigate("/teacher/dashboard");
+                if (res.data.success && res.data.pending) {
+                    // Show pending approval screen for teacher
+                    setPendingInfo({
+                        name,
+                        role: "teacher",
+                        schoolName: res.data.teacher?.schoolName || schoolObj?.name || "your school",
+                        assignedClass: selectedClass,
+                        assignedSection: selectedSection,
+                        approver: "school admin",
+                    });
                 } else setError(res.data.message || "Registration failed");
             }
         } catch (err) {
@@ -104,6 +141,48 @@ function Signup() {
         }
         setLoading(false);
     };
+
+    // ── Pending Approval Screen ───────────────────────────────────
+    if (pendingInfo) {
+        const isStudent = pendingInfo.role === "student";
+        return (
+            <div className="pending-approval-page">
+                <div className="pending-approval-card">
+                    {/* Status badge */}
+                    <div className="pending-status-badge">
+                        ● Pending Approval
+                    </div>
+
+                    <h2>Registration Submitted!</h2>
+                    <p className="pending-greeting">
+                        Hi <strong>{pendingInfo.name}</strong> — your {isStudent ? "student" : "teacher"} account is under review.
+                    </p>
+
+                    <p className="pending-desc">
+                        <strong>{pendingInfo.schoolName}</strong> &nbsp;·&nbsp;
+                        Class {pendingInfo.assignedClass} &nbsp;/&nbsp; Section {pendingInfo.assignedSection}
+                    </p>
+
+                    <div className="pending-steps">
+                        <div className="pending-step">
+                            <span className="pending-step-icon">{isStudent ? "👩‍🏫" : "🏫"}</span>
+                            <span>Your <strong>{pendingInfo.approver}</strong> will review and approve your account.</span>
+                        </div>
+                        <div className="pending-step">
+                            <span className="pending-step-icon">✅</span>
+                            <span>Once approved, log in with your email and password.</span>
+                        </div>
+                        <div className="pending-step">
+                            <span className="pending-step-icon">📧</span>
+                            <span>Contact your {pendingInfo.approver} if it takes too long.</span>
+                        </div>
+                    </div>
+
+                    <a href="/login" className="pending-login-btn">Go to Login →</a>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="signup-page">

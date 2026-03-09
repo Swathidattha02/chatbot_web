@@ -12,7 +12,7 @@ function Footer() {
                     {/* Company Details */}
                     <div className="footer-section company-info">
                         <div className="footer-logo">
-                            <span className="logo-icon">🤖</span>
+                            <img src="/logo.png" alt="AI Avatar Logo" className="footer-logo-img" />
                             <span className="logo-text">AI Avatar Tutor</span>
                         </div>
                         <p className="company-description">
@@ -38,15 +38,15 @@ function Footer() {
                         <ul className="contact-list">
                             <li>
                                 <span className="contact-icon">📍</span>
-                                <span>123 Innovation Drive, Tech Valley, IN 560001</span>
+                                <span>9-135/1,Kamavarapukota,Eluru,Andhra Pradesh,534426,India</span>
                             </li>
                             <li>
                                 <span className="contact-icon">📧</span>
-                                <a href="mailto:support@aiavatartutor.com">support@aiavatartutor.com</a>
+                                <a href="mailto:info@yugantaai.com">info@yugantaai.com</a>
                             </li>
                             <li>
                                 <span className="contact-icon">📞</span>
-                                <a href="tel:+919876543210">+91 98765 43210</a>
+                                <a href="tel:+918978946421">+91 8978946421</a>
                             </li>
                         </ul>
                     </div>
@@ -55,10 +55,10 @@ function Footer() {
                     <div className="footer-section">
                         <h4 className="footer-title">Connect With Us</h4>
                         <div className="social-links">
-                            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="social-link linkedin">
+                            <a href="https://www.linkedin.com/company/yugantaai/" target="_blank" rel="noopener noreferrer" className="social-link linkedin">
                                 LinkedIn
                             </a>
-                            <a href="https://aiavatartutor.com" target="_blank" rel="noopener noreferrer" className="social-link website">
+                            <a href="https://yugantaai.com/" target="_blank" rel="noopener noreferrer" className="social-link website">
                                 Company Website
                             </a>
                         </div>

@@ -22,9 +22,33 @@ export const AuthProvider = ({ children }) => {
             const storedToken = localStorage.getItem("token");
             const storedUser = localStorage.getItem("user");
 
-            if (storedToken && storedUser) {
+            if (storedToken) {
                 setToken(storedToken);
-                setUser(JSON.parse(storedUser));
+                if (storedUser) {
+                    setUser(JSON.parse(storedUser));
+                }
+
+                // Always fetch fresh user data to ensure we have all fields (like class, section)
+                try {
+                    const response = await fetch(`${process.env.REACT_APP_API_URL || "http://localhost:5000/api"}/auth/me`, {
+                        headers: { "Authorization": `Bearer ${storedToken}` }
+                    });
+                    const data = await response.json();
+                    if (data.success && data.user) {
+                        // Standardize the id field (backend sends _id, frontend expects id)
+                        const freshUser = { ...data.user, id: data.user._id };
+                        setUser(freshUser);
+                        localStorage.setItem("user", JSON.stringify(freshUser));
+                    } else {
+                        // Token might be invalid/expired
+                        localStorage.removeItem("token");
+                        localStorage.removeItem("user");
+                        setToken(null);
+                        setUser(null);
+                    }
+                } catch (err) {
+                    console.error("Failed to refresh user auth state:", err);
+                }
             }
             setLoading(false);
         };
@@ -51,16 +75,23 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const signup = async (name, email, password, userClass, phone) => {
+    const signup = async (name, email, password, userClass, phone, extraFields = {}) => {
         try {
-            const response = await authAPI.signup({ name, email, password, class: userClass, phone });
-            const { token, user } = response.data;
+            const response = await authAPI.signup({
+                name, email, password, class: userClass, phone, ...extraFields
+            });
+            const data = response.data;
 
+            // If pending approval - don't log in, return pending flag
+            if (data.pending) {
+                return { success: true, pending: true, message: data.message };
+            }
+
+            const { token, user } = data;
             localStorage.setItem("token", token);
             localStorage.setItem("user", JSON.stringify(user));
             setToken(token);
             setUser(user);
-
             return { success: true };
         } catch (error) {
             return {
