@@ -429,12 +429,24 @@ exports.getWeeklyAnalytics = async (req, res) => {
 exports.getMonthlyAnalytics = async (req, res) => {
     try {
         const userId = req.user.id;
+        const { month, year } = req.query;
+
         const now = new Date();
-        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        let startDate, endDate;
+
+        if (month && year) {
+            // Get specific month (month is 1-indexed from frontend)
+            startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+            endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59, 999);
+        } else {
+            // Default: last 30 days
+            endDate = now;
+            startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        }
 
         const progress = await Progress.find({
             userId,
-            lastAccessed: { $gte: monthAgo },
+            lastAccessed: { $gte: startDate, $lte: endDate },
         });
 
         // Calculate weekly consistency and subject growth using sessions
@@ -449,15 +461,15 @@ exports.getMonthlyAnalytics = async (req, res) => {
                 p.sessions.forEach(session => {
                     const sessionDate = new Date(session.date);
 
-                    // Only include sessions from the last 30 days
-                    if (sessionDate >= monthAgo) {
-                        const daysAgo = Math.floor((now - sessionDate) / (24 * 60 * 60 * 1000));
+                    // Only include sessions from the selected range
+                    if (sessionDate >= startDate && sessionDate <= endDate) {
+                        const daysAgo = Math.floor((endDate - sessionDate) / (24 * 60 * 60 * 1000));
                         const weekIndex = Math.floor(daysAgo / 7);
 
                         const duration = session.duration || 0;
 
                         if (weekIndex < 4) {
-                            weeklyData[3 - weekIndex] += duration;
+                            weeklyData[3 - Math.min(weekIndex, 3)] += duration;
                         }
 
                         totalMinutesSpent += duration;
@@ -476,13 +488,13 @@ exports.getMonthlyAnalytics = async (req, res) => {
                 });
             } else {
                 // Fallback for old data
-                if (new Date(p.lastAccessed) >= monthAgo) {
-                    const daysAgo = Math.floor((now - new Date(p.lastAccessed)) / (24 * 60 * 60 * 1000));
+                if (new Date(p.lastAccessed) >= startDate && new Date(p.lastAccessed) <= endDate) {
+                    const daysAgo = Math.floor((endDate - new Date(p.lastAccessed)) / (24 * 60 * 60 * 1000));
                     const weekIndex = Math.floor(daysAgo / 7);
 
                     const duration = p.timeSpent || 0;
                     if (weekIndex < 4) {
-                        weeklyData[3 - weekIndex] += duration;
+                        weeklyData[3 - Math.min(weekIndex, 3)] += duration;
                     }
                     totalMinutesSpent += duration;
                     activeDaysSet.add(new Date(p.lastAccessed).toDateString());
@@ -499,23 +511,6 @@ exports.getMonthlyAnalytics = async (req, res) => {
             }
 
             // Always update topic counts if subject exists in growth
-            // (meaning it was active or fallback active)
-            // But wait, "Monthly" usually also shows proficiency regardless of activity?
-            // Original code showed all active subjects.
-            if (!subjectGrowth[p.subjectName]) {
-                // Even if no time spent this month, maybe we want to show it exists?
-                // But "Growth" implies change. Let's stick to active ones or initialize all?
-                // Let's initialize if it was found in query (lastAccessed within month)
-                if (new Date(p.lastAccessed) >= monthAgo) {
-                    subjectGrowth[p.subjectName] = {
-                        name: p.subjectName,
-                        topicsCompleted: 0,
-                        totalTopics: 0,
-                        proficiency: 0,
-                    };
-                }
-            }
-
             if (subjectGrowth[p.subjectName]) {
                 if (p.completed) {
                     subjectGrowth[p.subjectName].topicsCompleted += 1;
@@ -530,13 +525,13 @@ exports.getMonthlyAnalytics = async (req, res) => {
         });
 
         const chaptersCompleted = progress.filter(p => p.completed).length;
-        const consistency = Math.round((activeDaysSet.size / 30) * 100);
+        const consistency = Math.round((activeDaysSet.size / (month && year ? endDate.getDate() : 30)) * 100);
 
         // Count AI tutor interactions (user queries) from ChatHistory
         const ChatHistory = require("../models/ChatHistory");
         const chatSessions = await ChatHistory.find({
             userId,
-            createdAt: { $gte: monthAgo },
+            createdAt: { $gte: startDate, $lte: endDate },
         });
 
         // Count total user messages across all sessions

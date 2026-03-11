@@ -16,6 +16,7 @@ const {
     getStudentsBySchool,
     deleteTeacher,
     deleteStudent,
+    changeAdminPassword,
 } = require("../controllers/teacherController");
 const { protect } = require("../middleware/auth");
 
@@ -37,6 +38,7 @@ router.get("/admin/pending-teachers", protect, getPendingTeachers);
 router.post("/admin/approve-teacher/:teacherId", protect, approveTeacher);
 router.post("/admin/reject-teacher/:teacherId", protect, rejectTeacher);
 router.get("/admin/students", protect, getStudentsBySchool);
+router.post("/admin/change-password", protect, changeAdminPassword);
 router.delete("/admin/delete-teacher/:teacherId", protect, deleteTeacher);
 router.delete("/admin/delete-student/:studentId", protect, deleteStudent);
 

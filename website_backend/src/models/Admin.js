@@ -45,6 +45,10 @@ const adminSchema = new mongoose.Schema(
             type: String,
             default: "admin",
         },
+        isFirstLogin: {
+            type: Boolean,
+            default: true,
+        },
     },
     { timestamps: true }
 );

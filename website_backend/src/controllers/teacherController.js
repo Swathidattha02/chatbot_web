@@ -191,6 +191,7 @@ const loginAdmin = async (req, res) => {
                 role: "admin",
                 schoolName: admin.schoolName,
                 schoolSlug: admin.schoolSlug,
+                isFirstLogin: admin.isFirstLogin,
             },
         });
     } catch (err) {
@@ -487,12 +488,40 @@ const deleteStudent = async (req, res) => {
     }
 };
 
+const changeAdminPassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const admin = await Admin.findById(req.user.id);
+
+        if (!admin) {
+            return res.status(404).json({ success: false, message: "Admin not found" });
+        }
+
+        // Verify current password
+        const isMatch = await bcrypt.compare(currentPassword, admin.password);
+        if (!isMatch) {
+            return res.status(400).json({ success: false, message: "Invalid current password" });
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+        admin.password = hashedPassword;
+        admin.isFirstLogin = false;
+        await admin.save();
+
+        res.json({ success: true, message: "Password updated successfully!" });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
 module.exports = {
     getSchools,
     getTeachersBySchool,
     registerTeacher,
     loginTeacher,
     loginAdmin,
+    changeAdminPassword,
     getTeacherDashboard,
     getPendingTeachers,
     approveTeacher,
