@@ -356,7 +356,7 @@
 }
 
 .hp-tab-btn {
-  padding: 12px 24px;
+  padding: 10px 20px;
   border-radius: 100px;
   border: 1.5px solid #e2e8f0;
   background: #fff;
@@ -365,9 +365,6 @@
   cursor: pointer;
   color: var(--hp-text-muted);
   transition: all .2s;
-  display: flex;
-  align-items: center;
-  gap: 10px;
 }
 
 .hp-tab-btn.active,
@@ -376,16 +373,6 @@
   color: #fff;
   border-color: transparent;
   box-shadow: 0 4px 14px rgba(99, 102, 241, .3);
-}
-
-.hp-tab-btn.active svg,
-.hp-tab-btn:hover svg {
-  color: #fff;
-}
-
-.hp-tab-btn svg {
-  color: var(--hp-accent);
-  transition: color 0.2s;
 }
 
 .hp-showcase-body {
@@ -735,11 +722,8 @@
 }
 
 .hp-step-icon {
-  margin-bottom: 1.2rem;
-  color: var(--hp-accent);
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  font-size: 3rem;
+  margin-bottom: .8rem;
 }
 
 .hp-step-card h3 {
@@ -756,8 +740,10 @@
 }
 
 .hp-step-connector {
-  color: #cbd5e1;
-  padding: 0 0.5rem;
+  font-size: 1.4rem;
+  color: var(--hp-primary);
+  font-weight: 700;
+  padding: 0 1rem;
   display: flex;
   align-items: center;
 }
@@ -799,11 +785,8 @@
 }
 
 .hp-feat-icon {
-  margin-bottom: 1rem;
-  color: var(--hp-accent);
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  font-size: 2.8rem;
+  margin-bottom: .8rem;
 }
 
 .hp-feat-title {

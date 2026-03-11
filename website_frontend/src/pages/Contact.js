@@ -1,16 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import emailjs from '@emailjs/browser';
-import {
-    Mail,
-    MessageCircle,
-    GraduationCap,
-    Send,
-    CheckCircle2,
-    XCircle,
-    AlertCircle,
-    Loader2
-} from "lucide-react";
 import '../styles/Contact.css';
 
 function Contact() {
@@ -52,7 +42,7 @@ function Contact() {
             if (serviceId === 'YOUR_SERVICE_ID' || templateId === 'YOUR_TEMPLATE_ID' || publicKey === 'YOUR_PUBLIC_KEY') {
                 setStatus({
                     type: 'error',
-                    message: <><AlertCircle size={16} /> EmailJS is not configured yet. Please contact the administrator or email directly at swathidatthapasupuleti02@gmail.com</>
+                    message: '⚙️ EmailJS is not configured yet. Please contact the administrator or email directly at swathidatthapasupuleti02@gmail.com'
                 });
                 setLoading(false);
                 return;
@@ -77,7 +67,7 @@ function Contact() {
 
             setStatus({
                 type: 'success',
-                message: <><CheckCircle2 size={16} /> Message sent successfully! We'll get back to you soon.</>
+                message: '✅ Message sent successfully! We\'ll get back to you soon.'
             });
 
             // Reset form
@@ -98,7 +88,7 @@ function Contact() {
         } catch (error) {
             console.error('EmailJS Error:', error);
 
-            let errorMessage = <><XCircle size={16} /> Failed to send message. </>;
+            let errorMessage = '❌ Failed to send message. ';
 
             if (error.status === 400) {
                 errorMessage += 'EmailJS configuration error. Please email us directly at swathidatthapasupuleti02@gmail.com';
@@ -130,17 +120,17 @@ function Contact() {
                 <div className="contact-content">
                     <div className="contact-info-section">
                         <div className="info-card">
-                            <div className="info-icon"><Mail size={24} color="#6366f1" /></div>
+                            <div className="info-icon">📧</div>
                             <h3>Email Us</h3>
                             <p>swathidatthapasupuleti02@gmail.com</p>
                         </div>
                         <div className="info-card">
-                            <div className="info-icon"><MessageCircle size={24} color="#ec4899" /></div>
+                            <div className="info-icon">💬</div>
                             <h3>Quick Response</h3>
                             <p>We typically respond within 24 hours</p>
                         </div>
                         <div className="info-card">
-                            <div className="info-icon"><GraduationCap size={24} color="#10b981" /></div>
+                            <div className="info-icon">🎓</div>
                             <h3>Student Support</h3>
                             <p>Dedicated help for all learners</p>
                         </div>
@@ -148,7 +138,7 @@ function Contact() {
 
                     <div className="contact-form-section">
                         <div className="email-info-banner">
-                            <div className="banner-icon"><Mail size={20} color="#6366f1" /></div>
+                            <div className="banner-icon">💌</div>
                             <div className="banner-text">
                                 <strong>Direct Email:</strong> swathidatthapasupuleti02@gmail.com
                             </div>
@@ -256,13 +246,13 @@ function Contact() {
                             >
                                 {loading ? (
                                     <>
-                                        <Loader2 size={16} className="animate-spin" />
+                                        <span className="spinner-small"></span>
                                         Sending...
                                     </>
                                 ) : (
                                     <>
                                         <span>Send Message</span>
-                                        <span className="send-icon"><Send size={16} /></span>
+                                        <span className="send-icon">📤</span>
                                     </>
                                 )}
                             </button>

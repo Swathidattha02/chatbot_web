@@ -5,7 +5,7 @@ export const syllabusData = {
             {
                 id: 1,
                 name: "Mathematics",
-                icon: "Ruler",
+                icon: "📐",
                 color: "#667eea",
                 chapters: [
                     {
@@ -25,7 +25,7 @@ export const syllabusData = {
             {
                 id: 2,
                 name: "Science",
-                icon: "Microscope",
+                icon: "🔬",
                 color: "#4facfe",
                 chapters: [
                     {
@@ -69,7 +69,7 @@ export const syllabusData = {
             {
                 id: 3,
                 name: "Biology",
-                icon: "Dna",
+                icon: "🧬",
                 color: "#764ba2",
                 chapters: [
                     {
@@ -95,7 +95,7 @@ export const syllabusData = {
             {
                 id: 4,
                 name: "English",
-                icon: "BookOpen",
+                icon: "📚",
                 color: "#fa709a",
                 chapters: [
                     {
@@ -115,21 +115,21 @@ export const syllabusData = {
             {
                 id: 5,
                 name: "Social Studies",
-                icon: "Globe2",
+                icon: "🌍",
                 color: "#43e97b",
                 chapters: []
             },
             {
                 id: 6,
                 name: "Hindi",
-                icon: "Languages",
+                icon: "🇮🇳",
                 color: "#f093fb",
                 chapters: []
             },
             {
                 id: 7,
                 name: "Telugu",
-                icon: "Book",
+                icon: "📖",
                 color: "#fa8231",
                 chapters: []
             }

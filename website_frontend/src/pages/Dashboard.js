@@ -1,53 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import {
-    MessageSquare,
-    BookOpen,
-    Upload,
-    BarChart3,
-    Clock,
-    Flame,
-    Trophy,
-    Target,
-    FileText,
-    Loader2,
-    Book,
-    Sparkles,
-    ChevronRight,
-    ArrowRight,
-    Bot,
-    Ruler,
-    Microscope,
-    Dna,
-    Globe2,
-    Languages,
-    Cpu,
-    FlaskConical,
-    Atom
-} from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getSubjectsForClass } from "../config/syllabus";
 import Footer from "../components/Footer";
 import "../styles/Dashboard.css";
-
-// Helper component for subject icons
-const SubjectIcon = ({ iconName, size = 24, color = "currentColor" }) => {
-    const icons = {
-        Ruler: Ruler,
-        Microscope: Microscope,
-        Dna: Dna,
-        BookOpen: BookOpen,
-        Globe2: Globe2,
-        Languages: Languages,
-        Book: Book,
-        Cpu: Cpu,
-        FlaskConical: FlaskConical,
-        Atom: Atom
-    };
-
-    const IconComponent = icons[iconName] || BookOpen;
-    return <IconComponent size={size} color={color} />;
-};
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
@@ -282,13 +238,10 @@ function Dashboard() {
         <>
             <div className="dashboard-container">
                 <div className="dashboard-header">
-                    <div className="dashboard-welcome">
-                        <h1 className="dashboard-title">
-                            Welcome back, {user?.name}! <Sparkles className="title-icon" size={28} color="#fbbf24" style={{ verticalAlign: 'middle', marginLeft: '8px' }} />
-                        </h1>
+                    <div>
+                        <h1 className="dashboard-title">Welcome back, {user?.name}! 👋</h1>
                         <p className="dashboard-subtitle">
-                            {user?.class ? <span className="class-badge"><Book size={14} /> {user.class} Syllabus</span> : ''}
-                            Ready to continue your learning journey?
+                            {user?.class ? `${user.class} Syllabus - ` : ''}Ready to continue your learning journey?
                         </p>
                     </div>
                 </div>
@@ -296,24 +249,24 @@ function Dashboard() {
                 <div className="dashboard-grid">
                     {/* Quick Actions */}
                     <div className="dashboard-card">
-                        <div className="card-icon"><MessageSquare size={32} color="#6366f1" /></div>
+                        <div className="card-icon">💬</div>
                         <h3 className="card-title">Chat with AI Avatar</h3>
                         <p className="card-description">
                             Start a conversation with your personal AI tutor
                         </p>
                         <Link to="/chat" className="card-button">
-                            Start Chatting <ArrowRight size={16} />
+                            Start Chatting →
                         </Link>
                     </div>
 
                     <div className="dashboard-card">
-                        <div className="card-icon"><BookOpen size={32} color="#ec4899" /></div>
+                        <div className="card-icon">📚</div>
                         <h3 className="card-title">Upload Documents</h3>
                         <p className="card-description">
                             Upload PDFs and documents for AI-powered Q&A
                         </p>
                         <label htmlFor="file-upload" className={`card-button ${uploading ? 'uploading' : ''}`}>
-                            {uploading ? <><Loader2 size={16} className="animate-spin" /> Uploading...</> : <><Upload size={16} /> Upload Document</>}
+                            {uploading ? '⏳ Uploading...' : '📤 Upload Document'}
                         </label>
                         <input
                             id="file-upload"
@@ -326,13 +279,13 @@ function Dashboard() {
                     </div>
 
                     <div className="dashboard-card">
-                        <div className="card-icon"><BarChart3 size={32} color="#10b981" /></div>
+                        <div className="card-icon">📊</div>
                         <h3 className="card-title">Learning Analytics</h3>
                         <p className="card-description">
                             Track your progress and learning insights
                         </p>
                         <Link to="/analytics" className="card-button">
-                            View Analytics <ArrowRight size={16} />
+                            View Analytics →
                         </Link>
                     </div>
                 </div>
@@ -365,7 +318,7 @@ function Dashboard() {
                                             className="subject-icon-wrapper"
                                             style={{ backgroundColor: subject.color }}
                                         >
-                                            <SubjectIcon iconName={subject.icon} size={28} color="#fff" />
+                                            <span className="subject-icon">{subject.icon}</span>
                                         </div>
                                         <div className="subject-info">
                                             <h3 className="subject-name">{subject.name}</h3>
@@ -395,7 +348,7 @@ function Dashboard() {
 
                                     <div className="subject-card-footer">
                                         <span className="view-chapters-link">
-                                            View Chapters <ChevronRight size={16} />
+                                            View Chapters →
                                         </span>
                                     </div>
                                 </div>
@@ -414,7 +367,7 @@ function Dashboard() {
                         <div className="today-activity-grid">
                             {todayActivity.map((sub, i) => (
                                 <div key={i} className="today-activity-chip">
-                                    <span className="chip-icon"><BookOpen size={14} /></span>
+                                    <span className="chip-icon">📖</span>
                                     <div className="chip-info">
                                         <span className="chip-name">{sub.name}</span>
                                         <span className="chip-time">
@@ -435,22 +388,22 @@ function Dashboard() {
                     <h2 className="section-title">Your Stats</h2>
                     <div className="stats-grid">
                         <div className="stat-card">
-                            <div className="stat-icon"><MessageSquare size={24} color="#6366f1" /></div>
+                            <div className="stat-icon">💬</div>
                             <div className="stat-value">{stats.totalChats}</div>
                             <div className="stat-label">Total Chats</div>
                         </div>
                         <div className="stat-card">
-                            <div className="stat-icon"><FileText size={24} color="#ec4899" /></div>
+                            <div className="stat-icon">📄</div>
                             <div className="stat-value">{stats.docsUploaded}</div>
                             <div className="stat-label">Documents Uploaded</div>
                         </div>
                         <div className="stat-card">
-                            <div className="stat-icon"><Clock size={24} color="#10b981" /></div>
+                            <div className="stat-icon">⏱️</div>
                             <div className="stat-value">{stats.hoursLearned}h</div>
                             <div className="stat-label">Hours Learned</div>
                         </div>
                         <div className="stat-card">
-                            <div className="stat-icon"><Flame size={24} color="#f59e0b" /></div>
+                            <div className="stat-icon">🔥</div>
                             <div className="stat-value">{stats.streak} Days</div>
                             <div className="stat-label">Study Streak</div>
                         </div>
@@ -467,21 +420,21 @@ function Dashboard() {
                         </div>
                         <div className="achievements-grid">
                             <div className="achievement-card">
-                                <div className="achievement-icon gold"><Trophy size={20} /></div>
+                                <div className="achievement-icon gold">🏆</div>
                                 <div className="achievement-info">
                                     <h3>Math Whiz</h3>
                                     <p>Scored 100% in Algebra Quiz</p>
                                 </div>
                             </div>
                             <div className="achievement-card">
-                                <div className="achievement-icon streak"><Flame size={20} /></div>
+                                <div className="achievement-icon streak">🔥</div>
                                 <div className="achievement-info">
                                     <h3>Consistent Learner</h3>
                                     <p>Maintained a 3-day streak</p>
                                 </div>
                             </div>
                             <div className="achievement-card">
-                                <div className="achievement-icon silver"><Book size={20} /></div>
+                                <div className="achievement-icon silver">📖</div>
                                 <div className="achievement-info">
                                     <h3>First Document</h3>
                                     <p>Uploaded and analyzed a PDF</p>
@@ -497,7 +450,7 @@ function Dashboard() {
                         </div>
                         <div className="recommendations-list">
                             <div className="recommendation-item">
-                                <div className="rec-icon"><Target size={24} color="#ef4444" /></div>
+                                <div className="rec-icon">🎯</div>
                                 <div className="rec-content">
                                     <h3>Take Chapter 3 Practice Quiz</h3>
                                     <p>You completed the chapter reading. Test your knowledge now!</p>
@@ -505,7 +458,7 @@ function Dashboard() {
                                 <button className="rec-btn">Start Quiz</button>
                             </div>
                             <div className="recommendation-item">
-                                <div className="rec-icon"><Bot size={24} color="#6366f1" /></div>
+                                <div className="rec-icon">🤖</div>
                                 <div className="rec-content">
                                     <h3>Review Biology with AI</h3>
                                     <p>You struggled with 'Photosynthesis' in the last quiz. Have the chatbot explain it again.</p>

@@ -12,78 +12,6 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
-    background: white;
-    padding: 15px 25px;
-    border-radius: 20px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-}
-
-.nav-left,
-.nav-center,
-.nav-right {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    position: relative;
-}
-
-.analytics-back-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: #f1f5f9;
-    color: #1e1b4b;
-    border: 1px solid #e2e8f0;
-    padding: 8px 16px;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.analytics-back-btn:hover {
-    background: #e2e8f0;
-    transform: translateX(-3px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.download-report-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: #1e1b4b;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.download-report-btn:hover {
-    background: #312e81;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(30, 27, 75, 0.2);
-}
-
-.streak-badge-mini {
-    display: flex;
-    align-items: center;
-    background: #fff7ed;
-    color: #c2410c;
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 700;
-    border: 1px solid #ffedd5;
-}
-
-.streak-badge-mini .val {
-    margin-left: 4px;
-    color: #ea580c;
 }
 
 .view-selector-tabs {
@@ -129,17 +57,6 @@
     color: #94A3B8;
     cursor: pointer;
     line-height: 1;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 4px;
-    border-radius: 50%;
-}
-
-.date-nav-btn:hover {
-    color: #1e1b4b;
-    background: #f1f5f9;
 }
 
 .current-date-display {
@@ -148,41 +65,6 @@
     align-items: center;
     gap: 8px;
     font-size: 14px;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 8px;
-    transition: all 0.2s ease;
-    user-select: none;
-}
-
-.current-date-display:hover {
-    background: #f8fafc;
-    color: #1e1b4b;
-}
-
-.search-hint {
-    font-size: 11px;
-    font-weight: 600;
-    color: #64748b;
-    background: #f1f5f9;
-    padding: 6px 12px;
-    border-radius: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    display: none;
-    /* Hidden by default, show on large screens or specific contexts */
-}
-
-@media (min-width: 1200px) {
-    .search-hint {
-        display: block;
-    }
-}
-
-.month-picker-mode {
-    background: white;
-    padding: 6px 15px;
-    border: 1px solid #e2e8f0;
 }
 
 .analytics-main-title {

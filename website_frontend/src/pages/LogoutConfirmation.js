@@ -1,5 +1,5 @@
+import React from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, ArrowLeft } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import "../styles/LogoutConfirmation.css";
 
@@ -19,7 +19,7 @@ function LogoutConfirmation() {
     return (
         <div className="logout-container">
             <div className="logout-card">
-                <div className="logout-icon"><LogOut size={48} color="#6366f1" /></div>
+                <div className="logout-icon">👋</div>
                 <h1>Already leaving?</h1>
                 <p>
                     Are you sure you want to log out? We've really enjoyed learning together!
@@ -27,10 +27,10 @@ function LogoutConfirmation() {
                 </p>
                 <div className="logout-actions">
                     <button onClick={handleStayBack} className="btn-stay">
-                        <ArrowLeft size={16} /> Stay Back
+                        Stay Back
                     </button>
                     <button onClick={handleConfirmLogout} className="btn-confirm-logout">
-                        <LogOut size={16} /> Yes, Log Out
+                        Yes, Log Out
                     </button>
                 </div>
             </div>

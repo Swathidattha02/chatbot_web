@@ -2,17 +2,6 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
-import {
-    GraduationCap,
-    UserRound,
-    School,
-    Mail,
-    Lock,
-    Eye,
-    EyeOff,
-    AlertCircle,
-    ArrowRight
-} from "lucide-react";
 import "../styles/AuthNew.css";
 
 const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
@@ -66,11 +55,7 @@ function Login() {
         setLoading(false);
     };
 
-    const roleIcons = {
-        student: <GraduationCap size={18} />,
-        teacher: <UserRound size={18} />,
-        admin: <School size={18} />
-    };
+    const roleIcons = { student: "🎓", teacher: "👩‍🏫", admin: "🏫" };
 
     return (
         <div className="auth-new-container">
@@ -97,7 +82,7 @@ function Login() {
 
                 {error && (
                     <div className="auth-error">
-                        <AlertCircle size={16} /> {error}
+                        <span>⚠️</span> {error}
                     </div>
                 )}
 
@@ -106,7 +91,7 @@ function Login() {
                     <div className="form-group-new full-width">
                         <label>Email Address</label>
                         <div className="input-with-icon">
-                            <span className="input-icon"><Mail size={18} /></span>
+                            <span className="input-icon">✉️</span>
                             <input
                                 type="email"
                                 placeholder="name@school.com"
@@ -124,7 +109,7 @@ function Login() {
                             <a href="#forgot" className="forgot-link">Forgot password?</a>
                         </div>
                         <div className="password-field">
-                            <span className="input-icon"><Lock size={18} /></span>
+                            <span className="input-icon">🔒</span>
                             <input
                                 type={showPassword ? "text" : "password"}
                                 placeholder="••••••••"
@@ -137,13 +122,13 @@ function Login() {
                                 className="toggle-pw"
                                 onClick={() => setShowPassword(!showPassword)}
                             >
-                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                {showPassword ? "🙈" : "👁️"}
                             </button>
                         </div>
                     </div>
 
                     <button type="submit" className="auth-submit-btn" disabled={loading}>
-                        {loading ? "Signing in..." : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>Sign In <ArrowRight size={18} /></div>}
+                        {loading ? "Signing in..." : `Sign In →`}
                     </button>
                 </form>
 
