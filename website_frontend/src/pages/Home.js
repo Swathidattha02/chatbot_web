@@ -2,6 +2,20 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Footer from "../components/Footer";
+import {
+    BookOpen,
+    BarChart3,
+    Flame,
+    MessageSquare,
+    GraduationCap,
+    Trophy,
+    Users,
+    Globe,
+    Target,
+    CheckCircle2,
+    ArrowRight,
+    Star
+} from "lucide-react";
 import "../styles/Home.css";
 
 /* ── Animated counter hook ─────────────────────────────────────────── */
@@ -69,28 +83,32 @@ function Home() {
     /* Showcase tabs */
     const showcaseTabs = [
         {
-            label: "📝 AI Quizzes",
+            label: "AI Quizzes",
+            icon: <BookOpen size={18} />,
             title: "Smart Quizzes Powered by AI",
             desc: "Our AI generates unique multiple-choice quizzes for every chapter. Questions adapt to your level, test real understanding — not just rote memory. Get instant feedback and track your scores over time.",
             highlights: ["AI-generated MCQs for each chapter", "Instant grading & answer review", "Results visible to your teacher", "Unlimited retakes to master concepts"],
             visual: "quiz",
         },
         {
-            label: "📊 Progress Tracker",
+            label: "Progress Tracker",
+            icon: <BarChart3 size={18} />,
             title: "Track Every Step of Your Journey",
             desc: "See exactly where you stand with our real-time progress dashboards. Subject-wise and chapter-wise completion percentages, time spent learning, and quiz scores — all in one place.",
             highlights: ["Subject & chapter completion %", "Time-spent analytics", "Quiz pass/fail history", "Daily, weekly, monthly views"],
             visual: "progress",
         },
         {
-            label: "🔥 Streak Counter",
+            label: "Streak Counter",
+            icon: <Flame size={18} />,
             title: "Build Your Learning Streak",
             desc: "Stay motivated with your daily learning streak! Log in and learn every day to keep your streak alive. Earn milestones and never break the chain.",
             highlights: ["Daily streak tracking", "Milestone rewards at 7, 30, 100 days", "Streak recovery options", "Class-wide streak leaderboard"],
             visual: "streak",
         },
         {
-            label: "🤖 AI Chatbot",
+            label: "AI Chatbot",
+            icon: <MessageSquare size={18} />,
             title: "Your 24/7 AI Study Buddy",
             desc: "Ask anything, in any language. Our AI chatbot understands your curriculum, answers from your uploaded PDFs, and explains concepts step-by-step with a lifelike 3D avatar.",
             highlights: ["Multi-language support", "PDF-based Q&A (RAG)", "3D Avatar with voice responses", "Full conversation history"],
@@ -157,13 +175,12 @@ function Home() {
                 <div className="hp-hero-visual">
                     <div style={{ position: 'relative', width: '100%', maxWidth: '650px', display: 'flex', justifyContent: 'center' }}>
                         <img
-                            src="/hero_image_new.jpg"
+                            src="/hero-bot.jpg"
                             alt="AI Learning Ecosystem"
                             style={{
                                 width: '100%',
                                 height: 'auto',
                                 objectFit: 'contain',
-                                filter: 'drop-shadow(0 20px 40px rgba(99, 102, 241, 0.4))',
                                 borderRadius: '24px'
                             }}
                         />
@@ -217,7 +234,8 @@ function Home() {
                             className={`hp-tab-btn ${activeTab === i ? "active" : ""}`}
                             onClick={() => setActiveTab(i)}
                         >
-                            {t.label}
+                            {t.icon}
+                            <span>{t.label}</span>
                         </button>
                     ))}
                 </div>
@@ -229,7 +247,7 @@ function Home() {
                         <ul className="hp-showcase-list">
                             {tab.highlights.map((h, i) => (
                                 <li key={i}>
-                                    <span className="hp-check">✓</span> {h}
+                                    <span className="hp-check"><CheckCircle2 size={16} /></span> {h}
                                 </li>
                             ))}
                         </ul>
@@ -271,7 +289,7 @@ function Home() {
                             <div className="hp-mock hp-mock-streak">
                                 <div className="hp-mock-bar">🔥 Learning Streak</div>
                                 <div className="hp-streak-num">
-                                    <span className="hp-streak-fire">🔥</span>
+                                    <span className="hp-streak-fire"><Flame size={48} /></span>
                                     <span className="hp-streak-val">14</span>
                                     <span className="hp-streak-label">Day Streak!</span>
                                 </div>
@@ -317,28 +335,28 @@ function Home() {
                 <div className="hp-steps-grid">
                     <div className="hp-step-card">
                         <div className="hp-step-num">1</div>
-                        <div className="hp-step-icon">🎓</div>
+                        <div className="hp-step-icon"><GraduationCap size={44} /></div>
                         <h3>Sign Up & Get Approved</h3>
                         <p>Create a student account, choose your school, class & section. Your class teacher approves you instantly.</p>
                     </div>
-                    <div className="hp-step-connector">→</div>
+                    <div className="hp-step-connector"><ArrowRight size={24} /></div>
                     <div className="hp-step-card">
                         <div className="hp-step-num">2</div>
-                        <div className="hp-step-icon">📚</div>
+                        <div className="hp-step-icon"><BookOpen size={44} /></div>
                         <h3>Learn & Take Quizzes</h3>
                         <p>Study chapters, take AI-generated quizzes, chat with the AI tutor, and track your progress in real time.</p>
                     </div>
-                    <div className="hp-step-connector">→</div>
+                    <div className="hp-step-connector"><ArrowRight size={24} /></div>
                     <div className="hp-step-card">
                         <div className="hp-step-num">3</div>
-                        <div className="hp-step-icon">🏆</div>
+                        <div className="hp-step-icon"><Trophy size={44} /></div>
                         <h3>Excel & Build Streaks</h3>
                         <p>Maintain your daily streak, score higher on quizzes, and watch your progress soar across every subject.</p>
                     </div>
-                    <div className="hp-step-connector">→</div>
+                    <div className="hp-step-connector"><ArrowRight size={24} /></div>
                     <div className="hp-step-card">
                         <div className="hp-step-num">4</div>
-                        <div className="hp-step-icon">👨‍🏫</div>
+                        <div className="hp-step-icon"><Users size={44} /></div>
                         <h3>Teacher Reporting</h3>
                         <p>Quiz results, scores, and analytics are automatically sent to your class teacher's dashboard for review.</p>
                     </div>
@@ -354,12 +372,12 @@ function Home() {
 
                 <div className="hp-feat-grid">
                     {[
-                        { icon: "🎯", title: "Interactive 3D Avatar", desc: "Lifelike 3D avatar with natural gestures and voice responses" },
-                        { icon: "🌍", title: "Multi-Language", desc: "Learn in English, Hindi, Telugu and more — switch anytime" },
-                        { icon: "📝", title: "AI Quizzes", desc: "Unique MCQs for every chapter, graded and tracked automatically" },
-                        { icon: "📊", title: "Progress Analytics", desc: "Subject & chapter dashboards with time-spent and completion %" },
-                        { icon: "🔥", title: "Daily Streaks", desc: "Build consistency with streak tracking and milestone rewards" },
-                        { icon: "📚", title: "Document Q&A", desc: "Upload PDFs and ask questions — AI answers from your own notes" },
+                        { icon: <Target size={32} />, title: "Interactive 3D Avatar", desc: "Lifelike 3D avatar with natural gestures and voice responses" },
+                        { icon: <Globe size={32} />, title: "Multi-Language", desc: "Learn in English, Hindi, Telugu and more — switch anytime" },
+                        { icon: <BookOpen size={32} />, title: "AI Quizzes", desc: "Unique MCQs for every chapter, graded and tracked automatically" },
+                        { icon: <BarChart3 size={32} />, title: "Progress Analytics", desc: "Subject & chapter dashboards with time-spent and completion %" },
+                        { icon: <Flame size={32} />, title: "Daily Streaks", desc: "Build consistency with streak tracking and milestone rewards" },
+                        { icon: <BookOpen size={32} />, title: "Document Q&A", desc: "Upload PDFs and ask questions — AI answers from your own notes" },
                     ].map((f, i) => (
                         <div className="hp-feat-card" key={i} style={{ animationDelay: `${i * 0.08}s` }}>
                             <div className="hp-feat-icon">{f.icon}</div>
@@ -382,7 +400,9 @@ function Home() {
                         { name: "Rohit K.", class: "Class 8, Chaitanya School", text: "My 45-day streak motivates me to study every day. Best study app ever!", stars: 5 },
                     ].map((t, i) => (
                         <div className="hp-test-card" key={i}>
-                            <div className="hp-test-stars">{"⭐".repeat(t.stars)}</div>
+                            <div className="hp-test-stars">
+                                {[...Array(t.stars)].map((_, si) => <Star key={si} size={14} fill="#fbbf24" color="#fbbf24" strokeWidth={0} />)}
+                            </div>
                             <p className="hp-test-text">"{t.text}"</p>
                             <div className="hp-test-author">
                                 <div className="hp-test-avatar">{t.name.charAt(0)}</div>

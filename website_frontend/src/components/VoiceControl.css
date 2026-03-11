@@ -14,14 +14,14 @@
     height: 64px;
     border-radius: 50%;
     border: none;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
     color: white;
     font-size: 28px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 4px 16px rgba(30, 27, 75, 0.3);
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
@@ -29,7 +29,7 @@
 
 .voice-button:hover:not(:disabled) {
     transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+    box-shadow: 0 6px 20px rgba(30, 27, 75, 0.4);
 }
 
 .voice-button:active:not(:disabled) {
@@ -106,7 +106,7 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     max-width: 300px;
     backdrop-filter: blur(10px);
-    border: 2px solid rgba(102, 126, 234, 0.2);
+    border: 2px solid rgba(30, 27, 75, 0.15);
 }
 
 .transcript-text {

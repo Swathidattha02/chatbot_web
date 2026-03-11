@@ -1,8 +1,26 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from 'recharts';
+import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import {
+    Clock,
+    Flame,
+    Calendar,
+    TrendingUp,
+    MapPin,
+    BookOpen,
+    CheckCircle2,
+    Download,
+    X,
+    ChevronLeft,
+    ChevronRight,
+    MessageCircle,
+    Ruler,
+    Atom,
+    Search
+} from "lucide-react";
 import "../styles/Analytics.css";
+import CustomCalendar from "../components/CustomCalendar";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
@@ -12,6 +30,8 @@ function Analytics() {
     const [view, setView] = useState("day"); // day, week, month
     const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState(new Date());
+    const [isPickerOpen, setIsPickerOpen] = useState(false);
+    const pickerRef = useRef(null);
 
     // Data states
     const [dailyData, setDailyData] = useState(null);
@@ -45,10 +65,12 @@ function Analytics() {
         }
     }, []);
 
-    const fetchMonthlyAnalytics = useCallback(async () => {
+    const fetchMonthlyAnalytics = useCallback(async (date) => {
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch(`${API_BASE_URL}/progress/analytics/monthly`, {
+            const m = date.getMonth() + 1;
+            const y = date.getFullYear();
+            const response = await fetch(`${API_BASE_URL}/progress/analytics/monthly?month=${m}&year=${y}`, {
                 headers: { "Authorization": `Bearer ${token}` },
             });
             const data = await response.json();
@@ -63,7 +85,7 @@ function Analytics() {
         const load = async () => {
             if (view === "day") await fetchDailyAnalytics(selectedDate);
             else if (view === "week") await fetchWeeklyAnalytics();
-            else if (view === "month") await fetchMonthlyAnalytics();
+            else if (view === "month") await fetchMonthlyAnalytics(selectedDate);
             setLoading(false);
         };
         load();
@@ -98,7 +120,7 @@ function Analytics() {
                                 <h2 className="card-title-lg">{dailyData.totalHours} <span className="unit">Hours</span> {dailyData.totalMinutes} <span className="unit">Min</span></h2>
                             </div>
                             <div className="trend-badge positive">
-                                <span className="arrow">↗</span> Dynamic
+                                <TrendingUp size={12} /> Dynamic
                             </div>
                         </div>
 
@@ -107,7 +129,7 @@ function Analytics() {
                                 <BarChart data={dailyData.hourlyData}>
                                     <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={30}>
                                         {dailyData.hourlyData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.value > 0 ? "#7B9FE8" : "#F0F0F0"} />
+                                            <Cell key={`cell-${index}`} fill={entry.value > 0 ? "#1e1b4b" : "#F0F0F0"} />
                                         ))}
                                     </Bar>
                                     <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#999' }} />
@@ -124,13 +146,13 @@ function Analytics() {
                     <div className="side-card streak-card">
                         <div className="streak-content">
                             <div className="streak-icon-bg">
-                                <span className="fire-icon">🔥</span>
+                                <Flame size={32} color="#f59e0b" />
                             </div>
                             <h2 className="streak-value">{dailyData.streak} Day Streak!</h2>
                             <p className="streak-text">Keep it up, you're on fire!</p>
 
                             <div className="shoutout-card">
-                                <div className="quote-icon">📍</div>
+                                <div className="quote-icon"><MapPin size={16} /></div>
                                 <p className="shoutout-text">
                                     "Great job, {user?.name || 'Explorer'}! You've stayed consistent with your targets today."
                                 </p>
@@ -143,7 +165,7 @@ function Analytics() {
 
                 <div className="subjects-studied-section">
                     <div className="section-header-flex">
-                        <h3 className="section-title"><span className="icon">📖</span> Today's Learning Activity</h3>
+                        <h3 className="section-title"><BookOpen size={20} style={{ verticalAlign: 'middle', marginRight: '8px' }} /> Today's Learning Activity</h3>
                     </div>
 
                     <div className="subjects-list">
@@ -157,7 +179,7 @@ function Analytics() {
                                     : 'No session details'}
                             >
                                 <div className="subject-icon-box" style={{ backgroundColor: i % 2 === 0 ? '#E8F0FE' : '#F3E8FF' }}>
-                                    {i % 2 === 0 ? '📐' : '⚛️'}
+                                    {i % 2 === 0 ? <Ruler size={18} color="#1e1b4b" /> : <Atom size={18} color="#4f46e5" />}
                                 </div>
                                 <div className="subject-info-main">
                                     <h4 className="sub-name">{sub.name}</h4>
@@ -178,7 +200,7 @@ function Analytics() {
 
                                         return (
                                             <div className="session-time-display">
-                                                <span className="time-label">⏰ Session:</span>
+                                                <span className="time-label"><Clock size={12} /> Session:</span>
                                                 <span className="time-value">
                                                     {firstSession.startTime} - {endTimeDisplay || 'Unknown'}
                                                 </span>
@@ -187,7 +209,7 @@ function Analytics() {
                                     })()}
                                     <div className="time-stat">{Math.floor(sub.timeSpent / 60)}h {Math.round(sub.timeSpent % 60)}m</div>
                                     <div className={`status-stat ${sub.status === 'Completed' ? 'status-done' : 'status-ongoing'}`}>
-                                        {sub.status === 'Completed' ? '✅ Completed' : '⏳ In Progress'}
+                                        {sub.status === 'Completed' ? <><CheckCircle2 size={12} /> Completed</> : <><Clock size={12} /> In Progress</>}
                                     </div>
                                 </div>
                             </div>
@@ -223,7 +245,7 @@ function Analytics() {
                             <span className="value">
                                 {Math.floor(weeklyData.totalTime / 60)}h {Math.round(weeklyData.totalTime % 60)}m
                             </span>
-                            <span className="trend positive">↗ Dynamic</span>
+                            <span className="trend positive"><TrendingUp size={12} /> Dynamic</span>
                         </div>
                     </div>
                     <div className="stat-box-card">
@@ -239,7 +261,7 @@ function Analytics() {
                         <span className="box-label">Current Streak</span>
                         <div className="box-value-row">
                             <span className="value">{weeklyData.streak} Days</span>
-                            <span className="fire-icon-mini">🔥</span>
+                            <span className="fire-icon-mini"><Flame size={16} color="#f59e0b" /></span>
                         </div>
                     </div>
                 </div>
@@ -300,7 +322,7 @@ function Analytics() {
                         {subjects.map((s, i) => (
                             <div key={i} className="mini-subject-card">
                                 <div className="mini-header">
-                                    <div className="mini-icon" style={{ backgroundColor: '#E8F0FE', color: '#3B82F6' }}>📚</div>
+                                    <div className="mini-icon" style={{ backgroundColor: '#eef2ff', color: '#1e1b4b' }}><BookOpen size={16} /></div>
                                     <span className="mini-trend pos">
                                         {Math.round((s.topicsCompleted / s.totalTopics) * 100) || 0}% Mastery
                                     </span>
@@ -308,7 +330,7 @@ function Analytics() {
                                 <h4 className="mini-name">{s.name}</h4>
                                 <div className="mini-value">{Math.floor(s.timeSpent / 60)}h {Math.round(s.timeSpent % 60)}m active</div>
                                 <div className="mini-progress-track">
-                                    <div className="mini-progress-fill" style={{ width: `${(s.topicsCompleted / s.totalTopics) * 100}%`, backgroundColor: '#3B82F6' }}></div>
+                                    <div className="mini-progress-fill" style={{ width: `${(s.topicsCompleted / s.totalTopics) * 100}%`, backgroundColor: '#1e1b4b' }}></div>
                                 </div>
                             </div>
                         ))}
@@ -331,7 +353,7 @@ function Analytics() {
             <div className="analytics-view-container month-view">
                 <div className="streak-banner-month">
                     <div className="banner-icon-box">
-                        <span className="icon">🔥</span>
+                        <Flame size={32} color="#fff" />
                     </div>
                     <div className="banner-content">
                         <span className="banner-label">CURRENT STUDY STREAK</span>
@@ -354,8 +376,8 @@ function Analytics() {
                             <BarChart data={monthChartData}>
                                 <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#666' }} />
                                 <Tooltip cursor={{ fill: '#F9FAFB' }} formatter={(value) => [`${value}m`, 'Time']} />
-                                <Bar dataKey="value" fill="#2563EB" radius={[6, 6, 0, 0]} barSize={60} />
-                                <Bar dataKey="goal" fill="#DBEAFE" radius={[6, 6, 0, 0]} barSize={60} />
+                                <Bar dataKey="value" fill="#1e1b4b" radius={[6, 6, 0, 0]} barSize={60} />
+                                <Bar dataKey="goal" fill="#eef2ff" radius={[6, 6, 0, 0]} barSize={60} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -363,12 +385,12 @@ function Analytics() {
 
                 <div className="month-bottom-stats">
                     <div className="bottom-stat-card">
-                        <div className="icon-circle gray">⏱️</div>
+                        <div className="icon-circle gray"><Clock size={20} /></div>
                         <div className="stat-info">
                             <span className="label">TOTAL HOURS</span>
                             <div className="val-row">
                                 <span className="val">{monthlyData.totalTime}h {monthlyData.totalMinutes}m</span>
-                                <span className="change pos">↗ Dynamic</span>
+                                <span className="change pos"><TrendingUp size={12} /> Dynamic</span>
                             </div>
                             <p className="subtext">Against previous month</p>
                         </div>
@@ -380,7 +402,7 @@ function Analytics() {
                                 {monthlyData.subjectGrowth?.sort((a, b) => b.proficiency - a.proficiency).slice(0, 2).map((sub, i) => (
                                     <div key={i} className="sub-line-item">
                                         <span className="name">{sub.name}</span>
-                                        <div className="line-track"><div className={`line-fill ${i === 0 ? 'blue' : 'light-blue'}`} style={{ width: `${sub.proficiency}%` }}></div></div>
+                                        <div className="line-track"><div className={`line-fill ${i === 0 ? 'navy' : 'indigo'}`} style={{ width: `${sub.proficiency}%`, backgroundColor: i === 0 ? '#1e1b4b' : '#4f46e5' }}></div></div>
                                         <span className="val">{sub.proficiency}%</span>
                                     </div>
                                 ))}
@@ -389,7 +411,7 @@ function Analytics() {
                         </div>
                     </div>
                     <div className="bottom-stat-card">
-                        <div className="icon-circle blue">💬</div>
+                        <div className="icon-circle blue"><MessageCircle size={20} /></div>
                         <div className="stat-info">
                             <span className="label">AI ASSISTANT</span>
                             <div className="val-row">
@@ -403,10 +425,30 @@ function Analytics() {
         );
     };
 
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (pickerRef.current && !pickerRef.current.contains(event.target)) {
+                setIsPickerOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleDateChange = (date) => {
+        setSelectedDate(date);
+        setIsPickerOpen(false);
+    };
+
+    const triggerDatePicker = () => {
+        setIsPickerOpen(!isPickerOpen);
+    };
+
     return (
         <div className="analytics-page-wrapper">
             <div className="analytics-nav-header">
                 <div className="nav-left">
+                    <button onClick={() => navigate('/dashboard')} className="analytics-back-btn"><ChevronLeft size={20} /> Back</button>
                     <div className="view-selector-tabs">
                         <button className={`tab-btn ${view === 'day' ? 'active' : ''}`} onClick={() => setView('day')}>Day</button>
                         <button className={`tab-btn ${view === 'week' ? 'active' : ''}`} onClick={() => setView('week')}>Week</button>
@@ -414,33 +456,64 @@ function Analytics() {
                     </div>
                 </div>
 
-                <div className="nav-center">
+                <div className="nav-center" ref={pickerRef}>
                     {view === 'day' && (
                         <div className="date-picker-control">
-                            <button className="date-nav-btn" onClick={handlePreviousDay}>‹</button>
-                            <div className="current-date-display">
-                                <span className="calendar-icon">📅</span>
+                            <button className="date-nav-btn" onClick={handlePreviousDay} title="Previous Day"><ChevronLeft size={16} /></button>
+                            <div className="current-date-display" onClick={triggerDatePicker} title="Select specific date">
+                                <Calendar size={18} style={{ color: '#6366f1', marginRight: '8px' }} />
                                 {formatDate(selectedDate)}
+                                <Search size={14} style={{ marginLeft: '10px', opacity: 0.5 }} />
                             </div>
-                            <button className="date-nav-btn" onClick={handleNextDay}>›</button>
+                            <button className="date-nav-btn" onClick={handleNextDay} title="Next Day"><ChevronRight size={16} /></button>
+
+                            {isPickerOpen && (
+                                <CustomCalendar
+                                    selectedDate={selectedDate}
+                                    onDateSelect={handleDateChange}
+                                    onClose={() => setIsPickerOpen(false)}
+                                    type="date"
+                                />
+                            )}
                         </div>
                     )}
-                    {(view === 'week' || view === 'month') && (
-                        <h1 className="analytics-main-title">{view === 'week' ? 'My Progress' : 'Monthly Progress'}</h1>
+                    {view === 'month' && (
+                        <div className="date-picker-control month-picker-mode">
+                            <div className="current-date-display" onClick={triggerDatePicker} title="Select specific month">
+                                <Calendar size={18} style={{ color: '#6366f1', marginRight: '8px' }} />
+                                {selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                <Search size={14} style={{ marginLeft: '10px', opacity: 0.5 }} />
+                            </div>
+
+                            {isPickerOpen && (
+                                <CustomCalendar
+                                    selectedDate={selectedDate}
+                                    onDateSelect={handleDateChange}
+                                    onClose={() => setIsPickerOpen(false)}
+                                    type="month"
+                                />
+                            )}
+                        </div>
+                    )}
+                    {view === 'week' && (
+                        <h1 className="analytics-main-title">My Progress</h1>
                     )}
                 </div>
 
                 <div className="nav-right">
+                    {(view === 'month' || view === 'day') && (
+                        <div className="search-hint">Click date to search</div>
+                    )}
                     {view === 'month' && (
-                        <button className="download-report-btn">📥 Download Report</button>
+                        <button className="download-report-btn"><Download size={16} /> Download Report</button>
                     )}
                     {view === 'week' && weeklyData && (
                         <div className="streak-badge-mini">
-                            🔥 STREAK <span className="val">{weeklyData.streak || 0} Days</span>
+                            <Flame size={14} color="#f59e0b" style={{ marginRight: '4px' }} /> STREAK <span className="val">{weeklyData.streak || 0} Days</span>
                         </div>
                     )}
                     {view === 'day' && (
-                        <button onClick={() => navigate('/dashboard')} className="close-analytics-btn">✕</button>
+                        <button onClick={() => navigate('/dashboard')} className="close-analytics-btn"><X size={20} title="Close" /></button>
                     )}
                 </div>
             </div>

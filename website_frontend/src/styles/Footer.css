@@ -1,5 +1,5 @@
 .footer {
-    background: #1a202c;
+    background: #1e1b4b;
     color: #e2e8f0;
     padding: 4rem 0 2rem;
     margin-top: 4rem;
@@ -33,7 +33,7 @@
     bottom: -8px;
     width: 40px;
     height: 3px;
-    background: #4facfe;
+    background: #4f46e5;
     border-radius: 2px;
 }
 
@@ -81,7 +81,7 @@
 }
 
 .footer-links a:hover {
-    color: #4facfe;
+    color: #4f46e5;
 }
 
 .contact-list {
@@ -104,7 +104,7 @@
 }
 
 .contact-list a:hover {
-    color: #4facfe;
+    color: #4f46e5;
 }
 
 .social-links {

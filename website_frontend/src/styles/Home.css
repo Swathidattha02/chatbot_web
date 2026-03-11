@@ -5,12 +5,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 :root {
-  --hp-primary: #6366f1;
-  --hp-primary-dark: #4f46e5;
-  --hp-accent: #8b5cf6;
-  --hp-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
-  --hp-gradient-dark: linear-gradient(135deg, #312e81 0%, #4c1d95 100%);
-  --hp-text: #0f172a;
+  --hp-primary: #1e1b4b;
+  --hp-primary-dark: #312e81;
+  --hp-accent: #4f46e5;
+  --hp-gradient: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4f46e5 100%);
+  --hp-gradient-dark: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+  --hp-text: #1e1b4b;
   --hp-text-muted: #64748b;
   --hp-bg: #ffffff;
   --hp-bg-soft: #f8fafc;
@@ -356,7 +356,7 @@
 }
 
 .hp-tab-btn {
-  padding: 10px 20px;
+  padding: 12px 24px;
   border-radius: 100px;
   border: 1.5px solid #e2e8f0;
   background: #fff;
@@ -365,6 +365,9 @@
   cursor: pointer;
   color: var(--hp-text-muted);
   transition: all .2s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .hp-tab-btn.active,
@@ -373,6 +376,16 @@
   color: #fff;
   border-color: transparent;
   box-shadow: 0 4px 14px rgba(99, 102, 241, .3);
+}
+
+.hp-tab-btn.active svg,
+.hp-tab-btn:hover svg {
+  color: #fff;
+}
+
+.hp-tab-btn svg {
+  color: var(--hp-accent);
+  transition: color 0.2s;
 }
 
 .hp-showcase-body {
@@ -722,8 +735,11 @@
 }
 
 .hp-step-icon {
-  font-size: 3rem;
-  margin-bottom: .8rem;
+  margin-bottom: 1.2rem;
+  color: var(--hp-accent);
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .hp-step-card h3 {
@@ -740,10 +756,8 @@
 }
 
 .hp-step-connector {
-  font-size: 1.4rem;
-  color: var(--hp-primary);
-  font-weight: 700;
-  padding: 0 1rem;
+  color: #cbd5e1;
+  padding: 0 0.5rem;
   display: flex;
   align-items: center;
 }
@@ -785,8 +799,11 @@
 }
 
 .hp-feat-icon {
-  font-size: 2.8rem;
-  margin-bottom: .8rem;
+  margin-bottom: 1rem;
+  color: var(--hp-accent);
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .hp-feat-title {

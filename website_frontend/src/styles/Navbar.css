@@ -51,7 +51,7 @@
 }
 
 .nav-link:hover {
-    color: #667eea;
+    color: var(--primary);
 }
 
 .nav-user {
@@ -67,7 +67,7 @@
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: #667eea;
+    background: var(--primary);
     color: white;
     display: flex;
     justify-content: center;

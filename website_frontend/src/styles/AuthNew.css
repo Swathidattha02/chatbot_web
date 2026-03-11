@@ -38,15 +38,15 @@
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    background: #eff6ff;
-    color: #2563eb;
+    background: #eef2ff;
+    color: #1e1b4b;
     font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.08em;
     padding: 0.35rem 0.9rem;
     border-radius: 100px;
     margin-bottom: 1.5rem;
-    border: 1px solid #bfdbfe;
+    border: 1px solid #c7d2fe;
 }
 
 /* Title */
@@ -59,7 +59,7 @@
 }
 
 .signup-left-highlight {
-    color: #2563eb;
+    color: #1e1b4b;
 }
 
 /* Desc */
@@ -185,7 +185,7 @@
 
 .role-tab.active {
     background: #ffffff;
-    color: #2563eb;
+    color: #1e1b4b;
     font-weight: 700;
     box-shadow: 0 1px 6px rgba(0, 0, 0, 0.10);
 }
@@ -281,8 +281,8 @@
 
 .form-field input:focus,
 .form-field select:focus {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
+    border-color: #1e1b4b;
+    box-shadow: 0 0 0 3px rgba(30, 27, 75, 0.10);
 }
 
 .form-field input::placeholder {
@@ -324,7 +324,7 @@
 .signup-submit-btn {
     width: 100%;
     padding: 0.85rem;
-    background: #2563eb;
+    background: #1e1b4b;
     color: #fff;
     border: none;
     border-radius: 10px;
@@ -338,7 +338,7 @@
 }
 
 .signup-submit-btn:hover:not(:disabled) {
-    background: #1d4ed8;
+    background: #312e81;
     transform: translateY(-1px);
 }
 
@@ -357,7 +357,7 @@
 }
 
 .signup-terms a {
-    color: #2563eb;
+    color: #1e1b4b;
     text-decoration: none;
 }
 
@@ -372,7 +372,7 @@
 }
 
 .signup-footer-link a {
-    color: #2563eb;
+    color: #1e1b4b;
     font-weight: 600;
     text-decoration: none;
 }
@@ -459,8 +459,8 @@
 }
 
 .form-group-new input:focus {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
+    border-color: #1e1b4b;
+    box-shadow: 0 0 0 3px rgba(30, 27, 75, 0.10);
 }
 
 .form-group-new input::placeholder {
@@ -499,8 +499,8 @@
 }
 
 .input-with-icon input:focus {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
+    border-color: #1e1b4b;
+    box-shadow: 0 0 0 3px rgba(30, 27, 75, 0.10);
 }
 
 .input-with-icon input::placeholder {
@@ -539,8 +539,8 @@
 }
 
 .password-field input:focus {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
+    border-color: #1e1b4b;
+    box-shadow: 0 0 0 3px rgba(30, 27, 75, 0.10);
 }
 
 .password-field input::placeholder {
@@ -573,7 +573,7 @@
 
 .forgot-link {
     font-size: 0.82rem;
-    color: #2563eb;
+    color: #1e1b4b;
     text-decoration: none;
     font-weight: 500;
 }
@@ -586,7 +586,7 @@
 .auth-submit-btn {
     width: 100%;
     padding: 0.85rem;
-    background: #2563eb;
+    background: #1e1b4b;
     color: #fff;
     border: none;
     border-radius: 10px;
@@ -599,7 +599,7 @@
 }
 
 .auth-submit-btn:hover:not(:disabled) {
-    background: #1d4ed8;
+    background: #312e81;
     transform: translateY(-1px);
 }
 
@@ -619,7 +619,7 @@
 }
 
 .auth-new-footer a {
-    color: #2563eb;
+    color: #1e1b4b;
     font-weight: 600;
     text-decoration: none;
 }
@@ -688,7 +688,7 @@
    ════════════════════════════════════════════ */
 .pending-approval-page {
     height: 100vh;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -759,7 +759,7 @@
     background: #f8fafc;
     padding: 0.75rem 1rem;
     border-radius: 10px;
-    border-left: 3px solid #667eea;
+    border-left: 3px solid #1e1b4b;
     text-align: left;
 }
 
@@ -793,7 +793,7 @@
     display: block;
     width: 100%;
     padding: 0.75rem;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #1e1b4b, #312e81);
     color: white;
     border-radius: 10px;
     text-decoration: none;

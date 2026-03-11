@@ -7,6 +7,19 @@ import { chatAPI } from "../services/api";
 import LanguageSelector from "../components/LanguageSelector";
 import LipSyncAvatar from "../components/LipSyncAvatar";
 import translationService from "../services/translationService";
+import {
+    FileText,
+    User,
+    Bot,
+    Volume2,
+    Mic,
+    MicOff,
+    Square,
+    Send,
+    Circle,
+    ChevronLeft,
+    Monitor
+} from "lucide-react";
 import "../styles/PDFViewer.css";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
@@ -465,6 +478,9 @@ function PDFViewer() {
     return (
         <div className="pdf-viewer-container">
             <div className="pdf-viewer-header">
+                <button className="back-button" onClick={handleBack} title="Back to chapters">
+                    <ChevronLeft size={20} style={{ verticalAlign: 'middle', marginRight: '8px' }} /> Back to Chapters
+                </button>
                 <div className="chapter-info-header">
                     <h2>{currentChapter.name || currentChapter.title}</h2>
                 </div>
@@ -488,7 +504,7 @@ function PDFViewer() {
                             />
                         ) : (
                             <div className="pdf-placeholder">
-                                <div className="pdf-icon">📄</div>
+                                <div className="pdf-icon"><FileText size={48} /></div>
                                 <h3>No PDF Available</h3>
                                 <p>PDF for "{currentChapter.name || currentChapter.title}" is not available yet.</p>
                             </div>
@@ -546,9 +562,9 @@ function PDFViewer() {
                                 <h3>Ask Questions</h3>
                                 {isAvatarSpeaking && (
                                     <div className="speaking-control-pdf">
-                                        <span className="speaking-indicator">🎤 Speaking...</span>
+                                        <span className="speaking-indicator"><Mic size={14} className="animate-pulse" /> Speaking...</span>
                                         <button onClick={stopSpeaking} className="btn-stop-speaking-pdf" title="Stop speaking">
-                                            Stop ⏹
+                                            Stop <Square size={12} fill="currentColor" />
                                         </button>
                                     </div>
                                 )}
@@ -561,7 +577,7 @@ function PDFViewer() {
                                         className={`message ${msg.role === 'user' ? 'user-message' : 'avatar-message'}`}
                                     >
                                         <div className="message-avatar">
-                                            {msg.role === 'user' ? '👤' : '🤖'}
+                                            {msg.role === 'user' ? <User size={14} /> : <Bot size={14} />}
                                         </div>
                                         <div className="message-content">
                                             <div className="message-text">{msg.content}</div>
@@ -576,7 +592,7 @@ function PDFViewer() {
                                                         disabled={isAvatarSpeaking}
                                                         title="Read again"
                                                     >
-                                                        🔊
+                                                        <Volume2 size={14} />
                                                     </button>
                                                 )}
                                             </div>
@@ -585,7 +601,7 @@ function PDFViewer() {
                                 ))}
                                 {loading && (
                                     <div className="message avatar-message">
-                                        <div className="message-avatar">🤖</div>
+                                        <div className="message-avatar"><Bot size={14} /></div>
                                         <div className="message-content">
                                             <div className="typing-indicator">
                                                 <span></span>
@@ -614,7 +630,7 @@ function PDFViewer() {
                                     disabled={loading || isAvatarSpeaking || !isVoiceSupported}
                                     title={!isVoiceSupported ? 'Voice not supported' : isListening ? 'Stop listening' : 'Voice input'}
                                 >
-                                    {isListening ? '🎤' : '🎙️'}
+                                    {isListening ? <MicOff size={20} /> : <Mic size={20} />}
                                 </button>
                                 {loading ? (
                                     <button
@@ -623,7 +639,7 @@ function PDFViewer() {
                                         onClick={handleStopResponse}
                                         title="Stop generating"
                                     >
-                                        ■
+                                        <Square size={16} fill="currentColor" />
                                     </button>
                                 ) : (
                                     <button
@@ -631,7 +647,7 @@ function PDFViewer() {
                                         className="send-button-pdf"
                                         disabled={loading || !inputMessage.trim()}
                                     >
-                                        📤
+                                        <Send size={16} />
                                     </button>
                                 )}
                             </form>

@@ -3,7 +3,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
     padding: 20px;
 }
 
@@ -38,7 +38,7 @@
 
 .logout-card h1 {
     font-size: 2rem;
-    color: #1a202c;
+    color: #1e1b4b;
     margin-bottom: 1rem;
     font-weight: 700;
 }
@@ -63,17 +63,17 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    background: #4facfe;
+    background: #1e1b4b;
     color: white;
     border: none;
     flex: 1;
-    box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+    box-shadow: 0 4px 15px rgba(30, 27, 75, 0.3);
 }
 
 .btn-stay:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
-    background: #00f2fe;
+    box-shadow: 0 8px 25px rgba(30, 27, 75, 0.4);
+    background: #312e81;
 }
 
 .btn-confirm-logout {

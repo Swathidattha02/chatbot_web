@@ -1,5 +1,25 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+    LayoutDashboard,
+    Bell,
+    Users,
+    GraduationCap,
+    Settings,
+    LogOut,
+    School,
+    Layers,
+    X,
+    Lock,
+    ShieldCheck,
+    CheckCircle2,
+    XCircle,
+    Trash2,
+    BookOpen,
+    MapPin,
+    GraduationCap as StudentIcon,
+    UserCircle
+} from "lucide-react";
 import "../styles/AdminDashboard.css";
 
 const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
@@ -15,6 +35,11 @@ function AdminDashboard() {
     const [actionMsg, setActionMsg] = useState("");
     const [studentFilter, setStudentFilter] = useState({ class: "", section: "" });
     const [showLogoutModal, setShowLogoutModal] = useState(false);
+    const [showChangePW, setShowChangePW] = useState(false);
+    const [isFirstLoginModal, setIsFirstLoginModal] = useState(false);
+    const [pwForm, setPwForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    const [pwLoading, setPwLoading] = useState(false);
+    const [pwError, setPwError] = useState("");
 
     const token = localStorage.getItem("token");
     const authHeader = { Authorization: `Bearer ${token}` };
@@ -26,7 +51,11 @@ function AdminDashboard() {
         const u = JSON.parse(stored);
         if (u.role !== "admin") { navigate("/login"); return; }
         setAdmin(u);
-    }, [navigate, token]);
+        if (u.isFirstLogin && !showChangePW) {
+            setIsFirstLoginModal(true);
+            setShowChangePW(true);
+        }
+    }, [navigate, token, showChangePW]);
 
     // ── Fetch helpers ────────────────────────────────────────────────────────────
     const fetchTeachers = useCallback(async () => {
@@ -82,10 +111,10 @@ function AdminDashboard() {
             });
             const data = await res.json();
             if (data.success) {
-                showMsg(`✅ ${teacherName} approved successfully!`);
+                showMsg(<><CheckCircle2 size={16} /> {teacherName} approved successfully!</>);
                 fetchPendingTeachers(); fetchTeachers();
             }
-        } catch { showMsg("Action failed. Try again."); }
+        } catch { showMsg(<><XCircle size={16} /> Action failed. Try again.</>); }
     };
 
     const handleReject = async (teacherId, teacherName) => {
@@ -97,8 +126,8 @@ function AdminDashboard() {
                 body: JSON.stringify({ reason }),
             });
             const data = await res.json();
-            if (data.success) { showMsg(`❌ ${teacherName} rejected.`); fetchPendingTeachers(); }
-        } catch { showMsg("Action failed. Try again."); }
+            if (data.success) { showMsg(<><XCircle size={16} /> {teacherName} rejected.</>); fetchPendingTeachers(); }
+        } catch { showMsg(<><XCircle size={16} /> Action failed. Try again.</>); }
     };
 
     // ── Delete teacher ────────────────────────────────────────────────────────── 
@@ -110,10 +139,10 @@ function AdminDashboard() {
             });
             const data = await res.json();
             if (data.success) {
-                showMsg(`🗑️ ${teacherName} permanently deleted.`);
+                showMsg(<><Trash2 size={16} /> {teacherName} permanently deleted.</>);
                 fetchTeachers(); fetchPendingTeachers();
-            } else { showMsg(data.message || "Delete failed."); }
-        } catch { showMsg("Delete failed. Try again."); }
+            } else { showMsg(<><XCircle size={16} /> {data.message || "Delete failed."}</>); }
+        } catch { showMsg(<><XCircle size={16} /> Delete failed. Try again.</>); }
     };
 
     // ── Delete student ────────────────────────────────────────────────────────── 
@@ -125,10 +154,10 @@ function AdminDashboard() {
             });
             const data = await res.json();
             if (data.success) {
-                showMsg(`🗑️ ${studentName} permanently deleted.`);
+                showMsg(<><Trash2 size={16} /> {studentName} permanently deleted.</>);
                 fetchStudents();
-            } else { showMsg(data.message || "Delete failed."); }
-        } catch { showMsg("Delete failed. Try again."); }
+            } else { showMsg(<><XCircle size={16} /> {data.message || "Delete failed."}</>); }
+        } catch { showMsg(<><XCircle size={16} /> Delete failed. Try again.</>); }
     };
 
     const handleLogout = () => {
@@ -144,6 +173,49 @@ function AdminDashboard() {
     const handleViewStudents = (cls, sec) => {
         setStudentFilter({ class: cls, section: sec });
         setActiveTab("students");
+    };
+
+    const handleChangePassword = async (e) => {
+        e.preventDefault();
+        setPwError("");
+        if (pwForm.newPassword !== pwForm.confirmPassword) {
+            setPwError("New passwords do not match!");
+            return;
+        }
+        if (pwForm.newPassword.length < 6) {
+            setPwError("Password must be at least 6 characters!");
+            return;
+        }
+
+        setPwLoading(true);
+        try {
+            const res = await fetch(`${API_BASE}/admin/change-password`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", ...authHeader },
+                body: JSON.stringify({
+                    currentPassword: pwForm.currentPassword,
+                    newPassword: pwForm.newPassword
+                }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                showMsg(<><CheckCircle2 size={16} /> Password updated successfully!</>);
+                setShowChangePW(false);
+                setIsFirstLoginModal(false);
+                setPwForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+
+                // Update local storage
+                const stored = JSON.parse(localStorage.getItem("user"));
+                stored.isFirstLogin = false;
+                localStorage.setItem("user", JSON.stringify(stored));
+                setAdmin(stored);
+            } else {
+                setPwError(data.message || "Failed to update password.");
+            }
+        } catch {
+            setPwError("Network error. Please try again.");
+        }
+        setPwLoading(false);
     };
 
     const filteredStudents = students.filter(s => {
@@ -178,10 +250,10 @@ function AdminDashboard() {
     }
 
     const NAV = [
-        { id: "overview", icon: "📊", label: "Overview" },
-        { id: "approvals", icon: "🔔", label: "Approvals", badge: pendingTeachers.length },
-        { id: "teachers", icon: "👩‍🏫", label: "Teachers" },
-        { id: "students", icon: "🎓", label: "Students" },
+        { id: "overview", icon: <LayoutDashboard size={18} />, label: "Overview" },
+        { id: "approvals", icon: <Bell size={18} />, label: "Approvals", badge: pendingTeachers.length },
+        { id: "teachers", icon: <Users size={18} />, label: "Teachers" },
+        { id: "students", icon: <GraduationCap size={18} />, label: "Students" },
     ];
 
     return (
@@ -189,7 +261,7 @@ function AdminDashboard() {
             {/* ── Sidebar ──────────────────────────────────────── */}
             <aside className="admin-sidebar">
                 <div className="admin-logo">
-                    <span className="admin-logo-icon">🏫</span>
+                    <span className="admin-logo-icon"><School size={32} color="#fff" /></span>
                     <div>
                         <div className="admin-logo-title">Admin Panel</div>
                         <div className="admin-logo-sub">{admin.schoolName}</div>
@@ -214,14 +286,17 @@ function AdminDashboard() {
 
                 <div className="admin-sidebar-footer">
                     <div className="admin-profile-mini">
-                        <div className="admin-avatar-mini">🏫</div>
-                        <div>
+                        <div className="admin-avatar-mini"><Users size={20} color="#fff" /></div>
+                        <div className="admin-profile-info">
                             <div className="admin-name-mini">{admin.name}</div>
                             <div className="admin-email-mini">{admin.email}</div>
+                            <button className="admin-profile-link" onClick={() => { setPwError(""); setShowChangePW(true); }}>
+                                <Settings size={12} /> Change Password
+                            </button>
                         </div>
                     </div>
                     <button className="admin-logout-btn" onClick={handleLogout}>
-                        🚪 Logout
+                        <LogOut size={16} /> Logout
                     </button>
                 </div>
             </aside>
@@ -249,29 +324,29 @@ function AdminDashboard() {
                     <div className="admin-overview">
                         <div className="admin-stats-grid">
                             <div className="admin-stat-card blue">
-                                <div className="admin-stat-icon">👩‍🏫</div>
+                                <div className="admin-stat-icon"><Users size={28} color="#667eea" /></div>
                                 <div className="admin-stat-value">{teachers.length}</div>
                                 <div className="admin-stat-label">Total Teachers</div>
                             </div>
                             <div className="admin-stat-card purple">
-                                <div className="admin-stat-icon">🎓</div>
+                                <div className="admin-stat-icon"><GraduationCap size={28} color="#764ba2" /></div>
                                 <div className="admin-stat-value">{students.length}</div>
                                 <div className="admin-stat-label">Total Students</div>
                             </div>
                             <div className="admin-stat-card green">
-                                <div className="admin-stat-icon">📚</div>
+                                <div className="admin-stat-icon"><Layers size={28} color="#10b981" /></div>
                                 <div className="admin-stat-value">6</div>
                                 <div className="admin-stat-label">Subjects</div>
                             </div>
                             <div className="admin-stat-card orange">
-                                <div className="admin-stat-icon">🔔</div>
+                                <div className="admin-stat-icon"><Bell size={28} color="#f59e0b" /></div>
                                 <div className="admin-stat-value">{pendingTeachers.length}</div>
                                 <div className="admin-stat-label">Pending Approvals</div>
                             </div>
                         </div>
 
                         <div className="admin-info-card">
-                            <h3>🏫 School Information</h3>
+                            <h3><School size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} /> School Information</h3>
                             <div className="admin-info-grid">
                                 <div className="admin-info-row">
                                     <span className="admin-info-label">School Name</span>
@@ -294,13 +369,13 @@ function AdminDashboard() {
                             <h3>Quick Actions</h3>
                             <div className="admin-actions-grid">
                                 <button className="admin-action-btn" onClick={() => setActiveTab("teachers")}>
-                                    <span>👩‍🏫</span><span>Manage Teachers</span>
+                                    <span><UserCircle size={20} color="#6366f1" /></span><span>Manage Teachers</span>
                                 </button>
                                 <button className="admin-action-btn" onClick={() => setActiveTab("students")}>
-                                    <span>🎓</span><span>Manage Students</span>
+                                    <span><StudentIcon size={20} color="#ec4899" /></span><span>Manage Students</span>
                                 </button>
                                 <button className="admin-action-btn" onClick={() => setActiveTab("approvals")}>
-                                    <span>🔔</span><span>Pending Approvals {pendingTeachers.length > 0 && `(${pendingTeachers.length})`}</span>
+                                    <span><Bell size={20} color="#f59e0b" /></span><span>Pending Approvals {pendingTeachers.length > 0 && `(${pendingTeachers.length})`}</span>
                                 </button>
                             </div>
                         </div>
@@ -315,7 +390,7 @@ function AdminDashboard() {
                         </div>
                         {pendingTeachers.length === 0 ? (
                             <div className="admin-empty">
-                                <div className="admin-empty-icon">✅</div>
+                                <div className="admin-empty-icon"><CheckCircle2 size={48} color="#10b981" /></div>
                                 <h3>No pending approvals</h3>
                                 <p>All teacher registrations have been reviewed.</p>
                             </div>
@@ -340,7 +415,7 @@ function AdminDashboard() {
                                                 <td>{i + 1}</td>
                                                 <td>
                                                     <div className="admin-teacher-name">
-                                                        <div className="admin-avatar-sm">👩‍🏫</div>
+                                                        <div className="admin-avatar-sm"><UserCircle size={16} color="#6366f1" /></div>
                                                         {t.name}
                                                     </div>
                                                 </td>
@@ -354,10 +429,10 @@ function AdminDashboard() {
                                                 <td>
                                                     <div className="admin-approval-btns">
                                                         <button className="admin-approve-btn" onClick={() => handleApprove(t._id, t.name)}>
-                                                            ✅ Approve
+                                                            <CheckCircle2 size={14} /> Approve
                                                         </button>
                                                         <button className="admin-reject-btn" onClick={() => handleReject(t._id, t.name)}>
-                                                            ❌ Reject
+                                                            <XCircle size={14} /> Reject
                                                         </button>
                                                     </div>
                                                 </td>
@@ -378,7 +453,7 @@ function AdminDashboard() {
                         </div>
                         {teachers.length === 0 ? (
                             <div className="admin-empty">
-                                <div className="admin-empty-icon">👩‍🏫</div>
+                                <div className="admin-empty-icon"><UserCircle size={48} color="#6366f1" /></div>
                                 <h3>No teachers registered yet</h3>
                                 <p>Teachers can register from the Signup page.</p>
                             </div>
@@ -403,7 +478,7 @@ function AdminDashboard() {
                                                 <td>{i + 1}</td>
                                                 <td>
                                                     <div className="admin-teacher-name">
-                                                        <div className="admin-avatar-sm">👩‍🏫</div>
+                                                        <div className="admin-avatar-sm"><UserCircle size={16} color="#6366f1" /></div>
                                                         {t.name}
                                                     </div>
                                                 </td>
@@ -431,7 +506,7 @@ function AdminDashboard() {
                                                         className="admin-delete-btn"
                                                         onClick={() => handleDeleteTeacher(t._id, t.name)}
                                                     >
-                                                        🗑️ Delete
+                                                        <Trash2 size={14} /> Delete
                                                     </button>
                                                 </td>
                                             </tr>
@@ -452,7 +527,7 @@ function AdminDashboard() {
                                     className={`admin-path-step ${!studentFilter.class ? "active" : ""}`}
                                     onClick={() => setStudentFilter({ class: "", section: "" })}
                                 >
-                                    🎓 All Classes
+                                    <StudentIcon size={14} style={{ marginRight: '4px' }} /> All Classes
                                 </button>
                                 {studentFilter.class && (
                                     <>
@@ -492,7 +567,7 @@ function AdminDashboard() {
                                             className="admin-drill-card"
                                             onClick={() => setStudentFilter({ class: c.toString(), section: "" })}
                                         >
-                                            <div className="admin-drill-icon">📚</div>
+                                            <div className="admin-drill-icon"><BookOpen size={24} color="#6366f1" /></div>
                                             <div className="admin-drill-name">Class {c}</div>
                                             <div className="admin-drill-count">{count} Students</div>
                                         </button>
@@ -514,7 +589,7 @@ function AdminDashboard() {
                                             className="admin-drill-card secondary"
                                             onClick={() => setStudentFilter({ ...studentFilter, section: s })}
                                         >
-                                            <div className="admin-drill-icon">📍</div>
+                                            <div className="admin-drill-icon"><MapPin size={24} color="#ec4899" /></div>
                                             <div className="admin-drill-name">Section {s}</div>
                                             <div className="admin-drill-count">{count} Students</div>
                                         </button>
@@ -528,7 +603,7 @@ function AdminDashboard() {
                             <div className="admin-table-section">
                                 {filteredStudents.length === 0 ? (
                                     <div className="admin-empty">
-                                        <div className="admin-empty-icon">🎓</div>
+                                        <div className="admin-empty-icon"><StudentIcon size={48} color="#94a3b8" /></div>
                                         <h3>No students found</h3>
                                         <p>No students have registered for this specific class and section yet.</p>
                                     </div>
@@ -552,7 +627,7 @@ function AdminDashboard() {
                                                         <td>{i + 1}</td>
                                                         <td>
                                                             <div className="admin-teacher-name">
-                                                                <div className="admin-avatar-sm">🎓</div>
+                                                                <div className="admin-avatar-sm"><StudentIcon size={16} color="#ec4899" /></div>
                                                                 {s.name}
                                                             </div>
                                                         </td>
@@ -567,7 +642,7 @@ function AdminDashboard() {
                                                                 className="admin-delete-btn"
                                                                 onClick={() => handleDeleteStudent(s._id, s.name)}
                                                             >
-                                                                🗑️ Delete
+                                                                <Trash2 size={14} /> Delete
                                                             </button>
                                                         </td>
                                                     </tr>
@@ -586,10 +661,9 @@ function AdminDashboard() {
             {showLogoutModal && (
                 <div className="admin-modal-overlay">
                     <div className="admin-confirm-modal">
-                        <div className="admin-modal-icon">👋</div>
+                        <div className="admin-modal-icon"><LogOut size={48} color="#ef4444" /></div>
                         <h2 className="admin-modal-title">Confirm Logout</h2>
-                        <p className="admin-modal-text">
-                            Are you sure you want to log out of the Admin Portal?
+                        <p className="admin-modal-text">Are you sure you want to sign out from the Admin Panel?
                             Your current session will be safely terminated.
                         </p>
                         <div className="admin-modal-actions">
@@ -605,6 +679,80 @@ function AdminDashboard() {
                             >
                                 Yes, Logout
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* ── Change Password Modal ────────────────────── */}
+            {showChangePW && (
+                <div className="admin-modal-overlay">
+                    <div className="admin-modal change-pw-modal">
+                        <div className="admin-modal-header">
+                            <h2>{isFirstLoginModal ? <><ShieldCheck size={24} color="#1e1b4b" /> Security Setup</> : <><Lock size={24} color="#1e1b4b" /> Change Password</>}</h2>
+                            {!isFirstLoginModal && (
+                                <button className="admin-modal-close" onClick={() => setShowChangePW(false)}><X size={18} /></button>
+                            )}
+                        </div>
+                        <div className="admin-modal-body">
+                            {isFirstLoginModal && (
+                                <p className="admin-modal-desc">
+                                    Welcome! Because this is your first time logging in, please change your temporary password to secure your school's data.
+                                </p>
+                            )}
+                            <form onSubmit={handleChangePassword} className="admin-modal-form">
+                                <div className="admin-form-group">
+                                    <label>Old Password</label>
+                                    <input
+                                        type="password"
+                                        placeholder="Enter current password"
+                                        value={pwForm.currentPassword}
+                                        onChange={(e) => setPwForm({ ...pwForm, currentPassword: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div className="admin-form-group">
+                                    <label>New Password</label>
+                                    <input
+                                        type="password"
+                                        placeholder="Minimum 6 characters"
+                                        value={pwForm.newPassword}
+                                        onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div className="admin-form-group">
+                                    <label>Confirm New Password</label>
+                                    <input
+                                        type="password"
+                                        placeholder="Repeat new password"
+                                        value={pwForm.confirmPassword}
+                                        onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
+                                        required
+                                    />
+                                </div>
+
+                                {pwError && <div className="admin-form-error">{pwError}</div>}
+
+                                <div className="admin-modal-footer">
+                                    {!isFirstLoginModal && (
+                                        <button
+                                            type="button"
+                                            className="admin-btn secondary"
+                                            onClick={() => setShowChangePW(false)}
+                                            disabled={pwLoading}
+                                        >
+                                            Cancel
+                                        </button>
+                                    )}
+                                    <button
+                                        type="submit"
+                                        className={`admin-btn primary ${isFirstLoginModal ? "full" : ""}`}
+                                        disabled={pwLoading}
+                                    >
+                                        {pwLoading ? "Updating..." : "Update Password →"}
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>

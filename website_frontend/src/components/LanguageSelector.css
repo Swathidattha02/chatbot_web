@@ -3,7 +3,7 @@
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
-    background: rgba(123, 111, 198, 0.1);
+    background: rgba(30, 27, 75, 0.08);
     border-radius: 8px;
     margin-bottom: 8px;
 }
@@ -34,9 +34,9 @@
 }
 
 .language-select:hover {
-    border-color: #7B6FC6;
+    border-color: #1e1b4b;
 }
 
 .language-select:focus {
-    border-color: #7B6FC6;
+    border-color: #1e1b4b;
 }
