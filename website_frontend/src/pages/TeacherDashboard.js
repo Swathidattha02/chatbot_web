@@ -5,11 +5,12 @@ import {
     BookOpen, FileText, Search, CheckCircle, XCircle, 
     Star, BarChart3, AlertTriangle, Calendar, Download,
     TrendingUp, TrendingDown, ChevronLeft, ChevronRight,
-    Inbox, LogOut
+    Inbox, LogOut, Eye
 } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import "../styles/TeacherDashboard.css";
+import ViolationTable from "../components/ViolationTable";
 
 const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
@@ -22,6 +23,8 @@ function TeacherDashboard() {
     const [students, setStudents] = useState([]);
     const [pendingStudents, setPendingStudents] = useState([]);
     const [quizResults, setQuizResults] = useState([]);
+    const [violations, setViolations] = useState([]);
+    const [violationStats, setViolationStats] = useState(null);
     const [filtered, setFiltered] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("dashboard"); // dashboard | pending | quizzes
@@ -81,6 +84,18 @@ function TeacherDashboard() {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (res.data.success) setQuizResults(res.data.quizzes);
+        } catch { }
+    }, [token]);
+
+    const fetchViolations = useCallback(async () => {
+        try {
+            const res = await axios.get(`${API_BASE}/teacher/violations`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.data.success) {
+                setViolations(res.data.violations);
+                setViolationStats(res.data.stats);
+            }
         } catch { }
     }, [token]);
 
@@ -313,6 +328,16 @@ function TeacherDashboard() {
                         <FileText size={16} /> Quiz Results
                         {quizResults.length > 0 && (
                             <span className="td-pending-badge" style={{ background: "#6366f1" }}>{quizResults.length}</span>
+                        )}
+                    </button>
+                    <button
+                        className={`td-nav-link ${activeTab === "violations" ? "active" : ""}`}
+                        onClick={() => { setActiveTab("violations"); fetchViolations(); }}
+                        style={{ position: "relative", display: "flex", alignItems: "center", gap: "6px" }}
+                    >
+                        <Eye size={16} /> Violations
+                        {violationStats?.last24h > 0 && (
+                            <span className="td-pending-badge" style={{ background: "#ef4444" }}>{violationStats.last24h}</span>
                         )}
                     </button>
                 </nav>
@@ -704,6 +729,52 @@ function TeacherDashboard() {
                                     </tbody>
                                 </table>
                             </div>
+                        )}
+                    </div>
+                )}
+
+                {/* ── Violations Tab ──────────────────────────────── */}
+                {activeTab === "violations" && (
+                    <div className="td-pending-section">
+                        <div className="td-pending-header">
+                            <h2 className="td-section-title" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <Eye size={24} color="#ef4444" />
+                                Focus Violations — Class {teacher?.assignedClass}-{teacher?.assignedSection}
+                            </h2>
+                            <p className="td-section-subtitle">Monitoring focus violations by your students</p>
+                        </div>
+
+                        {/* Violation Stats Cards */}
+                        {violationStats && (
+                            <div className="td-stats-row" style={{ marginBottom: "20px" }}>
+                                <div className="td-stat-card td-stat-red">
+                                    <div className="td-stat-label">TOTAL VIOLATIONS</div>
+                                    <div className="td-stat-icon td-icon-red"><AlertTriangle size={24} color="#ef4444" /></div>
+                                    <div className="td-stat-value">{violationStats.totalViolations}</div>
+                                </div>
+                                <div className="td-stat-card td-stat-orange" style={{ background: "linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)" }}>
+                                    <div className="td-stat-label">LAST 24 HOURS</div>
+                                    <div className="td-stat-icon" style={{ background: "#fed7aa" }}><Eye size={24} color="#f97316" /></div>
+                                    <div className="td-stat-value">{violationStats.last24h}</div>
+                                </div>
+                                <div className="td-stat-card td-stat-blue">
+                                    <div className="td-stat-label">TOP OFFENDER</div>
+                                    <div className="td-stat-icon td-icon-blue"><BarChart3 size={24} color="#3b82f6" /></div>
+                                    <div className="td-stat-value">
+                                        {violationStats.byUser?.[0]?._id || "None"} ({violationStats.byUser?.[0]?.count || 0})
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {violations.length === 0 ? (
+                            <div className="td-empty" style={{ padding: "3rem", textAlign: "center" }}>
+                                <div style={{ marginBottom: "16px" }}><CheckCircle size={48} color="#10b981" /></div>
+                                <h3>No violations recorded</h3>
+                                <p>All students are focused during sessions!</p>
+                            </div>
+                        ) : (
+                            <ViolationTable violations={violations} showUser={true} />
                         )}
                     </div>
                 )}
