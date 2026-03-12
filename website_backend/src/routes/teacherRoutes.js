@@ -8,11 +8,14 @@ const {
     loginAdmin,
     getTeacherDashboard,
     getPendingTeachers,
+    getPendingStudentsForAdmin,
     approveTeacher,
     rejectTeacher,
     getPendingStudents,
     approveStudent,
     rejectStudent,
+    approveStudentForAdmin,
+    rejectStudentForAdmin,
     getStudentsBySchool,
     deleteTeacher,
     deleteStudent,
@@ -37,6 +40,9 @@ router.post("/teacher/reject-student/:studentId", protect, rejectStudent);
 router.get("/admin/pending-teachers", protect, getPendingTeachers);
 router.post("/admin/approve-teacher/:teacherId", protect, approveTeacher);
 router.post("/admin/reject-teacher/:teacherId", protect, rejectTeacher);
+router.get("/admin/pending-students", protect, getPendingStudentsForAdmin);
+router.post("/admin/approve-student/:studentId", protect, approveStudentForAdmin);
+router.post("/admin/reject-student/:studentId", protect, rejectStudentForAdmin);
 router.get("/admin/students", protect, getStudentsBySchool);
 router.post("/admin/change-password", protect, changeAdminPassword);
 router.delete("/admin/delete-teacher/:teacherId", protect, deleteTeacher);
