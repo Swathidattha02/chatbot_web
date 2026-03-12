@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
+import { GraduationCap, Users, Building2, AlertTriangle, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import "../styles/AuthNew.css";
 
 const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
@@ -55,7 +56,11 @@ function Login() {
         setLoading(false);
     };
 
-    const roleIcons = { student: "🎓", teacher: "👩‍🏫", admin: "🏫" };
+    const roleIcons = { 
+        student: <GraduationCap size={16} />, 
+        teacher: <Users size={16} />, 
+        admin: <Building2 size={16} /> 
+    };
 
     return (
         <div className="auth-new-container">
@@ -82,7 +87,7 @@ function Login() {
 
                 {error && (
                     <div className="auth-error">
-                        <span>⚠️</span> {error}
+                        <AlertTriangle size={16} /> {error}
                     </div>
                 )}
 
@@ -91,7 +96,7 @@ function Login() {
                     <div className="form-group-new full-width">
                         <label>Email Address</label>
                         <div className="input-with-icon">
-                            <span className="input-icon">✉️</span>
+                            <span className="input-icon"><Mail size={16} /></span>
                             <input
                                 type="email"
                                 placeholder="name@school.com"
@@ -109,7 +114,7 @@ function Login() {
                             <a href="#forgot" className="forgot-link">Forgot password?</a>
                         </div>
                         <div className="password-field">
-                            <span className="input-icon">🔒</span>
+                            <span className="input-icon"><Lock size={16} /></span>
                             <input
                                 type={showPassword ? "text" : "password"}
                                 placeholder="••••••••"
@@ -122,7 +127,7 @@ function Login() {
                                 className="toggle-pw"
                                 onClick={() => setShowPassword(!showPassword)}
                             >
-                                {showPassword ? "🙈" : "👁️"}
+                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
                         </div>
                     </div>

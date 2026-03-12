@@ -330,6 +330,31 @@
     font-weight: 500;
 }
 
+.td-custom-date-input {
+    border: none;
+    background: transparent;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #374151;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    cursor: pointer;
+    position: relative;
+}
+
+.td-custom-date-input::-webkit-calendar-picker-indicator {
+    background: transparent;
+    bottom: 0;
+    color: transparent;
+    cursor: pointer;
+    height: auto;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: auto;
+}
+
 /* Export */
 .td-export-btn {
     display: flex;
@@ -746,8 +771,29 @@
 }
 
 .td-modal-btn.confirm:hover {
-    background: #dc2626;
+    background: #e11d48;
     transform: scale(1.02);
+}
+
+/* Custom React-DatePicker Overrides */
+.td-custom-react-datepicker {
+    border: none !important;
+    background: transparent !important;
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    color: #374151 !important;
+    font-family: 'Inter', sans-serif !important;
+    outline: none !important;
+    cursor: pointer !important;
+    width: 100px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.react-datepicker-wrapper {
+    display: inline-block !important;
+    padding: 0 !important;
+    border: 0 !important;
 }
 
 .td-modal-btn.cancel {

@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { 
+    Eye, EyeOff, LayoutDashboard, Bell, Users, GraduationCap, 
+    Building2, Settings, LogOut, BookOpen, CheckCircle, 
+    XCircle, Trash2, MapPin, Hand, Lock, Key 
+} from "lucide-react";
 import "../styles/AdminDashboard.css";
 
 const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
@@ -9,17 +14,23 @@ function AdminDashboard() {
     const [admin, setAdmin] = useState(null);
     const [teachers, setTeachers] = useState([]);
     const [pendingTeachers, setPendingTeachers] = useState([]);
+    const [pendingStudents, setPendingStudents] = useState([]);
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("overview");
     const [actionMsg, setActionMsg] = useState("");
     const [studentFilter, setStudentFilter] = useState({ class: "", section: "" });
     const [showLogoutModal, setShowLogoutModal] = useState(false);
+    const [showApprovalPopup, setShowApprovalPopup] = useState(false);
+    const [hasShownApprovalPopup, setHasShownApprovalPopup] = useState(false);
     const [showChangePW, setShowChangePW] = useState(false);
     const [isFirstLoginModal, setIsFirstLoginModal] = useState(false);
     const [pwForm, setPwForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
     const [pwLoading, setPwLoading] = useState(false);
     const [pwError, setPwError] = useState("");
+    const [showOldPw, setShowOldPw] = useState(false);
+    const [showNewPw, setShowNewPw] = useState(false);
+    const [showConfirmPw, setShowConfirmPw] = useState(false);
 
     const token = localStorage.getItem("token");
     const authHeader = { Authorization: `Bearer ${token}` };
@@ -68,14 +79,32 @@ function AdminDashboard() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [admin]);
 
+    const fetchPendingStudents = useCallback(async () => {
+        if (!admin) return;
+        try {
+            const res = await fetch(`${API_BASE}/admin/pending-students`, { headers: authHeader });
+            const data = await res.json();
+            if (data.success) setPendingStudents(data.students);
+        } catch { }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [admin]);
+
     useEffect(() => {
         if (admin) {
             fetchTeachers();
             fetchPendingTeachers();
+            fetchPendingStudents();
             fetchStudents();
             setLoading(false);
         }
-    }, [admin, fetchTeachers, fetchPendingTeachers, fetchStudents]);
+    }, [admin, fetchTeachers, fetchPendingTeachers, fetchPendingStudents, fetchStudents]);
+
+    useEffect(() => {
+        if (!hasShownApprovalPopup && (pendingTeachers.length > 0 || pendingStudents.length > 0)) {
+            setShowApprovalPopup(true);
+            setHasShownApprovalPopup(true);
+        }
+    }, [pendingTeachers.length, pendingStudents.length, hasShownApprovalPopup]);
 
     // ── Show action message ──────────────────────────────────────────────────────
     const showMsg = (msg) => {
@@ -123,6 +152,33 @@ function AdminDashboard() {
                 fetchTeachers(); fetchPendingTeachers();
             } else { showMsg(data.message || "Delete failed."); }
         } catch { showMsg("Delete failed. Try again."); }
+    };
+
+    // ── Approve / Reject student ─────────────────────────────────────────────────
+    const handleApproveStudent = async (studentId, studentName) => {
+        try {
+            const res = await fetch(`${API_BASE}/admin/approve-student/${studentId}`, {
+                method: "POST", headers: authHeader,
+            });
+            const data = await res.json();
+            if (data.success) {
+                showMsg(`✅ ${studentName} approved successfully!`);
+                fetchPendingStudents(); fetchStudents();
+            }
+        } catch { showMsg("Action failed. Try again."); }
+    };
+
+    const handleRejectStudent = async (studentId, studentName) => {
+        const reason = window.prompt(`Reason for rejecting ${studentName} (optional):`) || "Not approved by school admin.";
+        try {
+            const res = await fetch(`${API_BASE}/admin/reject-student/${studentId}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", ...authHeader },
+                body: JSON.stringify({ reason }),
+            });
+            const data = await res.json();
+            if (data.success) { showMsg(`❌ ${studentName} rejected.`); fetchPendingStudents(); }
+        } catch { showMsg("Action failed. Try again."); }
     };
 
     // ── Delete student ────────────────────────────────────────────────────────── 
@@ -230,10 +286,10 @@ function AdminDashboard() {
     }
 
     const NAV = [
-        { id: "overview", icon: "📊", label: "Overview" },
-        { id: "approvals", icon: "🔔", label: "Approvals", badge: pendingTeachers.length },
-        { id: "teachers", icon: "👩‍🏫", label: "Teachers" },
-        { id: "students", icon: "🎓", label: "Students" },
+        { id: "overview", icon: <LayoutDashboard size={20} />, label: "Overview" },
+        { id: "approvals", icon: <Bell size={20} />, label: "Approvals", badge: pendingTeachers.length },
+        { id: "teachers", icon: <Users size={20} />, label: "Teachers" },
+        { id: "students", icon: <GraduationCap size={20} />, label: "Students" },
     ];
 
     return (
@@ -241,7 +297,7 @@ function AdminDashboard() {
             {/* ── Sidebar ──────────────────────────────────────── */}
             <aside className="admin-sidebar">
                 <div className="admin-logo">
-                    <span className="admin-logo-icon">🏫</span>
+                    <span className="admin-logo-icon"><Building2 size={28} color="white" /></span>
                     <div>
                         <div className="admin-logo-title">Admin Panel</div>
                         <div className="admin-logo-sub">{admin.schoolName}</div>
@@ -266,17 +322,17 @@ function AdminDashboard() {
 
                 <div className="admin-sidebar-footer">
                     <div className="admin-profile-mini">
-                        <div className="admin-avatar-mini">🏫</div>
+                        <div className="admin-avatar-mini"><Building2 size={20} /></div>
                         <div className="admin-profile-info">
                             <div className="admin-name-mini">{admin.name}</div>
                             <div className="admin-email-mini">{admin.email}</div>
                             <button className="admin-profile-link" onClick={() => { setPwError(""); setShowChangePW(true); }}>
-                                ⚙️ Change Password
+                                <Settings size={14} /> Change Password
                             </button>
                         </div>
                     </div>
                     <button className="admin-logout-btn" onClick={handleLogout}>
-                        🚪 Logout
+                        <LogOut size={16} /> Logout
                     </button>
                 </div>
             </aside>
@@ -304,29 +360,31 @@ function AdminDashboard() {
                     <div className="admin-overview">
                         <div className="admin-stats-grid">
                             <div className="admin-stat-card blue">
-                                <div className="admin-stat-icon">👩‍🏫</div>
+                                <div className="admin-stat-icon"><Users size={28} color="#667eea" /></div>
                                 <div className="admin-stat-value">{teachers.length}</div>
                                 <div className="admin-stat-label">Total Teachers</div>
                             </div>
                             <div className="admin-stat-card purple">
-                                <div className="admin-stat-icon">🎓</div>
+                                <div className="admin-stat-icon"><GraduationCap size={28} color="#764ba2" /></div>
                                 <div className="admin-stat-value">{students.length}</div>
                                 <div className="admin-stat-label">Total Students</div>
                             </div>
                             <div className="admin-stat-card green">
-                                <div className="admin-stat-icon">📚</div>
+                                <div className="admin-stat-icon"><BookOpen size={28} color="#10b981" /></div>
                                 <div className="admin-stat-value">6</div>
                                 <div className="admin-stat-label">Subjects</div>
                             </div>
                             <div className="admin-stat-card orange">
-                                <div className="admin-stat-icon">🔔</div>
-                                <div className="admin-stat-value">{pendingTeachers.length}</div>
+                                <div className="admin-stat-icon"><Bell size={28} color="#f59e0b" /></div>
+                                <div className="admin-stat-value">{pendingTeachers.length + pendingStudents.length}</div>
                                 <div className="admin-stat-label">Pending Approvals</div>
                             </div>
                         </div>
 
                         <div className="admin-info-card">
-                            <h3>🏫 School Information</h3>
+                            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Building2 size={20} /> School Information
+                            </h3>
                             <div className="admin-info-grid">
                                 <div className="admin-info-row">
                                     <span className="admin-info-label">School Name</span>
@@ -349,13 +407,13 @@ function AdminDashboard() {
                             <h3>Quick Actions</h3>
                             <div className="admin-actions-grid">
                                 <button className="admin-action-btn" onClick={() => setActiveTab("teachers")}>
-                                    <span>👩‍🏫</span><span>Manage Teachers</span>
+                                    <span><Users size={18} /></span><span>Manage Teachers</span>
                                 </button>
                                 <button className="admin-action-btn" onClick={() => setActiveTab("students")}>
-                                    <span>🎓</span><span>Manage Students</span>
+                                    <span><GraduationCap size={18} /></span><span>Manage Students</span>
                                 </button>
                                 <button className="admin-action-btn" onClick={() => setActiveTab("approvals")}>
-                                    <span>🔔</span><span>Pending Approvals {pendingTeachers.length > 0 && `(${pendingTeachers.length})`}</span>
+                                    <span><Bell size={18} /></span><span>Pending Approvals {(pendingTeachers.length + pendingStudents.length) > 0 && `(${pendingTeachers.length + pendingStudents.length})`}</span>
                                 </button>
                             </div>
                         </div>
@@ -365,13 +423,14 @@ function AdminDashboard() {
                 {/* ── Approvals Tab ─────────────────────────────────── */}
                 {activeTab === "approvals" && (
                     <div className="admin-table-section">
+                        {/* ── TEACHER APPROVALS ── */}
                         <div className="admin-table-header">
                             <h3>Pending Teacher Registrations ({pendingTeachers.length})</h3>
                         </div>
                         {pendingTeachers.length === 0 ? (
-                            <div className="admin-empty">
-                                <div className="admin-empty-icon">✅</div>
-                                <h3>No pending approvals</h3>
+                            <div className="admin-empty" style={{ padding: '20px', marginBottom: '32px' }}>
+                                <div className="admin-empty-icon"><CheckCircle size={48} color="#10b981" /></div>
+                                <h3>No pending teacher approvals</h3>
                                 <p>All teacher registrations have been reviewed.</p>
                             </div>
                         ) : (
@@ -395,7 +454,7 @@ function AdminDashboard() {
                                                 <td>{i + 1}</td>
                                                 <td>
                                                     <div className="admin-teacher-name">
-                                                        <div className="admin-avatar-sm">👩‍🏫</div>
+                                                        <div className="admin-avatar-sm"><Users size={16} color="#4f46e5" /></div>
                                                         {t.name}
                                                     </div>
                                                 </td>
@@ -408,11 +467,84 @@ function AdminDashboard() {
                                                 </td>
                                                 <td>
                                                     <div className="admin-approval-btns">
-                                                        <button className="admin-approve-btn" onClick={() => handleApprove(t._id, t.name)}>
-                                                            ✅ Approve
+                                                        <button 
+                                                            className="admin-approve-btn" 
+                                                            onClick={() => handleApprove(t._id, t.name)}
+                                                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                                        >
+                                                            <CheckCircle size={14} /> Approve
                                                         </button>
-                                                        <button className="admin-reject-btn" onClick={() => handleReject(t._id, t.name)}>
-                                                            ❌ Reject
+                                                        <button 
+                                                            className="admin-reject-btn" 
+                                                            onClick={() => handleReject(t._id, t.name)}
+                                                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                                        >
+                                                            <XCircle size={14} /> Reject
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {/* ── STUDENT APPROVALS ── */}
+                        <div className="admin-table-header" style={{ marginTop: '24px' }}>
+                            <h3>Pending Student Registrations ({pendingStudents.length})</h3>
+                        </div>
+                        {pendingStudents.length === 0 ? (
+                            <div className="admin-empty" style={{ padding: '20px' }}>
+                                <div className="admin-empty-icon"><CheckCircle size={48} color="#10b981" /></div>
+                                <h3>No pending student approvals</h3>
+                                <p>All student registrations have been reviewed.</p>
+                            </div>
+                        ) : (
+                            <div className="admin-table-wrap">
+                                <table className="admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Class & Section</th>
+                                            <th>Roll No.</th>
+                                            <th>Applied</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {pendingStudents.map((s, i) => (
+                                            <tr key={s._id}>
+                                                <td>{i + 1}</td>
+                                                <td>
+                                                    <div className="admin-teacher-name">
+                                                        <div className="admin-avatar-sm"><GraduationCap size={16} color="#4f46e5" /></div>
+                                                        {s.name}
+                                                    </div>
+                                                </td>
+                                                <td style={{ fontSize: "13px", color: "#64748b" }}>{s.email}</td>
+                                                <td>Class {s.class.replace('Class ', '')} - Sec {s.section}</td>
+                                                <td>{s.rollNumber || "—"}</td>
+                                                <td style={{ fontSize: "12px", color: "#94a3b8" }}>
+                                                    {new Date(s.createdAt).toLocaleDateString()}
+                                                </td>
+                                                <td>
+                                                    <div className="admin-approval-btns">
+                                                        <button 
+                                                            className="admin-approve-btn" 
+                                                            onClick={() => handleApproveStudent(s._id, s.name)}
+                                                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                                        >
+                                                            <CheckCircle size={14} /> Approve
+                                                        </button>
+                                                        <button 
+                                                            className="admin-reject-btn" 
+                                                            onClick={() => handleRejectStudent(s._id, s.name)}
+                                                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                                        >
+                                                            <XCircle size={14} /> Reject
                                                         </button>
                                                     </div>
                                                 </td>
@@ -433,7 +565,7 @@ function AdminDashboard() {
                         </div>
                         {teachers.length === 0 ? (
                             <div className="admin-empty">
-                                <div className="admin-empty-icon">👩‍🏫</div>
+                                <div className="admin-empty-icon"><Users size={48} color="#64748b" /></div>
                                 <h3>No teachers registered yet</h3>
                                 <p>Teachers can register from the Signup page.</p>
                             </div>
@@ -458,7 +590,7 @@ function AdminDashboard() {
                                                 <td>{i + 1}</td>
                                                 <td>
                                                     <div className="admin-teacher-name">
-                                                        <div className="admin-avatar-sm">👩‍🏫</div>
+                                                        <div className="admin-avatar-sm"><Users size={16} color="#4f46e5" /></div>
                                                         {t.name}
                                                     </div>
                                                 </td>
@@ -485,8 +617,9 @@ function AdminDashboard() {
                                                     <button
                                                         className="admin-delete-btn"
                                                         onClick={() => handleDeleteTeacher(t._id, t.name)}
+                                                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                                                     >
-                                                        🗑️ Delete
+                                                        <Trash2 size={14} /> Delete
                                                     </button>
                                                 </td>
                                             </tr>
@@ -506,8 +639,9 @@ function AdminDashboard() {
                                 <button
                                     className={`admin-path-step ${!studentFilter.class ? "active" : ""}`}
                                     onClick={() => setStudentFilter({ class: "", section: "" })}
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
                                 >
-                                    🎓 All Classes
+                                    <GraduationCap size={16} /> All Classes
                                 </button>
                                 {studentFilter.class && (
                                     <>
@@ -547,7 +681,7 @@ function AdminDashboard() {
                                             className="admin-drill-card"
                                             onClick={() => setStudentFilter({ class: c.toString(), section: "" })}
                                         >
-                                            <div className="admin-drill-icon">📚</div>
+                                            <div className="admin-drill-icon"><BookOpen size={36} color="#4f46e5" /></div>
                                             <div className="admin-drill-name">Class {c}</div>
                                             <div className="admin-drill-count">{count} Students</div>
                                         </button>
@@ -569,7 +703,7 @@ function AdminDashboard() {
                                             className="admin-drill-card secondary"
                                             onClick={() => setStudentFilter({ ...studentFilter, section: s })}
                                         >
-                                            <div className="admin-drill-icon">📍</div>
+                                            <div className="admin-drill-icon"><MapPin size={36} color="#764ba2" /></div>
                                             <div className="admin-drill-name">Section {s}</div>
                                             <div className="admin-drill-count">{count} Students</div>
                                         </button>
@@ -583,7 +717,7 @@ function AdminDashboard() {
                             <div className="admin-table-section">
                                 {filteredStudents.length === 0 ? (
                                     <div className="admin-empty">
-                                        <div className="admin-empty-icon">🎓</div>
+                                        <div className="admin-empty-icon"><GraduationCap size={48} color="#64748b" /></div>
                                         <h3>No students found</h3>
                                         <p>No students have registered for this specific class and section yet.</p>
                                     </div>
@@ -607,7 +741,7 @@ function AdminDashboard() {
                                                         <td>{i + 1}</td>
                                                         <td>
                                                             <div className="admin-teacher-name">
-                                                                <div className="admin-avatar-sm">🎓</div>
+                                                                <div className="admin-avatar-sm"><GraduationCap size={16} color="#4f46e5" /></div>
                                                                 {s.name}
                                                             </div>
                                                         </td>
@@ -621,8 +755,9 @@ function AdminDashboard() {
                                                             <button
                                                                 className="admin-delete-btn"
                                                                 onClick={() => handleDeleteStudent(s._id, s.name)}
+                                                                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                                                             >
-                                                                🗑️ Delete
+                                                                <Trash2 size={14} /> Delete
                                                             </button>
                                                         </td>
                                                     </tr>
@@ -641,7 +776,7 @@ function AdminDashboard() {
             {showLogoutModal && (
                 <div className="admin-modal-overlay">
                     <div className="admin-confirm-modal">
-                        <div className="admin-modal-icon">👋</div>
+                        <div className="admin-modal-icon"><Hand size={48} color="#f59e0b" /></div>
                         <h2 className="admin-modal-title">Confirm Logout</h2>
                         <p className="admin-modal-text">
                             Are you sure you want to log out of the Admin Portal?
@@ -664,12 +799,42 @@ function AdminDashboard() {
                     </div>
                 </div>
             )}
+            {/* ── Pending Approvals Notification Modal ──────────────── */}
+            {showApprovalPopup && (
+                <div className="admin-modal-overlay">
+                    <div className="admin-confirm-modal">
+                        <div className="admin-modal-icon"><Bell size={48} color="#4f46e5" /></div>
+                        <h2 className="admin-modal-title">Action Required</h2>
+                        <p className="admin-modal-text">
+                            You have pending registrations awaiting your review!
+                            <br/><br/>
+                            {pendingTeachers.length > 0 && <><strong>{pendingTeachers.length}</strong> Teacher(s)<br/></>}
+                            {pendingStudents.length > 0 && <><strong>{pendingStudents.length}</strong> Student(s)</>}
+                        </p>
+                        <div className="admin-modal-actions" style={{ justifyContent: 'center' }}>
+                            <button className="admin-btn-secondary" onClick={() => setShowApprovalPopup(false)}>
+                                Dismiss
+                            </button>
+                            <button className="admin-btn-danger" style={{ background: '#4f46e5', borderColor: '#4f46e5', color: 'white' }} onClick={() => {
+                                setShowApprovalPopup(false);
+                                setActiveTab("approvals");
+                            }}>
+                                Review Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* ── Change Password Modal ────────────────────── */}
             {showChangePW && (
                 <div className="admin-modal-overlay">
                     <div className="admin-modal change-pw-modal">
                         <div className="admin-modal-header">
-                            <h2>{isFirstLoginModal ? "🔒 Security Setup" : "🔑 Change Password"}</h2>
+                            <h2>
+                                {isFirstLoginModal ? <Lock size={24} color="#f59e0b" /> : <Key size={24} color="#1e1b4b" />} 
+                                {isFirstLoginModal ? "Security Setup" : "Change Password"}
+                            </h2>
                             {!isFirstLoginModal && (
                                 <button className="admin-modal-close" onClick={() => setShowChangePW(false)}>✕</button>
                             )}
@@ -683,33 +848,60 @@ function AdminDashboard() {
                             <form onSubmit={handleChangePassword} className="admin-modal-form">
                                 <div className="admin-form-group">
                                     <label>Old Password</label>
-                                    <input
-                                        type="password"
-                                        placeholder="Enter current password"
-                                        value={pwForm.currentPassword}
-                                        onChange={(e) => setPwForm({ ...pwForm, currentPassword: e.target.value })}
-                                        required
-                                    />
+                                    <div className="admin-password-field">
+                                        <input
+                                            type={showOldPw ? "text" : "password"}
+                                            placeholder="Enter current password"
+                                            value={pwForm.currentPassword}
+                                            onChange={(e) => setPwForm({ ...pwForm, currentPassword: e.target.value })}
+                                            required
+                                        />
+                                        <button 
+                                            type="button" 
+                                            className="admin-toggle-pw" 
+                                            onClick={() => setShowOldPw(!showOldPw)}
+                                        >
+                                            {showOldPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="admin-form-group">
                                     <label>New Password</label>
-                                    <input
-                                        type="password"
-                                        placeholder="Minimum 6 characters"
-                                        value={pwForm.newPassword}
-                                        onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })}
-                                        required
-                                    />
+                                    <div className="admin-password-field">
+                                        <input
+                                            type={showNewPw ? "text" : "password"}
+                                            placeholder="Minimum 6 characters"
+                                            value={pwForm.newPassword}
+                                            onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })}
+                                            required
+                                        />
+                                        <button 
+                                            type="button" 
+                                            className="admin-toggle-pw" 
+                                            onClick={() => setShowNewPw(!showNewPw)}
+                                        >
+                                            {showNewPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="admin-form-group">
                                     <label>Confirm New Password</label>
-                                    <input
-                                        type="password"
-                                        placeholder="Repeat new password"
-                                        value={pwForm.confirmPassword}
-                                        onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
-                                        required
-                                    />
+                                    <div className="admin-password-field">
+                                        <input
+                                            type={showConfirmPw ? "text" : "password"}
+                                            placeholder="Repeat new password"
+                                            value={pwForm.confirmPassword}
+                                            onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
+                                            required
+                                        />
+                                        <button 
+                                            type="button" 
+                                            className="admin-toggle-pw" 
+                                            onClick={() => setShowConfirmPw(!showConfirmPw)}
+                                        >
+                                            {showConfirmPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {pwError && <div className="admin-form-error">{pwError}</div>}

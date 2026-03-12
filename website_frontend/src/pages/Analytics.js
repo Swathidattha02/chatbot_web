@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from 'recharts';
+import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import "../styles/Analytics.css";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
@@ -78,11 +80,16 @@ function Analytics() {
     const handleNextDay = () => {
         const newDate = new Date(selectedDate);
         newDate.setDate(newDate.getDate() + 1);
-        setSelectedDate(newDate);
-    };
+        
+        // Prevent going into the future
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const compareDate = new Date(newDate);
+        compareDate.setHours(0,0,0,0);
 
-    const formatDate = (date) => {
-        return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        if (compareDate <= today) {
+            setSelectedDate(newDate);
+        }
     };
 
     const renderDayView = () => {
@@ -420,9 +427,23 @@ function Analytics() {
                             <button className="date-nav-btn" onClick={handlePreviousDay}>‹</button>
                             <div className="current-date-display">
                                 <span className="calendar-icon">📅</span>
-                                {formatDate(selectedDate)}
+                                <DatePicker 
+                                    selected={selectedDate}
+                                    onChange={(date) => setSelectedDate(date)}
+                                    dateFormat="dd-MM-yyyy"
+                                    className="custom-react-datepicker"
+                                    maxDate={new Date()}
+                                />
                             </div>
-                            <button className="date-nav-btn" onClick={handleNextDay}>›</button>
+                            <button 
+                                className="date-nav-btn" 
+                                onClick={handleNextDay}
+                                disabled={new Date(selectedDate).setHours(0,0,0,0) >= new Date().setHours(0,0,0,0)}
+                                style={{
+                                    opacity: new Date(selectedDate).setHours(0,0,0,0) >= new Date().setHours(0,0,0,0) ? 0.3 : 1,
+                                    cursor: new Date(selectedDate).setHours(0,0,0,0) >= new Date().setHours(0,0,0,0) ? 'default' : 'pointer'
+                                }}
+                            >›</button>
                         </div>
                     )}
                     {(view === 'week' || view === 'month') && (

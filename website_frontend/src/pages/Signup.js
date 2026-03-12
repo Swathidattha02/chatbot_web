@@ -2,6 +2,11 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
+import { 
+    AlertTriangle, Globe, Mic, Clock, Target, 
+    GraduationCap, Users, User, Lock, Building2, 
+    EyeOff, Eye, CheckCircle, Mail 
+} from "lucide-react";
 import "../styles/AuthNew.css";
 
 const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
@@ -165,15 +170,17 @@ function Signup() {
 
                     <div className="pending-steps">
                         <div className="pending-step">
-                            <span className="pending-step-icon">{isStudent ? "👩‍🏫" : "🏫"}</span>
+                            <span className="pending-step-icon">
+                                {isStudent ? <Users size={20} color="#667eea" /> : <Building2 size={20} color="#764ba2" />}
+                            </span>
                             <span>Your <strong>{pendingInfo.approver}</strong> will review and approve your account.</span>
                         </div>
                         <div className="pending-step">
-                            <span className="pending-step-icon">✅</span>
+                            <span className="pending-step-icon"><CheckCircle size={20} color="#10b981" /></span>
                             <span>Once approved, log in with your email and password.</span>
                         </div>
                         <div className="pending-step">
-                            <span className="pending-step-icon">📧</span>
+                            <span className="pending-step-icon"><Mail size={20} color="#f59e0b" /></span>
                             <span>Contact your {pendingInfo.approver} if it takes too long.</span>
                         </div>
                     </div>
@@ -203,28 +210,28 @@ function Signup() {
 
                     <ul className="signup-features">
                         <li>
-                            <div className="feature-icon">🌐</div>
+                            <div className="feature-icon"><Globe size={20} color="#4f46e5" /></div>
                             <div>
                                 <strong>Multilingual Support</strong>
                                 <p>Explains complex topics in your preferred language for better understanding.</p>
                             </div>
                         </li>
                         <li>
-                            <div className="feature-icon">🎙️</div>
+                            <div className="feature-icon"><Mic size={20} color="#ec4899" /></div>
                             <div>
                                 <strong>Voice Interaction</strong>
                                 <p>Hear clear, spoken explanations of any chapter, making learning accessible.</p>
                             </div>
                         </li>
                         <li>
-                            <div className="feature-icon">🕐</div>
+                            <div className="feature-icon"><Clock size={20} color="#f59e0b" /></div>
                             <div>
                                 <strong>24/7 Availability</strong>
                                 <p>Get instant help with your doubts, anytime, anywhere, without waiting.</p>
                             </div>
                         </li>
                         <li>
-                            <div className="feature-icon">🎯</div>
+                            <div className="feature-icon"><Target size={20} color="#10b981" /></div>
                             <div>
                                 <strong>Personalized Learning</strong>
                                 <p>Tailored explanations for grades 6–10 based on individual learning pace.</p>
@@ -249,28 +256,30 @@ function Signup() {
                             className={`role-tab ${activeRole === "student" ? "active" : ""}`}
                             onClick={() => { setActiveRole("student"); resetFields(); }}
                             type="button"
+                            style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
                         >
-                            🎓 I am a Student
+                            <GraduationCap size={16} /> I am a Student
                         </button>
                         <button
                             className={`role-tab ${activeRole === "teacher" ? "active" : ""}`}
                             onClick={() => { setActiveRole("teacher"); resetFields(); }}
                             type="button"
+                            style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
                         >
-                            👩‍🏫 I am a Teacher
+                            <Users size={16} /> I am a Teacher
                         </button>
                     </div>
 
                     {error && (
                         <div className="auth-error">
-                            <span>⚠️</span> {error}
+                            <AlertTriangle size={16} /> {error}
                         </div>
                     )}
 
                     <form onSubmit={handleSubmit} className="signup-form">
                         {/* ── Personal Information ── */}
-                        <div className="form-section-label">
-                            <span className="section-icon">👤</span> Personal Information
+                        <div className="form-section-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span className="section-icon"><User size={16} color="#64748b" /></span> Personal Information
                         </div>
 
                         <div className="form-row-2">
@@ -302,8 +311,8 @@ function Signup() {
                         </div>
 
                         {/* ── Security ── */}
-                        <div className="form-section-label">
-                            <span className="section-icon">🔒</span> Security
+                        <div className="form-section-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span className="section-icon"><Lock size={16} color="#64748b" /></span> Security
                         </div>
 
                         <div className="form-row-2">
@@ -315,7 +324,7 @@ function Signup() {
                                         value={password} onChange={(e) => setPassword(e.target.value)}
                                         required minLength="6" />
                                     <button type="button" onClick={() => setShowPassword(!showPassword)}>
-                                        {showPassword ? "🙈" : "👁️"}
+                                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                     </button>
                                 </div>
                             </div>
@@ -327,15 +336,15 @@ function Signup() {
                                         value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
                                         required minLength="6" />
                                     <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
-                                        {showConfirmPassword ? "🙈" : "👁️"}
+                                        {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                                     </button>
                                 </div>
                             </div>
                         </div>
 
                         {/* ── Academic Details ── */}
-                        <div className="form-section-label">
-                            <span className="section-icon">🏫</span> Academic Details
+                        <div className="form-section-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span className="section-icon"><Building2 size={16} color="#64748b" /></span> Academic Details
                         </div>
 
                         <div className="form-field form-full">

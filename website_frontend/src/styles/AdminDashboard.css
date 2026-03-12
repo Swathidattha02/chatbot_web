@@ -161,6 +161,10 @@
     cursor: pointer;
     transition: all 0.2s;
     font-family: inherit;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
 }
 
 .admin-logout-btn:hover {
@@ -853,7 +857,50 @@
     color: #374151;
 }
 
-.admin-form-group input {
+.admin-password-field {
+    position: relative;
+    width: 100%;
+}
+
+.admin-password-field input {
+    width: 100%;
+    padding: 12px 40px 12px 16px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 15px;
+    outline: none;
+    transition: all 0.2s;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.admin-password-field input:focus {
+    border-color: #1e1b4b;
+    box-shadow: 0 0 0 4px rgba(30, 27, 75, 0.1);
+}
+
+.admin-toggle-pw {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: #64748b;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+}
+
+.admin-toggle-pw:hover {
+    color: #1e1b4b;
+}
+
+.admin-form-group input:not(.admin-password-field input) {
     width: 100%;
     padding: 12px 16px;
     border: 2px solid #e2e8f0;
@@ -865,7 +912,7 @@
     box-sizing: border-box;
 }
 
-.admin-form-group input:focus {
+.admin-form-group input:not(.admin-password-field input):focus {
     border-color: #1e1b4b;
     box-shadow: 0 0 0 4px rgba(30, 27, 75, 0.1);
 }

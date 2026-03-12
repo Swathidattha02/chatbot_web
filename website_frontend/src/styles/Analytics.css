@@ -65,6 +65,33 @@
     align-items: center;
     gap: 8px;
     font-size: 14px;
+    position: relative;
+}
+
+.custom-date-input {
+    border: none;
+    background: transparent;
+    font-size: 15px;
+    font-weight: 600;
+    color: #334155;
+    font-family: inherit;
+    outline: none;
+    cursor: pointer;
+    position: relative;
+    width: 120px;
+}
+
+.custom-date-input::-webkit-calendar-picker-indicator {
+    background: transparent;
+    bottom: 0;
+    color: transparent;
+    cursor: pointer;
+    height: auto;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: auto;
 }
 
 .analytics-main-title {
@@ -348,10 +375,30 @@
     border: 1px dashed #CBD5E1;
     padding: 10px 24px;
     border-radius: 12px;
-    color: #64748B;
-    font-weight: 600;
-    font-size: 13px;
-    cursor: pointer;
+    color: #3b82f6;
+    margin-right: 6px;
+    font-size: 16px;
+}
+
+/* Custom React-DatePicker Overrides */
+.custom-react-datepicker {
+    border: none !important;
+    background: transparent !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: #334155 !important;
+    font-family: inherit !important;
+    outline: none !important;
+    cursor: pointer !important;
+    width: 105px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.react-datepicker-wrapper {
+    display: inline-block !important;
+    padding: 0 !important;
+    border: 0 !important;
 }
 
 /* Week View */

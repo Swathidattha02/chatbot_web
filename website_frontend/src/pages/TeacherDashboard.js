@@ -1,6 +1,14 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { 
+    BookOpen, FileText, Search, CheckCircle, XCircle, 
+    Star, BarChart3, AlertTriangle, Calendar, Download,
+    TrendingUp, TrendingDown, ChevronLeft, ChevronRight,
+    Inbox, LogOut
+} from "lucide-react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import "../styles/TeacherDashboard.css";
 
 const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
@@ -16,7 +24,6 @@ function TeacherDashboard() {
     const [quizResults, setQuizResults] = useState([]);
     const [filtered, setFiltered] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
     const [activeTab, setActiveTab] = useState("dashboard"); // dashboard | pending | quizzes
     const [actionMsg, setActionMsg] = useState("");
     const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -25,6 +32,7 @@ function TeacherDashboard() {
     const [view, setView] = useState("Daily"); // Daily | Weekly | Monthly
     const [searchQuery, setSearchQuery] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
+    const [selectedDate, setSelectedDate] = useState(new Date());
     const studentsPerPage = 10;
 
     // Get stored teacher from localStorage
@@ -43,18 +51,19 @@ function TeacherDashboard() {
                 setStudents(res.data.students);
                 setFiltered(res.data.students);
             } else {
-                setError("Failed to load dashboard");
+                // Use fallback demo data if backend unavailable
+                loadDemoData();
             }
         } catch (err) {
             if (err.response?.status === 401) {
                 navigate("/login");
             } else {
-                // Use fallback demo data if backend unavailable
                 loadDemoData();
             }
         } finally {
             setLoading(false);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token, navigate]);
 
     const fetchPendingStudents = useCallback(async () => {
@@ -81,7 +90,11 @@ function TeacherDashboard() {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (res.data.success) {
-                setActionMsg(`✅ ${studentName} approved!`);
+                setActionMsg(
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                        <CheckCircle size={16} color="#10b981" /> {studentName} approved!
+                    </span>
+                );
                 fetchPendingStudents();
                 fetchDashboard();
                 setTimeout(() => setActionMsg(""), 4000);
@@ -96,7 +109,11 @@ function TeacherDashboard() {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (res.data.success) {
-                setActionMsg(`❌ ${studentName} rejected.`);
+                setActionMsg(
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                        <XCircle size={16} color="#ef4444" /> {studentName} rejected.
+                    </span>
+                );
                 fetchPendingStudents();
                 setTimeout(() => setActionMsg(""), 4000);
             }
@@ -261,7 +278,7 @@ function TeacherDashboard() {
             {/* ── Top Navbar ─────────────────────────────────────── */}
             <header className="td-navbar">
                 <div className="td-navbar-left">
-                    <div className="td-school-logo">📚</div>
+                    <div className="td-school-logo"><BookOpen size={24} color="#4f46e5" /></div>
                     <div>
                         <div className="td-school-name">
                             {teacher?.schoolName || "School"}
@@ -291,9 +308,9 @@ function TeacherDashboard() {
                     <button
                         className={`td-nav-link ${activeTab === "quizzes" ? "active" : ""}`}
                         onClick={() => { setActiveTab("quizzes"); fetchQuizResults(); }}
-                        style={{ position: "relative" }}
+                        style={{ position: "relative", display: "flex", alignItems: "center", gap: "6px" }}
                     >
-                        📝 Quiz Results
+                        <FileText size={16} /> Quiz Results
                         {quizResults.length > 0 && (
                             <span className="td-pending-badge" style={{ background: "#6366f1" }}>{quizResults.length}</span>
                         )}
@@ -301,7 +318,7 @@ function TeacherDashboard() {
                 </nav>
 
                 <div className="td-search-bar">
-                    <span>🔍</span>
+                    <span><Search size={16} color="#94a3b8" /></span>
                     <input
                         type="text"
                         placeholder="Search student name or ID..."
@@ -331,7 +348,11 @@ function TeacherDashboard() {
                         </p>
                         {actionMsg && <div className="td-action-msg">{actionMsg}</div>}
                         {pendingStudents.length === 0 ? (
-                            <div className="td-empty">🎉 No pending approvals. All registrations reviewed!</div>
+                            <div className="td-empty" style={{ textAlign: "center", padding: "40px 0" }}>
+                                <CheckCircle size={48} color="#10b981" style={{ marginBottom: "16px" }} />
+                                <h3>No pending approvals</h3>
+                                <p>All student registrations have been reviewed!</p>
+                            </div>
                         ) : (
                             <div className="td-table-wrapper">
                                 <table className="td-table">
@@ -367,11 +388,13 @@ function TeacherDashboard() {
                                                         <button
                                                             className="td-approve-btn"
                                                             onClick={() => handleApproveStudent(s._id, s.name)}
-                                                        >✅ Approve</button>
+                                                            style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
+                                                        ><CheckCircle size={14} /> Approve</button>
                                                         <button
                                                             className="td-reject-btn"
                                                             onClick={() => handleRejectStudent(s._id, s.name)}
-                                                        >❌ Reject</button>
+                                                            style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
+                                                        ><XCircle size={14} /> Reject</button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -391,7 +414,7 @@ function TeacherDashboard() {
                             <div className="td-stat-label">
                                 {view === "Daily" ? "TOP PERFORMER" : "TOP PERFORMER (WEEKLY)"}
                             </div>
-                            <div className="td-stat-icon td-icon-green">⭐</div>
+                            <div className="td-stat-icon td-icon-green"><Star size={24} color="#f59e0b" /></div>
                             <div className="td-stat-value">
                                 {stats?.topPerformer
                                     ? `${stats.topPerformer.name} (${stats.topPerformer.totalCompletion}%)`
@@ -402,14 +425,14 @@ function TeacherDashboard() {
                         {/* Class Average */}
                         <div className="td-stat-card td-stat-blue">
                             <div className="td-stat-label">CLASS AVERAGE</div>
-                            <div className="td-stat-icon td-icon-blue">📊</div>
+                            <div className="td-stat-icon td-icon-blue"><BarChart3 size={24} color="#3b82f6" /></div>
                             <div className="td-stat-value">{stats?.classAverage ?? 0}%</div>
                         </div>
 
                         {/* At Risk */}
                         <div className="td-stat-card td-stat-red">
                             <div className="td-stat-label">AT RISK STUDENTS</div>
-                            <div className="td-stat-icon td-icon-red">⚠️</div>
+                            <div className="td-stat-icon td-icon-red"><AlertTriangle size={24} color="#ef4444" /></div>
                             <div className="td-stat-value">{stats?.atRiskCount ?? 0} Students</div>
                         </div>
                     </div>
@@ -452,16 +475,20 @@ function TeacherDashboard() {
 
                                 {/* Date */}
                                 <div className="td-date-picker">
-                                    📅{" "}
-                                    {new Date().toLocaleDateString("en-GB", {
-                                        day: "2-digit",
-                                        month: "short",
-                                        year: "numeric",
-                                    })}
+                                    <Calendar size={16} />{" "}
+                                    <DatePicker
+                                        selected={selectedDate}
+                                        onChange={(date) => setSelectedDate(date)}
+                                        dateFormat="dd MMM yyyy"
+                                        className="td-custom-react-datepicker"
+                                        maxDate={new Date()}
+                                    />
                                 </div>
 
                                 {/* Export */}
-                                <button className="td-export-btn">⬇️ Export</button>
+                                <button className="td-export-btn" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                                    <Download size={16} /> Export
+                                </button>
                             </div>
                         </div>
 
@@ -556,9 +583,11 @@ function TeacherDashboard() {
                                                             student.totalCompletion >= 60
                                                                 ? "#16a34a"
                                                                 : "#dc2626",
+                                                        display: "inline-flex",
+                                                        alignItems: "center"
                                                     }}
                                                 >
-                                                    {student.totalCompletion >= 60 ? "↗" : "↘"}
+                                                    {student.totalCompletion >= 60 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
                                                 </span>
                                             </td>
                                         </tr>
@@ -581,8 +610,9 @@ function TeacherDashboard() {
                                     className="td-page-btn"
                                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                                     disabled={currentPage === 1}
+                                    style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
                                 >
-                                    ‹
+                                    <ChevronLeft size={16} />
                                 </button>
                                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                                     <button
@@ -597,8 +627,9 @@ function TeacherDashboard() {
                                     className="td-page-btn"
                                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                                     disabled={currentPage === totalPages}
+                                    style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
                                 >
-                                    ›
+                                    <ChevronRight size={16} />
                                 </button>
                             </div>
                         </div>
@@ -609,13 +640,16 @@ function TeacherDashboard() {
                 {activeTab === "quizzes" && (
                     <div className="td-pending-section">
                         <div className="td-pending-header">
-                            <h2 className="td-section-title">📝 Quiz Results — Class {teacher?.assignedClass}-{teacher?.assignedSection}</h2>
+                            <h2 className="td-section-title" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <FileText size={24} color="#6366f1" />
+                                Quiz Results — Class {teacher?.assignedClass}-{teacher?.assignedSection}
+                            </h2>
                             <p className="td-section-subtitle">All quiz attempts by your students</p>
                         </div>
 
                         {quizResults.length === 0 ? (
                             <div className="td-empty" style={{ padding: "3rem", textAlign: "center" }}>
-                                <div style={{ fontSize: "3rem" }}>📭</div>
+                                <div style={{ marginBottom: "16px" }}><Inbox size={48} color="#94a3b8" /></div>
                                 <h3>No quiz results yet</h3>
                                 <p>Results will appear here once students take quizzes.</p>
                             </div>
@@ -652,12 +686,14 @@ function TeacherDashboard() {
                                                 <td style={{ fontWeight: 700, color: q.percentage >= 60 ? "#16a34a" : "#dc2626" }}>{q.percentage}%</td>
                                                 <td>
                                                     <span style={{
-                                                        padding: "3px 10px", borderRadius: "100px",
+                                                        padding: "4px 10px", borderRadius: "100px",
                                                         fontSize: "11px", fontWeight: 700,
                                                         background: q.passed ? "#dcfce7" : "#fee2e2",
                                                         color: q.passed ? "#15803d" : "#b91c1c",
+                                                        display: "inline-flex", alignItems: "center", gap: "4px"
                                                     }}>
-                                                        {q.passed ? "✅ Passed" : "❌ Failed"}
+                                                        {q.passed ? <CheckCircle size={14} /> : <XCircle size={14} />}
+                                                        {q.passed ? "Passed" : "Failed"}
                                                     </span>
                                                 </td>
                                                 <td style={{ fontSize: "12px", color: "#94a3b8" }}>
@@ -677,7 +713,7 @@ function TeacherDashboard() {
             {showLogoutModal && (
                 <div className="td-modal-overlay">
                     <div className="td-confirm-modal">
-                        <div className="td-modal-icon">👋</div>
+                        <div className="td-modal-icon"><LogOut size={48} color="#f59e0b" /></div>
                         <h2 className="td-modal-title">Already leaving?</h2>
                         <p className="td-modal-text">
                             Are you sure you want to log out of the Teacher Portal?
