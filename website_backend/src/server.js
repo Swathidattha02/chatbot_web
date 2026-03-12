@@ -39,6 +39,8 @@ const documentRoutes = require("./routes/documentRoutes");
 const progressRoutes = require("./routes/progress");
 const teacherRoutes = require("./routes/teacherRoutes");
 const quizRoutes = require("./routes/quizRoutes");
+const violationRoutes = require("./routes/violationRoutes");
+const awayTimeRoutes = require("./routes/awayTimeRoutes");
 
 // API Routes
 app.use("/api/auth", authRoutes);
@@ -47,6 +49,8 @@ app.use("/api/documents", documentRoutes);
 app.use("/api/progress", progressRoutes);
 app.use("/api", teacherRoutes);
 app.use("/api/quiz", quizRoutes);
+app.use("/api", violationRoutes);
+app.use("/api", awayTimeRoutes);
 
 // Health check route
 app.get("/", (req, res) => {

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getSubjectsForClass } from "../config/syllabus";
+import { useFocusMonitor } from "../hooks/useFocusMonitor";
 import Footer from "../components/Footer";
 import "../styles/Dashboard.css";
 
@@ -20,6 +21,30 @@ function Dashboard() {
         streak: 0
     });
     const [todayActivity, setTodayActivity] = useState([]);
+    const [alarmActive, setAlarmActive] = useState(false);
+    const [countdown, setCountdown] = useState(0);
+    const [violationReason, setViolationReason] = useState('');
+
+    const VIOLATION_MESSAGES = {
+        tab_switch: { icon: '🔄', title: 'Tab Switch Detected!', subtitle: 'You switched away from the learning tab.' },
+        focus_lost: { icon: '😴', title: 'Are You Still There?', subtitle: 'No activity detected for a while.' },
+        window_blur: { icon: '🪟', title: 'Window Lost Focus!', subtitle: 'You clicked outside the browser window.' },
+        visibility_hidden: { icon: '👁️', title: 'Tab Hidden!', subtitle: 'You switched to another browser tab.' },
+    };
+
+    const handleViolation = useCallback((v) => {
+        setViolationReason(v.reason);
+    }, []);
+    const handleAlarmStart = useCallback(() => setAlarmActive(true), []);
+    const handleAlarmStop = useCallback(() => { setAlarmActive(false); setCountdown(0); setViolationReason(''); }, []);
+    const handleCountdown = useCallback((s) => setCountdown(s), []);
+
+    const { stopAlarm } = useFocusMonitor({
+        onViolation: handleViolation,
+        onAlarmStart: handleAlarmStart,
+        onAlarmStop: handleAlarmStop,
+        onCountdown: handleCountdown,
+    });
 
     // Load subjects based on user's class and fetch progress
     useEffect(() => {
@@ -236,6 +261,22 @@ function Dashboard() {
 
     return (
         <>
+            {/* Focus-violation alarm overlay */}
+            {alarmActive && (() => {
+                const msg = VIOLATION_MESSAGES[violationReason] || { icon: '⚠️', title: 'Focus Violation Detected!', subtitle: 'Please return to the learning page.' };
+                return (
+                    <div className="focus-alarm-overlay">
+                        <div className="focus-alarm-icon">{msg.icon}</div>
+                        <h1 className="focus-alarm-title">{msg.title}</h1>
+                        <p className="focus-alarm-subtitle">{msg.subtitle}</p>
+                        <div className="focus-alarm-countdown">{countdown}s</div>
+                        <button className="focus-alarm-btn" onClick={stopAlarm}>
+                            I'm Back — Stop Alarm
+                        </button>
+                    </div>
+                );
+            })()}
+
             <div className="dashboard-container">
                 <div className="dashboard-header">
                     <div>

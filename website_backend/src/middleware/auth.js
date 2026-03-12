@@ -16,6 +16,8 @@ const authMiddleware = async (req, res, next) => {
         req.user = {
             id: decoded.id || decoded.userId,
             role: decoded.role || "student",
+            username: decoded.username || decoded.name,
+            isAdmin: decoded.role === "admin",
         };
         next();
     } catch (error) {
@@ -31,3 +33,4 @@ const protect = authMiddleware;
 
 module.exports = authMiddleware;
 module.exports.protect = protect;
+module.exports.authenticate = authMiddleware;

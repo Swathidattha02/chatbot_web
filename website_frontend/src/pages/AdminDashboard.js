@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { 
     Eye, EyeOff, LayoutDashboard, Bell, Users, GraduationCap, 
     Building2, Settings, LogOut, BookOpen, CheckCircle, 
-    XCircle, Trash2, MapPin, Hand, Lock, Key 
+    XCircle, Trash2, MapPin, Hand, Lock, Key, ShieldAlert 
 } from "lucide-react";
+import ViolationTable from "../components/ViolationTable";
 import "../styles/AdminDashboard.css";
 
 const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
@@ -31,6 +32,8 @@ function AdminDashboard() {
     const [showOldPw, setShowOldPw] = useState(false);
     const [showNewPw, setShowNewPw] = useState(false);
     const [showConfirmPw, setShowConfirmPw] = useState(false);
+    const [violations, setViolations] = useState([]);
+    const [violationStats, setViolationStats] = useState(null);
 
     const token = localStorage.getItem("token");
     const authHeader = { Authorization: `Bearer ${token}` };
@@ -89,15 +92,37 @@ function AdminDashboard() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [admin]);
 
+    const fetchViolations = useCallback(async () => {
+        if (!admin) return;
+        try {
+            const res = await fetch(`${API_BASE}/violations`, { headers: authHeader });
+            const data = await res.json();
+            if (data.violations) setViolations(data.violations);
+        } catch { }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [admin]);
+
+    const fetchViolationStats = useCallback(async () => {
+        if (!admin) return;
+        try {
+            const res = await fetch(`${API_BASE}/stats`, { headers: authHeader });
+            const data = await res.json();
+            if (data.totalViolations !== undefined) setViolationStats(data);
+        } catch { }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [admin]);
+
     useEffect(() => {
         if (admin) {
             fetchTeachers();
             fetchPendingTeachers();
             fetchPendingStudents();
             fetchStudents();
+            fetchViolations();
+            fetchViolationStats();
             setLoading(false);
         }
-    }, [admin, fetchTeachers, fetchPendingTeachers, fetchPendingStudents, fetchStudents]);
+    }, [admin, fetchTeachers, fetchPendingTeachers, fetchPendingStudents, fetchStudents, fetchViolations, fetchViolationStats]);
 
     useEffect(() => {
         if (!hasShownApprovalPopup && (pendingTeachers.length > 0 || pendingStudents.length > 0)) {
@@ -290,6 +315,7 @@ function AdminDashboard() {
         { id: "approvals", icon: <Bell size={20} />, label: "Approvals", badge: pendingTeachers.length },
         { id: "teachers", icon: <Users size={20} />, label: "Teachers" },
         { id: "students", icon: <GraduationCap size={20} />, label: "Students" },
+        { id: "monitoring", icon: <ShieldAlert size={20} />, label: "Monitoring" },
     ];
 
     return (
@@ -347,6 +373,7 @@ function AdminDashboard() {
                             {activeTab === "approvals" && "Pending Approvals"}
                             {activeTab === "teachers" && "Manage Teachers"}
                             {activeTab === "students" && "Manage Students"}
+                            {activeTab === "monitoring" && "Focus Monitoring"}
                         </h1>
                         <p className="admin-page-sub">{admin.schoolName} · Admin Portal</p>
                     </div>
@@ -768,6 +795,57 @@ function AdminDashboard() {
                                 )}
                             </div>
                         )}
+                    </div>
+                )}
+
+                {/* ── Monitoring Tab ──────────────────────────────────── */}
+                {activeTab === "monitoring" && (
+                    <div>
+                        {violationStats && (
+                            <div className="admin-stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+                                <div className="admin-stat-card blue">
+                                    <div className="admin-stat-icon"><ShieldAlert size={28} color="#667eea" /></div>
+                                    <div className="admin-stat-value">{violationStats.totalViolations}</div>
+                                    <div className="admin-stat-label">Total Violations</div>
+                                </div>
+                                <div className="admin-stat-card orange">
+                                    <div className="admin-stat-icon"><Bell size={28} color="#f59e0b" /></div>
+                                    <div className="admin-stat-value">{violationStats.last24h}</div>
+                                    <div className="admin-stat-label">Last 24 Hours</div>
+                                </div>
+                                {violationStats.byReason?.map((r) => (
+                                    <div className="admin-stat-card purple" key={r._id}>
+                                        <div className="admin-stat-value">{r.count}</div>
+                                        <div className="admin-stat-label" style={{ textTransform: 'capitalize' }}>
+                                            {(r._id || 'unknown').replace(/_/g, ' ')}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {violationStats?.byUser && violationStats.byUser.length > 0 && (
+                            <div className="admin-info-card">
+                                <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <Users size={20} /> Top Violators
+                                </h3>
+                                <div className="admin-info-grid">
+                                    {violationStats.byUser.slice(0, 5).map((u) => (
+                                        <div className="admin-info-row" key={u._id}>
+                                            <span className="admin-info-label">{u._id}</span>
+                                            <span className="admin-info-value">{u.count} violations</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="admin-table-section">
+                            <div className="admin-table-header">
+                                <h3>Recent Violations</h3>
+                            </div>
+                            <ViolationTable violations={violations} showUser={true} />
+                        </div>
                     </div>
                 )}
             </main>
