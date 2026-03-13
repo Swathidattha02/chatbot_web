@@ -138,6 +138,13 @@ export function useFocusMonitor({
   const buzzerHandleRef = useRef(null);
   const isAlarmActive   = useRef(false);
   const sessionId       = useRef(`session_${Date.now()}_${Math.random().toString(36).slice(2)}`);
+  
+  // Store violation timing data for duration calculation
+  const violationStartTimeRef = useRef(null);
+  const currentViolationIdRef = useRef(null);
+  const resizeTimeoutRef = useRef(null);  // For auto-resolving window resize violations
+  const violationTypeRef = useRef(null);  // Track what type of violation is active
+  const isViolationEndedRef = useRef(false);  // Track if violation has already been ended
 
   // Use refs for callbacks to prevent re-renders
   const onViolationRef   = useRef(onViolation);
@@ -165,14 +172,119 @@ export function useFocusMonitor({
   const startAlarm = useCallback((reason) => {
     if (isAlarmActive.current) return;
     isAlarmActive.current = true;
+    
+    // Reset tracking vars at start of new violation
+    isViolationEndedRef.current = false;
+    
+    // Record violation start time
+    const startTime = new Date();
+    violationStartTimeRef.current = startTime;
+    violationTypeRef.current = reason;
 
     onAlarmStartRef.current?.();
-    onViolationRef.current?.({ reason, timestamp: new Date().toISOString() });
-    api.post('/violation', { reason, sessionId: sessionId.current }).catch(() => {});
+    onViolationRef.current?.({ reason, timestamp: startTime.toISOString() });
+    
+    // Send violation start to backend
+    api.post('/violation', { 
+      reason, 
+      sessionId: sessionId.current,
+      startTime: startTime.toISOString()
+    }).then(res => {
+      // Store violation ID for later update - THIS IS CRITICAL
+      if (res.data?.violation?._id) {
+        currentViolationIdRef.current = res.data.violation._id;
+        console.log('[useFocusMonitor] ✅ Violation recorded with ID:', { 
+          id: res.data.violation._id, 
+          reason,
+          startTime: res.data.violation.startTime
+        });
+      } else {
+        console.warn('[useFocusMonitor] ⚠️ Violation recorded but NO ID returned', res.data);
+      }
+    }).catch(err => {
+      console.error('[useFocusMonitor] ❌ Error recording violation:', err.message);
+    });
 
     buzzerHandleRef.current = startBuzzer(BUZZER_DURATION);
     alarmTimerRef.current = setTimeout(stopAlarm, BUZZER_DURATION);
   }, [stopAlarm]);
+
+  // New function to end violation and calculate duration
+  const endViolationWithDuration = useCallback(() => {
+    // Prevent ending the same violation multiple times
+    if (isViolationEndedRef.current) {
+      console.log('[useFocusMonitor] Violation already ended, skipping duplicate end call');
+      return;
+    }
+
+    if (!violationStartTimeRef.current) {
+      console.warn('[useFocusMonitor] ⚠️ No violation start time found');
+      return;
+    }
+
+    // Check if we have the violation ID
+    if (!currentViolationIdRef.current) {
+      console.warn('[useFocusMonitor] ⚠️ Violation ID not available yet, will retry in 100ms', {
+        startTime: violationStartTimeRef.current,
+        sessionId: sessionId.current
+      });
+      // Retry after a short delay to allow the ID to be captured from the server response
+      setTimeout(endViolationWithDuration, 100);
+      return;
+    }
+
+    // Mark this violation as being processed to prevent duplicate ends
+    isViolationEndedRef.current = true;
+
+    const endTime = new Date();
+    const duration = endTime - violationStartTimeRef.current;
+
+    console.log('[useFocusMonitor] 📋 Ending violation:', { 
+      violationId: currentViolationIdRef.current, 
+      type: violationTypeRef.current,
+      startTime: violationStartTimeRef.current,
+      endTime: endTime,
+      durationMs: duration 
+    });
+
+    // Send end time and duration to backend
+    api.post('/violation/end', {
+      violationId: currentViolationIdRef.current,
+      endTime: endTime.toISOString()
+    }).then(res => {
+      console.log('[useFocusMonitor] ✅ Violation ended successfully:', { 
+        violationId: currentViolationIdRef.current,
+        durationMs: res.data?.violation?.duration,
+        endTime: res.data?.violation?.endTime
+      });
+    }).catch(err => {
+      console.error('[useFocusMonitor] ❌ Error ending violation:', err.message, err.response?.data);
+    });
+
+    // Reset tracking vars
+    violationStartTimeRef.current = null;
+    currentViolationIdRef.current = null;
+    violationTypeRef.current = null;
+  }, []);
+
+  // Function to auto-resolve window resize violations after 10 seconds of no further resizes
+  const autoResolveResizeViolation = useCallback(() => {
+    if (violationTypeRef.current === 'window_resize') {
+      console.log('[useFocusMonitor] ⏱️ Auto-resolving window resize violation');
+      isViolationEndedRef.current = false;  // Reset so endViolationWithDuration can be called
+      endViolationWithDuration();
+      stopAlarm();
+      onFocusGainedRef.current?.();
+    }
+  }, [endViolationWithDuration, stopAlarm]);
+
+  // Cleanup refs when hook unmounts
+  useEffect(() => {
+    return () => {
+      clearTimeout(resizeTimeoutRef.current);
+      clearTimeout(alarmTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     // The hook is inactive if the user is not in a study session
@@ -183,16 +295,40 @@ export function useFocusMonitor({
     const handleVisibilityChange = () => {
       if (document.hidden) {
         // User has left the tab
+        console.log('[useFocusMonitor] 👁️ Tab hidden - recording violation');
         startAlarm('visibility_hidden');
         onFocusLostRef.current?.();
       } else {
-        // User has returned
+        // User has returned - end the violation and calculate duration
+        console.log('[useFocusMonitor] 👁️ Tab visible - ending violation');
+        isViolationEndedRef.current = false;  // Reset so endViolationWithDuration can be called
+        endViolationWithDuration();
         stopAlarm();
         onFocusGainedRef.current?.();
       }
     };
 
+    // Handle window resize events
+    const handleWindowResize = () => {
+      // Only trigger on significant resizes (avoid small resize events)
+      if (isAlarmActive.current) {
+        // Already in violation, clear and reset the auto-resolve timer
+        clearTimeout(resizeTimeoutRef.current);
+      } else {
+        // Trigger violation on window resize
+        startAlarm('window_resize');
+        onFocusLostRef.current?.();
+      }
+
+      // Set a timeout to auto-resolve window resize violations after 10 seconds of no further resizes
+      clearTimeout(resizeTimeoutRef.current);
+      resizeTimeoutRef.current = setTimeout(() => {
+        autoResolveResizeViolation();
+      }, 10000);
+    };
+
     document.addEventListener('visibilitychange', handleVisibilityChange, true);
+    window.addEventListener('resize', handleWindowResize);
 
     // When the hook is activated, if the tab is already hidden, trigger the alarm.
     if (document.hidden) {
@@ -202,9 +338,11 @@ export function useFocusMonitor({
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange, true);
+      window.removeEventListener('resize', handleWindowResize);
+      clearTimeout(resizeTimeoutRef.current);
       stopAlarm(); // Clean up on unmount or when isStudying becomes false
     };
-  }, [isStudying, startAlarm, stopAlarm]);
+  }, [isStudying, startAlarm, stopAlarm, endViolationWithDuration, autoResolveResizeViolation]);
 
   return { stopAlarm, sessionId: sessionId.current };
 }

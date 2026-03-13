@@ -868,7 +868,9 @@ function AdminDashboard() {
                                     {violationStats.byUser.slice(0, 5).map((u) => (
                                         <div className="admin-info-row" key={u._id}>
                                             <span className="admin-info-label">{u._id}</span>
-                                            <span className="admin-info-value">{u.count} violations</span>
+                                            <span className="admin-info-value">
+                                                {u.count} violations • {u.totalDuration ? Math.floor(u.totalDuration / (1000 * 60)) : 0}m
+                                            </span>
                                         </div>
                                     ))}
                                 </div>
@@ -877,9 +879,9 @@ function AdminDashboard() {
 
                         <div className="admin-table-section">
                             <div className="admin-table-header">
-                                <h3>Recent Violations</h3>
+                                <h3>Focus Activity Log - Recent Violations</h3>
                             </div>
-                            <ViolationTable violations={violations} showUser={true} />
+                            <ViolationTable violations={violations} showUser={true} activityLogView={true} />
                         </div>
                     </div>
                 )}

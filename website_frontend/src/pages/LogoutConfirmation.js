@@ -7,9 +7,14 @@ function LogoutConfirmation() {
     const { logout } = useAuth();
     const navigate = useNavigate();
 
-    const handleConfirmLogout = () => {
-        logout();
-        navigate("/");
+    const handleConfirmLogout = async () => {
+        console.log("🔓 Starting logout process...");
+        await logout();
+        console.log("✅ Logout complete, redirecting...");
+        // Small delay to ensure backend has time to process
+        setTimeout(() => {
+            navigate("/");
+        }, 500);
     };
 
     const handleStayBack = () => {

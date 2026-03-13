@@ -1,6 +1,8 @@
 const User = require("../models/User");
+const Violation = require("../models/Violation");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { ObjectId } = require("mongoose").Types;
 
 // @desc    Register new user
 // @route   POST /api/auth/signup
@@ -178,6 +180,70 @@ exports.getMe = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Server error",
+            error: error.message,
+        });
+    }
+};
+
+// @desc    Logout user - closes any open violations
+// @route   POST /api/auth/logout
+// @access  Private
+exports.logout = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const logoutTime = new Date();
+        
+        console.log(`🔓 [Logout] User ${userId} logging out at ${logoutTime}`);
+        console.log(`🔓 [Logout] Type of userId: ${typeof userId}, Value: ${userId}`);
+        
+        // Convert userId to ObjectId for proper query matching
+        let userObjectId;
+        try {
+            userObjectId = new ObjectId(userId);
+        } catch (err) {
+            console.error("❌ [Logout] Invalid userId format:", userId);
+            userObjectId = userId; // fallback to string comparison
+        }
+        
+        // Find all open violations for this user (no endTime)
+        const openViolations = await Violation.find({
+            userId: userObjectId,
+            endTime: null
+        });
+        
+        console.log(`📌 [Logout] Found ${openViolations.length} open violations to close`);
+        if (openViolations.length > 0) {
+            console.log(`📜 [Logout] Violations:`, openViolations.map(v => ({ id: v._id, reason: v.reason, startTime: v.startTime })));
+        }
+        
+        // Close each violation with logout time
+        let closedCount = 0;
+        for (const violation of openViolations) {
+            const startTime = new Date(violation.startTime);
+            const duration = logoutTime - startTime;
+            
+            violation.endTime = logoutTime;
+            violation.duration = duration;
+            const saved = await violation.save();
+            closedCount++;
+            
+            console.log(`✅ [Logout] Closed violation ${violation._id}: ${Math.floor(duration / 1000)}s | EndTime: ${saved.endTime}`);
+        }
+        
+        // Verify violations are closed
+        const remainingOpen = await Violation.countDocuments({ userId: userObjectId, endTime: null });
+        console.log(`🔍 [Logout] Verification: ${remainingOpen} violations still open | Closed: ${closedCount}`);
+        
+        res.status(200).json({
+            success: true,
+            message: `Logout successful. Closed ${closedCount} violation(s).`,
+            closedViolations: closedCount
+        });
+    } catch (error) {
+        console.error("❌ [Logout] Error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Server error during logout",
             error: error.message,
         });
     }

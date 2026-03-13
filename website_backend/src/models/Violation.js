@@ -16,7 +16,8 @@ const violationSchema = new mongoose.Schema({
       'tab_switch',
       'focus_lost',
       'window_blur',
-      'visibility_hidden'
+      'visibility_hidden',
+      'window_resize'
     ],
     required: true
   },
@@ -26,6 +27,18 @@ const violationSchema = new mongoose.Schema({
   },
   sessionId: {
     type: String
+  },
+  startTime: {
+    type: Date,
+    required: true,
+    default: Date.now
+  },
+  endTime: {
+    type: Date
+  },
+  duration: {
+    type: Number,
+    default: 0
   }
 });
 

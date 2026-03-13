@@ -305,6 +305,18 @@ function TeacherDashboard() {
         return "#dc2626";
     };
 
+    const formatDurationMinutes = (ms) => {
+        if (!ms || ms === 0) return "0m";
+        const minutes = Math.floor(ms / (1000 * 60));
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        
+        if (hours > 0) {
+            return `${hours}h ${mins}m`;
+        }
+        return `${mins}m`;
+    };
+
     // Pagination
     const totalPages = Math.ceil(filtered.length / studentsPerPage);
     const paginated = filtered.slice(
@@ -816,7 +828,14 @@ function TeacherDashboard() {
                                 <p>All students are focused during sessions!</p>
                             </div>
                         ) : (
-                            <ViolationTable violations={violations} showUser={true} />
+                            <div>
+                                <div style={{ marginBottom: '20px', padding: '12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px' }}>
+                                    <p style={{ margin: 0, color: '#166534', fontSize: '12px' }}>
+                                        ℹ️ <strong>Focus Activity Log:</strong> Shows when students left the study page, when they returned, and how long they were away.
+                                    </p>
+                                </div>
+                                <ViolationTable violations={violations} showUser={true} activityLogView={true} />
+                            </div>
                         )}
                     </div>
                 )}

@@ -101,11 +101,35 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const logout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        setToken(null);
-        setUser(null);
+    const logout = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            if (token) {
+                // Call backend logout endpoint to close open violations
+                const response = await fetch(`${process.env.REACT_APP_API_URL || "http://localhost:5000/api"}/auth/logout`, {
+                    method: "POST",
+                    headers: { 
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    }
+                });
+                
+                const data = await response.json();
+                console.log("✅ Logout API Response:", data);
+                
+                if (!response.ok) {
+                    console.error("❌ Logout failed:", data);
+                }
+            }
+        } catch (err) {
+            console.error("❌ Error during logout API call:", err);
+        } finally {
+            // Clear local storage and state regardless of API response
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            setToken(null);
+            setUser(null);
+        }
     };
 
     const value = {
