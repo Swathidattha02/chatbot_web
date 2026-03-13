@@ -8,6 +8,13 @@ import LanguageSelector from "../components/LanguageSelector";
 import LipSyncAvatar from "../components/LipSyncAvatar";
 import translationService from "../services/translationService";
 import QuizModal from "../components/QuizModal";
+import { 
+    MessageSquare, BookOpen, Clock, CheckCircle2, 
+    Lock, Timer, Award, Lightbulb, Square, 
+    User, Bot, Volume2, Mic, StopCircle, 
+    Send, Play, RotateCcw, Target, X,
+    Languages as LanguagesIcon
+} from "lucide-react";
 import "../styles/SubjectChapters.css";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
@@ -318,10 +325,10 @@ function SubjectChapters() {
     };
 
     const getChapterStatus = (chapter) => {
-        if (chapter.isLocked) return { text: "🔒 Locked", className: "status-locked" };
-        if (chapter.progress === 100) return { text: "✓ Complete", className: "status-complete" };
-        if (chapter.progress > 0) return { text: "⏳ In Progress", className: "status-in-progress" };
-        return { text: "○ Not Started", className: "status-not-started" };
+        if (chapter.isLocked) return { text: <><Lock size={14} /> Locked</>, className: "status-locked" };
+        if (chapter.progress === 100) return { text: <><CheckCircle2 size={14} /> Complete</>, className: "status-complete" };
+        if (chapter.progress > 0) return { text: <><Clock size={14} /> In Progress</>, className: "status-in-progress" };
+        return { text: <><Square size={14} /> Not Started</>, className: "status-not-started" };
     };
 
     if (loading) {
@@ -342,7 +349,13 @@ function SubjectChapters() {
                 {subject && (
                     <div className="subject-header-chapters">
                         <div className="subject-header-icon-chapters" style={{ background: subject.color }}>
-                            {subject.icon}
+                            {subject.icon === "📐" ? <Calculator size={32} /> : 
+                             subject.icon === "🔬" ? <Microscope size={32} /> :
+                             subject.icon === "🧬" ? <Dna size={32} /> :
+                             subject.icon === "📚" ? <BookOpen size={32} /> :
+                             subject.icon === "🌍" ? <Globe size={32} /> :
+                             subject.icon === "🇮🇳" ? <LanguagesIcon size={32} /> :
+                             <BookOpen size={32} />}
                         </div>
                         <div className="subject-header-info-chapters">
                             <h1>{subject.name}</h1>
@@ -373,20 +386,20 @@ function SubjectChapters() {
                                                 className={`chapter-number-badge ${chapter.isLocked ? "locked" : ""}`}
                                                 style={{ background: chapter.isLocked ? "#cbd5e1" : subject?.color }}
                                             >
-                                                {chapter.isLocked ? "🔒" : index + 1}
+                                                {chapter.isLocked ? <Lock size={20} /> : index + 1}
                                             </div>
                                             <div className="chapter-main-info">
                                                 <h3 className="chapter-title-professional">{chapter.name || chapter.title}</h3>
                                                 <div className="chapter-meta-info">
                                                     <span className="meta-item">
-                                                        <span className="meta-icon">⏱️</span>
+                                                        <span className="meta-icon"><Clock size={12} /></span>
                                                         Total: {formatTime(chapter.timeSpent)}
                                                     </span>
                                                     {!chapter.isLocked && chapter.progress < 100 && (
                                                         <>
                                                             <span className="meta-divider">•</span>
                                                             <span className="meta-item">
-                                                                <span className="meta-icon">⏲️</span>
+                                                                <span className="meta-icon"><Timer size={12} /></span>
                                                                 Min: {chapter.requiredTime}m
                                                             </span>
                                                         </>
@@ -423,10 +436,9 @@ function SubjectChapters() {
                                     {!chapter.isLocked && (
                                         <div className="chapter-quiz-row">
                                             <div className="chapter-quiz-label">
-                                                {quizPassed ? (
-                                                    <span className="quiz-done-badge">✅ Quiz Passed · {qStatus?.bestPercentage}%</span>
+                                                    <span className="quiz-done-badge"><CheckCircle2 size={14} /> Quiz Passed · {qStatus?.bestPercentage}%</span>
                                                 ) : (
-                                                    <span className="quiz-todo-badge">📝 Quiz Required for 100%</span>
+                                                    <span className="quiz-todo-badge"><FileText size={14} /> Quiz Required for 100%</span>
                                                 )}
                                             </div>
                                             <button
@@ -437,7 +449,7 @@ function SubjectChapters() {
                                                     setActiveQuiz(chapter);
                                                 }}
                                             >
-                                                {quizPassed ? "🔁 Retake Quiz" : "🎯 Take Quiz"}
+                                                {quizPassed ? <><RotateCcw size={16} /> Retake Quiz</> : <><Target size={16} /> Take Quiz</>}
                                             </button>
                                         </div>
                                     )}
@@ -448,7 +460,7 @@ function SubjectChapters() {
 
                     {/* Info box */}
                     <div className="info-box">
-                        <div className="info-icon">💡</div>
+                        <div className="info-icon"><Lightbulb size={24} color="#f59e0b" /></div>
                         <div className="info-content">
                             <h4>How Chapter Unlocking Works</h4>
                             <p>Complete each chapter by spending at least 2 minutes to unlock the next one.</p>
@@ -495,8 +507,8 @@ function SubjectChapters() {
                                 <h3>Ask Questions</h3>
                                 {isAvatarSpeaking && (
                                     <div className="speaking-control-pdf">
-                                        <span className="speaking-indicator">🎤 Speaking...</span>
-                                        <button onClick={stopSpeaking} className="btn-stop-speaking-pdf">Stop ⏹</button>
+                                        <span className="speaking-indicator"><Mic size={14} className="animate-pulse" /> Speaking...</span>
+                                        <button onClick={stopSpeaking} className="btn-stop-speaking-pdf">Stop <StopCircle size={14} /></button>
                                     </div>
                                 )}
                             </div>
@@ -504,7 +516,7 @@ function SubjectChapters() {
                             <div className="chat-messages-pdf">
                                 {messages.map((msg, index) => (
                                     <div key={index} className={`message ${msg.role === "user" ? "user-message" : "avatar-message"}`}>
-                                        <div className="message-avatar">{msg.role === "user" ? "👤" : "🤖"}</div>
+                                        <div className="message-avatar">{msg.role === "user" ? <User size={16} /> : <Bot size={16} />}</div>
                                         <div className="message-content">
                                             <div className="message-text">{msg.content}</div>
                                             <div className="message-footer">
@@ -515,7 +527,7 @@ function SubjectChapters() {
                                                         onClick={() => handleReadAgain(msg.content)}
                                                         disabled={isAvatarSpeaking}
                                                         title="Read again"
-                                                    >🔊</button>
+                                                    ><Volume2 size={14} /></button>
                                                 )}
                                             </div>
                                         </div>
@@ -523,7 +535,7 @@ function SubjectChapters() {
                                 ))}
                                 {chatLoading && (
                                     <div className="message avatar-message">
-                                        <div className="message-avatar">🤖</div>
+                                        <div className="message-avatar"><Bot size={16} /></div>
                                         <div className="message-content">
                                             <div className="typing-indicator"><span></span><span></span><span></span></div>
                                         </div>
@@ -548,12 +560,12 @@ function SubjectChapters() {
                                     disabled={chatLoading || isAvatarSpeaking || !isVoiceSupported}
                                     title={!isVoiceSupported ? "Voice not supported" : isListening ? "Stop listening" : "Voice input"}
                                 >
-                                    {isListening ? "🎤" : "🎙️"}
+                                    {isListening ? <Mic size={20} className="animate-pulse" /> : <Mic size={20} />}
                                 </button>
                                 {chatLoading ? (
-                                    <button type="button" className="stop-button-pdf" onClick={handleStopResponse} title="Stop generating">■</button>
+                                    <button type="button" className="stop-button-pdf" onClick={handleStopResponse} title="Stop generating"><Square size={16} /></button>
                                 ) : (
-                                    <button type="submit" className="send-button-pdf" disabled={chatLoading || !inputMessage.trim()}>📤</button>
+                                    <button type="submit" className="send-button-pdf" disabled={chatLoading || !inputMessage.trim()}><Send size={16} /></button>
                                 )}
                             </form>
                         </div>

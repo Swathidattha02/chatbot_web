@@ -145,7 +145,11 @@ function AdminDashboard() {
             });
             const data = await res.json();
             if (data.success) {
-                showMsg(`✅ ${teacherName} approved successfully!`);
+                showMsg(
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                        <CheckCircle size={16} color="#10b981" /> {teacherName} approved successfully!
+                    </span>
+                );
                 fetchPendingTeachers(); fetchTeachers();
             }
         } catch { showMsg("Action failed. Try again."); }
@@ -160,7 +164,14 @@ function AdminDashboard() {
                 body: JSON.stringify({ reason }),
             });
             const data = await res.json();
-            if (data.success) { showMsg(`❌ ${teacherName} rejected.`); fetchPendingTeachers(); }
+                if (data.success) { 
+                    showMsg(
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                            <XCircle size={16} color="#ef4444" /> {teacherName} rejected.
+                        </span>
+                    ); 
+                    fetchPendingTeachers(); 
+                }
         } catch { showMsg("Action failed. Try again."); }
     };
 
@@ -173,7 +184,11 @@ function AdminDashboard() {
             });
             const data = await res.json();
             if (data.success) {
-                showMsg(`🗑️ ${teacherName} permanently deleted.`);
+                showMsg(
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                        <Trash2 size={16} color="#ef4444" /> {teacherName} permanently deleted.
+                    </span>
+                );
                 fetchTeachers(); fetchPendingTeachers();
             } else { showMsg(data.message || "Delete failed."); }
         } catch { showMsg("Delete failed. Try again."); }
@@ -187,7 +202,11 @@ function AdminDashboard() {
             });
             const data = await res.json();
             if (data.success) {
-                showMsg(`✅ ${studentName} approved successfully!`);
+                showMsg(
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                        <CheckCircle size={16} color="#10b981" /> {studentName} approved successfully!
+                    </span>
+                );
                 fetchPendingStudents(); fetchStudents();
             }
         } catch { showMsg("Action failed. Try again."); }
@@ -202,7 +221,14 @@ function AdminDashboard() {
                 body: JSON.stringify({ reason }),
             });
             const data = await res.json();
-            if (data.success) { showMsg(`❌ ${studentName} rejected.`); fetchPendingStudents(); }
+                if (data.success) { 
+                    showMsg(
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                            <XCircle size={16} color="#ef4444" /> {studentName} rejected.
+                        </span>
+                    ); 
+                    fetchPendingStudents(); 
+                }
         } catch { showMsg("Action failed. Try again."); }
     };
 
@@ -215,7 +241,11 @@ function AdminDashboard() {
             });
             const data = await res.json();
             if (data.success) {
-                showMsg(`🗑️ ${studentName} permanently deleted.`);
+                showMsg(
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                        <Trash2 size={16} color="#ef4444" /> {studentName} permanently deleted.
+                    </span>
+                );
                 fetchStudents();
             } else { showMsg(data.message || "Delete failed."); }
         } catch { showMsg("Delete failed. Try again."); }
@@ -260,7 +290,11 @@ function AdminDashboard() {
             });
             const data = await res.json();
             if (data.success) {
-                showMsg("✅ Password updated successfully!");
+                showMsg(
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                        <CheckCircle size={16} color="#10b981" /> Password updated successfully!
+                    </span>
+                );
                 setShowChangePW(false);
                 setIsFirstLoginModal(false);
                 setPwForm({ currentPassword: "", newPassword: "", confirmPassword: "" });

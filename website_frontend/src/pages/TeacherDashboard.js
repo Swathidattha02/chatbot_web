@@ -247,6 +247,44 @@ function TeacherDashboard() {
         navigate("/login");
     };
 
+    const handleExportData = () => {
+        if (!filtered || filtered.length === 0) {
+            alert("No data available to export.");
+            return;
+        }
+
+        // CSV Header
+        const headers = ["Student Name", "Roll Number", ...SUBJECTS, "Total Completion (%)"];
+        
+        // CSV Rows
+        const rows = filtered.map(student => {
+            const subjectPct = SUBJECTS.map(subj => {
+                const data = student.subjectProgress?.[subj];
+                return data ? `${data.completion}%` : "0%";
+            });
+            return [
+                `"${student.name}"`,
+                `"${student.rollNumber || "N/A"}"`,
+                ...subjectPct.map(v => `"${v}"`),
+                `"${student.totalCompletion}%"`
+            ];
+        });
+
+        // Combine Header and Rows
+        const csvContent = [headers.join(","), ...rows.map(row => row.join(","))].join("\n");
+        
+        // Create Blob and Download
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Student_Progress_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const getInitials = (name) =>
         name
             .split(" ")
@@ -511,7 +549,11 @@ function TeacherDashboard() {
                                 </div>
 
                                 {/* Export */}
-                                <button className="td-export-btn" style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                                <button 
+                                    className="td-export-btn" 
+                                    style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+                                    onClick={handleExportData}
+                                >
                                     <Download size={16} /> Export
                                 </button>
                             </div>

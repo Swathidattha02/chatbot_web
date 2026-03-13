@@ -118,7 +118,7 @@ function Signup() {
                         approver: "your class teacher",
                     });
                 } else if (result.success) {
-                    navigate("/dashboard");
+                    navigate("/");
                 } else {
                     setError(result.message || "Registration failed");
                 }

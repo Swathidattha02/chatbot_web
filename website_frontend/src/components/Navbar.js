@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import "../styles/Navbar.css";
 
 function Navbar() {
-    const { isAuthenticated, user, logout } = useAuth();
+    const { isAuthenticated, user } = useAuth();
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -29,7 +29,10 @@ function Navbar() {
 
                     {isAuthenticated ? (
                         <>
-                            <Link to="/dashboard" className="nav-link">
+                            <Link 
+                                to={user?.role === "teacher" ? "/teacher/dashboard" : user?.role === "admin" ? "/admin/dashboard" : "/dashboard"} 
+                                className="nav-link"
+                            >
                                 Dashboard
                             </Link>
                             <Link to="/chat" className="nav-link">

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getSubjectsForClass } from "../config/syllabus";
-import { useFocusMonitor } from "../hooks/useFocusMonitor";
 import Footer from "../components/Footer";
 import "../styles/Dashboard.css";
 
@@ -259,6 +258,21 @@ function Dashboard() {
         return Math.round(totalProgress / subjects.length);
     };
 
+    const subjectIconMap = {
+        "📐": <Calculator size={24} />,
+        "🔬": <Microscope size={24} />,
+        "🧬": <Dna size={24} />,
+        "📚": <BookOpen size={24} />,
+        "🌍": <Globe size={24} />,
+        "🇮🇳": <Languages size={24} />,
+        "📖": <BookOpen size={24} />,
+        "⚛️": <Atom size={24} />,
+        "🧪": <Beaker size={24} />,
+        "💻": <Monitor size={24} />
+    };
+
+    const renderSubjectIcon = (emoji) => subjectIconMap[emoji] || <span>{emoji}</span>;
+
     return (
         <>
             {/* Focus-violation alarm overlay */}
@@ -280,7 +294,7 @@ function Dashboard() {
             <div className="dashboard-container">
                 <div className="dashboard-header">
                     <div>
-                        <h1 className="dashboard-title">Welcome back, {user?.name}! 👋</h1>
+                        <h1 className="dashboard-title">Welcome back, {user?.name}!</h1>
                         <p className="dashboard-subtitle">
                             {user?.class ? `${user.class} Syllabus - ` : ''}Ready to continue your learning journey?
                         </p>
@@ -290,24 +304,24 @@ function Dashboard() {
                 <div className="dashboard-grid">
                     {/* Quick Actions */}
                     <div className="dashboard-card">
-                        <div className="card-icon">💬</div>
+                        <div className="card-icon"><MessageSquare size={32} color="#4f46e5" /></div>
                         <h3 className="card-title">Chat with AI Avatar</h3>
                         <p className="card-description">
                             Start a conversation with your personal AI tutor
                         </p>
                         <Link to="/chat" className="card-button">
-                            Start Chatting →
+                            Start Chatting <ArrowRight size={16} />
                         </Link>
                     </div>
 
                     <div className="dashboard-card">
-                        <div className="card-icon">📚</div>
+                        <div className="card-icon"><Upload size={32} color="#ec4899" /></div>
                         <h3 className="card-title">Upload Documents</h3>
                         <p className="card-description">
                             Upload PDFs and documents for AI-powered Q&A
                         </p>
                         <label htmlFor="file-upload" className={`card-button ${uploading ? 'uploading' : ''}`}>
-                            {uploading ? '⏳ Uploading...' : '📤 Upload Document'}
+                            {uploading ? <><Loader2 className="animate-spin" size={16} /> Uploading...</> : <><Upload size={16} /> Upload Document</>}
                         </label>
                         <input
                             id="file-upload"
@@ -320,13 +334,13 @@ function Dashboard() {
                     </div>
 
                     <div className="dashboard-card">
-                        <div className="card-icon">📊</div>
+                        <div className="card-icon"><BarChart3 size={32} color="#10b981" /></div>
                         <h3 className="card-title">Learning Analytics</h3>
                         <p className="card-description">
                             Track your progress and learning insights
                         </p>
                         <Link to="/analytics" className="card-button">
-                            View Analytics →
+                            View Analytics <ArrowRight size={16} />
                         </Link>
                     </div>
                 </div>
@@ -359,7 +373,7 @@ function Dashboard() {
                                             className="subject-icon-wrapper"
                                             style={{ backgroundColor: subject.color }}
                                         >
-                                            <span className="subject-icon">{subject.icon}</span>
+                                            <span className="subject-icon">{renderSubjectIcon(subject.icon)}</span>
                                         </div>
                                         <div className="subject-info">
                                             <h3 className="subject-name">{subject.name}</h3>
@@ -389,7 +403,7 @@ function Dashboard() {
 
                                     <div className="subject-card-footer">
                                         <span className="view-chapters-link">
-                                            View Chapters →
+                                            View Chapters <ArrowRight size={16} />
                                         </span>
                                     </div>
                                 </div>
@@ -408,7 +422,7 @@ function Dashboard() {
                         <div className="today-activity-grid">
                             {todayActivity.map((sub, i) => (
                                 <div key={i} className="today-activity-chip">
-                                    <span className="chip-icon">📖</span>
+                                    <span className="chip-icon"><BookOpen size={16} color="#4f46e5" /></span>
                                     <div className="chip-info">
                                         <span className="chip-name">{sub.name}</span>
                                         <span className="chip-time">
@@ -429,22 +443,22 @@ function Dashboard() {
                     <h2 className="section-title">Your Stats</h2>
                     <div className="stats-grid">
                         <div className="stat-card">
-                            <div className="stat-icon">💬</div>
+                            <div className="stat-icon"><MessageSquare size={20} color="#4f46e5" /></div>
                             <div className="stat-value">{stats.totalChats}</div>
                             <div className="stat-label">Total Chats</div>
                         </div>
                         <div className="stat-card">
-                            <div className="stat-icon">📄</div>
+                            <div className="stat-icon"><FileText size={20} color="#ec4899" /></div>
                             <div className="stat-value">{stats.docsUploaded}</div>
                             <div className="stat-label">Documents Uploaded</div>
                         </div>
                         <div className="stat-card">
-                            <div className="stat-icon">⏱️</div>
+                            <div className="stat-icon"><Clock size={20} color="#f59e0b" /></div>
                             <div className="stat-value">{stats.hoursLearned}h</div>
                             <div className="stat-label">Hours Learned</div>
                         </div>
                         <div className="stat-card">
-                            <div className="stat-icon">🔥</div>
+                            <div className="stat-icon"><Flame size={20} color="#ef4444" /></div>
                             <div className="stat-value">{stats.streak} Days</div>
                             <div className="stat-label">Study Streak</div>
                         </div>
@@ -461,21 +475,21 @@ function Dashboard() {
                         </div>
                         <div className="achievements-grid">
                             <div className="achievement-card">
-                                <div className="achievement-icon gold">🏆</div>
+                                <div className="achievement-icon gold"><Trophy size={20} /></div>
                                 <div className="achievement-info">
                                     <h3>Math Whiz</h3>
                                     <p>Scored 100% in Algebra Quiz</p>
                                 </div>
                             </div>
                             <div className="achievement-card">
-                                <div className="achievement-icon streak">🔥</div>
+                                <div className="achievement-icon streak"><Flame size={20} /></div>
                                 <div className="achievement-info">
                                     <h3>Consistent Learner</h3>
                                     <p>Maintained a 3-day streak</p>
                                 </div>
                             </div>
                             <div className="achievement-card">
-                                <div className="achievement-icon silver">📖</div>
+                                <div className="achievement-icon silver"><BookOpen size={20} /></div>
                                 <div className="achievement-info">
                                     <h3>First Document</h3>
                                     <p>Uploaded and analyzed a PDF</p>
@@ -491,7 +505,7 @@ function Dashboard() {
                         </div>
                         <div className="recommendations-list">
                             <div className="recommendation-item">
-                                <div className="rec-icon">🎯</div>
+                                <div className="rec-icon"><Target size={20} color="#10b981" /></div>
                                 <div className="rec-content">
                                     <h3>Take Chapter 3 Practice Quiz</h3>
                                     <p>You completed the chapter reading. Test your knowledge now!</p>
@@ -499,7 +513,7 @@ function Dashboard() {
                                 <button className="rec-btn">Start Quiz</button>
                             </div>
                             <div className="recommendation-item">
-                                <div className="rec-icon">🤖</div>
+                                <div className="rec-icon"><Bot size={20} color="#4f46e5" /></div>
                                 <div className="rec-content">
                                     <h3>Review Biology with AI</h3>
                                     <p>You struggled with 'Photosynthesis' in the last quiz. Have the chatbot explain it again.</p>

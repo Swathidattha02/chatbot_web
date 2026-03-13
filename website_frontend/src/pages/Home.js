@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { 
+    FileText, BarChart3, Flame, Bot, 
+    ChevronRight, ArrowRight, Play, CheckCircle2,
+    GraduationCap, BookOpen, Trophy, Users
+} from "lucide-react";
 import Footer from "../components/Footer";
 import "../styles/Home.css";
 
@@ -50,7 +55,7 @@ function Particle({ delay, size, x }) {
 }
 
 function Home() {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, user } = useAuth();
     const [activeTab, setActiveTab] = useState(0);
 
     const [usersCount, usersRef] = useCounter(10000);
@@ -69,28 +74,28 @@ function Home() {
     /* Showcase tabs */
     const showcaseTabs = [
         {
-            label: "📝 AI Quizzes",
+            label: <><FileText size={18} /> AI Quizzes</>,
             title: "Smart Quizzes Powered by AI",
             desc: "Our AI generates unique multiple-choice quizzes for every chapter. Questions adapt to your level, test real understanding — not just rote memory. Get instant feedback and track your scores over time.",
             highlights: ["AI-generated MCQs for each chapter", "Instant grading & answer review", "Results visible to your teacher", "Unlimited retakes to master concepts"],
             visual: "quiz",
         },
         {
-            label: "📊 Progress Tracker",
+            label: <><BarChart3 size={18} /> Progress Tracker</>,
             title: "Track Every Step of Your Journey",
             desc: "See exactly where you stand with our real-time progress dashboards. Subject-wise and chapter-wise completion percentages, time spent learning, and quiz scores — all in one place.",
             highlights: ["Subject & chapter completion %", "Time-spent analytics", "Quiz pass/fail history", "Daily, weekly, monthly views"],
             visual: "progress",
         },
         {
-            label: "🔥 Streak Counter",
+            label: <><Flame size={18} /> Streak Counter</>,
             title: "Build Your Learning Streak",
             desc: "Stay motivated with your daily learning streak! Log in and learn every day to keep your streak alive. Earn milestones and never break the chain.",
             highlights: ["Daily streak tracking", "Milestone rewards at 7, 30, 100 days", "Streak recovery options", "Class-wide streak leaderboard"],
             visual: "streak",
         },
         {
-            label: "🤖 AI Chatbot",
+            label: <><Bot size={18} /> AI Chatbot</>,
             title: "Your 24/7 AI Study Buddy",
             desc: "Ask anything, in any language. Our AI chatbot understands your curriculum, answers from your uploaded PDFs, and explains concepts step-by-step with a lifelike 3D avatar.",
             highlights: ["Multi-language support", "PDF-based Q&A (RAG)", "3D Avatar with voice responses", "Full conversation history"],
@@ -133,7 +138,7 @@ function Home() {
                     <div className="hp-hero-btns">
                         {isAuthenticated ? (
                             <>
-                                <Link to="/dashboard" className="hp-btn hp-btn-primary">
+                                <Link to={user?.role === "teacher" ? "/teacher/dashboard" : user?.role === "admin" ? "/admin/dashboard" : "/dashboard"} className="hp-btn hp-btn-primary">
                                     Go to Dashboard <span>→</span>
                                 </Link>
                                 <Link to="/chat" className="hp-btn hp-btn-glass">
@@ -215,6 +220,7 @@ function Home() {
                             key={i}
                             className={`hp-tab-btn ${activeTab === i ? "active" : ""}`}
                             onClick={() => setActiveTab(i)}
+                            style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}
                         >
                             {t.label}
                         </button>
@@ -233,7 +239,7 @@ function Home() {
                             ))}
                         </ul>
                         {isAuthenticated ? (
-                            <Link to="/dashboard" className="hp-btn hp-btn-primary hp-btn-sm">
+                            <Link to={user?.role === "teacher" ? "/teacher/dashboard" : user?.role === "admin" ? "/admin/dashboard" : "/dashboard"} className="hp-btn hp-btn-primary hp-btn-sm">
                                 Try it Now →
                             </Link>
                         ) : (
@@ -316,28 +322,28 @@ function Home() {
                 <div className="hp-steps-grid">
                     <div className="hp-step-card">
                         <div className="hp-step-num">1</div>
-                        <div className="hp-step-icon">🎓</div>
+                        <div className="hp-step-icon"><GraduationCap size={32} /></div>
                         <h3>Sign Up & Get Approved</h3>
                         <p>Create a student account, choose your school, class & section. Your class teacher approves you instantly.</p>
                     </div>
-                    <div className="hp-step-connector">→</div>
+                    <div className="hp-step-connector"><ArrowRight /></div>
                     <div className="hp-step-card">
                         <div className="hp-step-num">2</div>
-                        <div className="hp-step-icon">📚</div>
+                        <div className="hp-step-icon"><BookOpen size={32} /></div>
                         <h3>Learn & Take Quizzes</h3>
                         <p>Study chapters, take AI-generated quizzes, chat with the AI tutor, and track your progress in real time.</p>
                     </div>
-                    <div className="hp-step-connector">→</div>
+                    <div className="hp-step-connector"><ArrowRight /></div>
                     <div className="hp-step-card">
                         <div className="hp-step-num">3</div>
-                        <div className="hp-step-icon">🏆</div>
+                        <div className="hp-step-icon"><Trophy size={32} /></div>
                         <h3>Excel & Build Streaks</h3>
                         <p>Maintain your daily streak, score higher on quizzes, and watch your progress soar across every subject.</p>
                     </div>
-                    <div className="hp-step-connector">→</div>
+                    <div className="hp-step-connector"><ArrowRight /></div>
                     <div className="hp-step-card">
                         <div className="hp-step-num">4</div>
-                        <div className="hp-step-icon">👨‍🏫</div>
+                        <div className="hp-step-icon"><Users size={32} /></div>
                         <h3>Teacher Reporting</h3>
                         <p>Quiz results, scores, and analytics are automatically sent to your class teacher's dashboard for review.</p>
                     </div>
@@ -408,7 +414,7 @@ function Home() {
                     <div className="hp-cta-btns">
                         {isAuthenticated ? (
                             <>
-                                <Link to="/dashboard" className="hp-btn hp-btn-white">
+                                <Link to={user?.role === "teacher" ? "/teacher/dashboard" : user?.role === "admin" ? "/admin/dashboard" : "/dashboard"} className="hp-btn hp-btn-white">
                                     Go to Dashboard <span>→</span>
                                 </Link>
                                 <Link to="/chat" className="hp-btn hp-btn-outline-white">
