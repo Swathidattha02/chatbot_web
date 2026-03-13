@@ -2,6 +2,14 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getSubjectsForClass } from "../config/syllabus";
+import { 
+    MessageSquare, Upload, BarChart3, BookOpen, 
+    FileText, Clock, Flame, Trophy, Target, 
+    Bot, Loader2, Play, ArrowRight, Calculator, 
+    Microscope, Dna, Globe, Languages, Atom, 
+    Beaker, Monitor 
+} from "lucide-react";
+import { useFocusMonitor } from "../hooks/useFocusMonitor";
 import Footer from "../components/Footer";
 import "../styles/Dashboard.css";
 

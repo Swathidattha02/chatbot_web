@@ -3,7 +3,7 @@ import {
     TrendingUp, Flame, MapPin, BookOpen, 
     Calculator, Atom, Clock, CheckCircle2, 
     ChevronLeft, ChevronRight, Calendar, Download, 
-    X, Trophy, Languages
+    X, Trophy, Languages, MessageSquare
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
