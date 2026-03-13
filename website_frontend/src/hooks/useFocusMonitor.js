@@ -126,35 +126,38 @@ function makeAggressiveDistortionCurve(amount) {
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
-export function useFocusMonitor({ onViolation, onAlarmStart, onAlarmStop, onCountdown }) {
-  const alarmTimerRef      = useRef(null);
-  const countdownRef       = useRef(null);
-  const inactivityRef      = useRef(null);
-  const buzzerHandleRef    = useRef(null);
-  const isAlarmActive      = useRef(false);
-  const lastActivity       = useRef(Date.now());
-  const sessionId          = useRef(`session_${Date.now()}_${Math.random().toString(36).slice(2)}`);
+export function useFocusMonitor({
+  onViolation,
+  onAlarmStart,
+  onAlarmStop,
+  onFocusLost,
+  onFocusGained,
+  isStudying, // <-- Renamed from 'enabled' for clarity
+}) {
+  const alarmTimerRef   = useRef(null);
+  const buzzerHandleRef = useRef(null);
+  const isAlarmActive   = useRef(false);
+  const sessionId       = useRef(`session_${Date.now()}_${Math.random().toString(36).slice(2)}`);
 
-  const onViolationRef = useRef(onViolation);
-  const onAlarmStartRef = useRef(onAlarmStart);
-  const onAlarmStopRef = useRef(onAlarmStop);
-  const onCountdownRef = useRef(onCountdown);
+  // Use refs for callbacks to prevent re-renders
+  const onViolationRef   = useRef(onViolation);
+  const onAlarmStartRef  = useRef(onAlarmStart);
+  const onAlarmStopRef   = useRef(onAlarmStop);
+  const onFocusLostRef   = useRef(onFocusLost);
+  const onFocusGainedRef = useRef(onFocusGained);
+
   useEffect(() => { onViolationRef.current = onViolation; }, [onViolation]);
   useEffect(() => { onAlarmStartRef.current = onAlarmStart; }, [onAlarmStart]);
   useEffect(() => { onAlarmStopRef.current = onAlarmStop; }, [onAlarmStop]);
-  useEffect(() => { onCountdownRef.current = onCountdown; }, [onCountdown]);
+  useEffect(() => { onFocusLostRef.current = onFocusLost; }, [onFocusLost]);
+  useEffect(() => { onFocusGainedRef.current = onFocusGained; }, [onFocusGained]);
+
 
   const stopAlarm = useCallback(() => {
     clearTimeout(alarmTimerRef.current);
-    clearInterval(countdownRef.current);
-    clearTimeout(inactivityRef.current);
     alarmTimerRef.current = null;
-    countdownRef.current  = null;
-    inactivityRef.current = null;
-
     buzzerHandleRef.current?.stop();
     buzzerHandleRef.current = null;
-
     isAlarmActive.current = false;
     onAlarmStopRef.current?.();
   }, []);
@@ -165,107 +168,43 @@ export function useFocusMonitor({ onViolation, onAlarmStart, onAlarmStop, onCoun
 
     onAlarmStartRef.current?.();
     onViolationRef.current?.({ reason, timestamp: new Date().toISOString() });
-
     api.post('/violation', { reason, sessionId: sessionId.current }).catch(() => {});
 
-    buzzerHandleRef.current = startBuzzer(30);
-
-    let remaining = 30;
-    onCountdownRef.current?.(remaining);
-    countdownRef.current = setInterval(() => {
-      remaining -= 1;
-      onCountdownRef.current?.(remaining);
-      if (remaining <= 0) {
-        clearInterval(countdownRef.current);
-        countdownRef.current = null;
-      }
-    }, 1000);
-
-    alarmTimerRef.current = setTimeout(() => {
-      stopAlarm();
-    }, BUZZER_DURATION);
+    buzzerHandleRef.current = startBuzzer(BUZZER_DURATION);
+    alarmTimerRef.current = setTimeout(stopAlarm, BUZZER_DURATION);
   }, [stopAlarm]);
 
-  const resetInactivity = useCallback(() => {
-    lastActivity.current = Date.now();
-    clearTimeout(inactivityRef.current);
-    inactivityRef.current = setTimeout(() => {
-      if (!isAlarmActive.current) {
-        startAlarm('focus_lost');
-      }
-    }, INACTIVITY_THRESHOLD);
-  }, [startAlarm]);
-
-  // ── Away-time tracking ─────────────────────────────────────────────────────
-  const leaveTimeRef = useRef(null);
-  const isAwayRef = useRef(false);
-
-  const handleVisibilityForAwayTime = useCallback(() => {
-    if (document.hidden) {
-      if (!isAwayRef.current) {
-        leaveTimeRef.current = new Date();
-        isAwayRef.current = true;
-      }
-    } else if (isAwayRef.current && leaveTimeRef.current) {
-      const returnTime = new Date();
-      const duration = Math.floor((returnTime - leaveTimeRef.current) / 1000);
-
-      api.post('/away-time', {
-        sessionId: sessionId.current,
-        leftAt: leaveTimeRef.current,
-        returnedAt: returnTime,
-        duration
-      }).catch(() => {});
-
-      leaveTimeRef.current = null;
-      isAwayRef.current = false;
-    }
-  }, []);
-
   useEffect(() => {
-    const onVisibility = () => {
-      handleVisibilityForAwayTime();
-      if (document.hidden && !isAlarmActive.current) {
+    // The hook is inactive if the user is not in a study session
+    if (!isStudying) {
+      return;
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // User has left the tab
         startAlarm('visibility_hidden');
+        onFocusLostRef.current?.();
+      } else {
+        // User has returned
+        stopAlarm();
+        onFocusGainedRef.current?.();
       }
     };
 
-    const onBlur = () => {
-      if (!isAlarmActive.current) {
-        startAlarm('window_blur');
-      }
-    };
+    document.addEventListener('visibilitychange', handleVisibilityChange, true);
 
-    const onFocus = () => {
-      resetInactivity();
-    };
-
-    const onResize = () => {
-      if (!isAlarmActive.current) {
-        startAlarm('tab_switch');
-      }
-    };
-
-    const activityEvents = ['mousedown', 'mousemove', 'keydown', 'touchstart', 'click', 'scroll'];
-    const onActivity = () => resetInactivity();
-
-    document.addEventListener('visibilitychange', onVisibility, true);
-    window.addEventListener('blur',   onBlur,   true);
-    window.addEventListener('focus',  onFocus,  true);
-    window.addEventListener('resize', onResize, true);
-    activityEvents.forEach(ev => document.addEventListener(ev, onActivity, true));
-
-    resetInactivity();
+    // When the hook is activated, if the tab is already hidden, trigger the alarm.
+    if (document.hidden) {
+        startAlarm('visibility_hidden');
+        onFocusLostRef.current?.();
+    }
 
     return () => {
-      document.removeEventListener('visibilitychange', onVisibility, true);
-      window.removeEventListener('blur',   onBlur,   true);
-      window.removeEventListener('focus',  onFocus,  true);
-      window.removeEventListener('resize', onResize, true);
-      activityEvents.forEach(ev => document.removeEventListener(ev, onActivity, true));
-      stopAlarm();
+      document.removeEventListener('visibilitychange', handleVisibilityChange, true);
+      stopAlarm(); // Clean up on unmount or when isStudying becomes false
     };
-  }, [startAlarm, stopAlarm, resetInactivity, handleVisibilityForAwayTime]);
+  }, [isStudying, startAlarm, stopAlarm]);
 
   return { stopAlarm, sessionId: sessionId.current };
 }

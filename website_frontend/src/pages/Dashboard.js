@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getSubjectsForClass } from "../config/syllabus";
@@ -9,7 +9,6 @@ import {
     Microscope, Dna, Globe, Languages, Atom, 
     Beaker, Monitor 
 } from "lucide-react";
-import { useFocusMonitor } from "../hooks/useFocusMonitor";
 import Footer from "../components/Footer";
 import "../styles/Dashboard.css";
 
@@ -46,12 +45,17 @@ function Dashboard() {
     const handleAlarmStop = useCallback(() => { setAlarmActive(false); setCountdown(0); setViolationReason(''); }, []);
     const handleCountdown = useCallback((s) => setCountdown(s), []);
 
-    const { stopAlarm } = useFocusMonitor({
-        onViolation: handleViolation,
-        onAlarmStart: handleAlarmStart,
-        onAlarmStop: handleAlarmStop,
-        onCountdown: handleCountdown,
-    });
+    const startStudySession = (subjectId) => {
+        localStorage.setItem('isStudying', 'true');
+        localStorage.setItem('currentStudySubject', subjectId);
+        console.log(`Starting study session for ${subjectId}`);
+    };
+
+    const stopStudySession = () => {
+        localStorage.setItem('isStudying', 'false');
+        localStorage.removeItem('currentStudySubject');
+        console.log("Study session stopped.");
+    };
 
     // Load subjects based on user's class and fetch progress
     useEffect(() => {
@@ -257,6 +261,7 @@ function Dashboard() {
     };
 
     const handleSubjectClick = (subjectId) => {
+        startStudySession(subjectId);
         navigate(`/subjects/${subjectId}/chapters`);
     };
 
@@ -282,24 +287,7 @@ function Dashboard() {
     const renderSubjectIcon = (emoji) => subjectIconMap[emoji] || <span>{emoji}</span>;
 
     return (
-        <>
-            {/* Focus-violation alarm overlay */}
-            {alarmActive && (() => {
-                const msg = VIOLATION_MESSAGES[violationReason] || { icon: '⚠️', title: 'Focus Violation Detected!', subtitle: 'Please return to the learning page.' };
-                return (
-                    <div className="focus-alarm-overlay">
-                        <div className="focus-alarm-icon">{msg.icon}</div>
-                        <h1 className="focus-alarm-title">{msg.title}</h1>
-                        <p className="focus-alarm-subtitle">{msg.subtitle}</p>
-                        <div className="focus-alarm-countdown">{countdown}s</div>
-                        <button className="focus-alarm-btn" onClick={stopAlarm}>
-                            I'm Back — Stop Alarm
-                        </button>
-                    </div>
-                );
-            })()}
-
-            <div className="dashboard-container">
+        <div className="dashboard-container">
                 <div className="dashboard-header">
                     <div>
                         <h1 className="dashboard-title">Welcome back, {user?.name}!</h1>
@@ -531,10 +519,9 @@ function Dashboard() {
                         </div>
                     </div>
                 </div>
+                <Footer />
             </div>
-            <Footer />
-        </>
-    );
-}
+        );
+    }
 
-export default Dashboard;
+    export default Dashboard;
