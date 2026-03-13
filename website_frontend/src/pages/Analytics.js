@@ -1,4 +1,10 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { 
+    TrendingUp, Flame, MapPin, BookOpen, 
+    Calculator, Atom, Clock, CheckCircle2, 
+    ChevronLeft, ChevronRight, Calendar, Download, 
+    X, Trophy, Languages
+} from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -105,7 +111,7 @@ function Analytics() {
                                 <h2 className="card-title-lg">{dailyData.totalHours} <span className="unit">Hours</span> {dailyData.totalMinutes} <span className="unit">Min</span></h2>
                             </div>
                             <div className="trend-badge positive">
-                                <span className="arrow">↗</span> Dynamic
+                                <span className="arrow"><TrendingUp size={14} /></span> Dynamic
                             </div>
                         </div>
 
@@ -131,13 +137,13 @@ function Analytics() {
                     <div className="side-card streak-card">
                         <div className="streak-content">
                             <div className="streak-icon-bg">
-                                <span className="fire-icon">🔥</span>
+                                <span className="fire-icon"><Flame size={32} /></span>
                             </div>
                             <h2 className="streak-value">{dailyData.streak} Day Streak!</h2>
                             <p className="streak-text">Keep it up, you're on fire!</p>
 
                             <div className="shoutout-card">
-                                <div className="quote-icon">📍</div>
+                                <div className="quote-icon"><MapPin size={20} /></div>
                                 <p className="shoutout-text">
                                     "Great job, {user?.name || 'Explorer'}! You've stayed consistent with your targets today."
                                 </p>
@@ -150,7 +156,7 @@ function Analytics() {
 
                 <div className="subjects-studied-section">
                     <div className="section-header-flex">
-                        <h3 className="section-title"><span className="icon">📖</span> Today's Learning Activity</h3>
+                        <h3 className="section-title"><span className="icon"><BookOpen size={20} /></span> Today's Learning Activity</h3>
                     </div>
 
                     <div className="subjects-list">
@@ -164,7 +170,7 @@ function Analytics() {
                                     : 'No session details'}
                             >
                                 <div className="subject-icon-box" style={{ backgroundColor: i % 2 === 0 ? '#E8F0FE' : '#F3E8FF' }}>
-                                    {i % 2 === 0 ? '📐' : '⚛️'}
+                                    {i % 2 === 0 ? <Calculator size={20} /> : <Atom size={20} />}
                                 </div>
                                 <div className="subject-info-main">
                                     <h4 className="sub-name">{sub.name}</h4>
@@ -185,7 +191,7 @@ function Analytics() {
 
                                         return (
                                             <div className="session-time-display">
-                                                <span className="time-label">⏰ Session:</span>
+                                                <span className="time-label"><Clock size={12} /> Session:</span>
                                                 <span className="time-value">
                                                     {firstSession.startTime} - {endTimeDisplay || 'Unknown'}
                                                 </span>
@@ -194,7 +200,7 @@ function Analytics() {
                                     })()}
                                     <div className="time-stat">{Math.floor(sub.timeSpent / 60)}h {Math.round(sub.timeSpent % 60)}m</div>
                                     <div className={`status-stat ${sub.status === 'Completed' ? 'status-done' : 'status-ongoing'}`}>
-                                        {sub.status === 'Completed' ? '✅ Completed' : '⏳ In Progress'}
+                                        {sub.status === 'Completed' ? <><CheckCircle2 size={14} /> Completed</> : <><Clock size={14} /> In Progress</>}
                                     </div>
                                 </div>
                             </div>
@@ -230,7 +236,7 @@ function Analytics() {
                             <span className="value">
                                 {Math.floor(weeklyData.totalTime / 60)}h {Math.round(weeklyData.totalTime % 60)}m
                             </span>
-                            <span className="trend positive">↗ Dynamic</span>
+                            <span className="trend positive"><TrendingUp size={14} /> Dynamic</span>
                         </div>
                     </div>
                     <div className="stat-box-card">
@@ -246,7 +252,7 @@ function Analytics() {
                         <span className="box-label">Current Streak</span>
                         <div className="box-value-row">
                             <span className="value">{weeklyData.streak} Days</span>
-                            <span className="fire-icon-mini">🔥</span>
+                            <span className="fire-icon-mini"><Flame size={16} /></span>
                         </div>
                     </div>
                 </div>
@@ -307,7 +313,7 @@ function Analytics() {
                         {subjects.map((s, i) => (
                             <div key={i} className="mini-subject-card">
                                 <div className="mini-header">
-                                    <div className="mini-icon" style={{ backgroundColor: '#eef2ff', color: '#1e1b4b' }}>📚</div>
+                                    <div className="mini-icon" style={{ backgroundColor: '#eef2ff', color: '#1e1b4b' }}><BookOpen size={16} /></div>
                                     <span className="mini-trend pos">
                                         {Math.round((s.topicsCompleted / s.totalTopics) * 100) || 0}% Mastery
                                     </span>
@@ -338,7 +344,7 @@ function Analytics() {
             <div className="analytics-view-container month-view">
                 <div className="streak-banner-month">
                     <div className="banner-icon-box">
-                        <span className="icon">🔥</span>
+                        <span className="icon"><Flame size={32} /></span>
                     </div>
                     <div className="banner-content">
                         <span className="banner-label">CURRENT STUDY STREAK</span>
@@ -370,12 +376,12 @@ function Analytics() {
 
                 <div className="month-bottom-stats">
                     <div className="bottom-stat-card">
-                        <div className="icon-circle gray">⏱️</div>
+                        <div className="icon-circle gray"><Clock size={20} /></div>
                         <div className="stat-info">
                             <span className="label">TOTAL HOURS</span>
                             <div className="val-row">
                                 <span className="val">{monthlyData.totalTime}h {monthlyData.totalMinutes}m</span>
-                                <span className="change pos">↗ Dynamic</span>
+                                <span className="change pos"><TrendingUp size={14} /> Dynamic</span>
                             </div>
                             <p className="subtext">Against previous month</p>
                         </div>
@@ -396,7 +402,7 @@ function Analytics() {
                         </div>
                     </div>
                     <div className="bottom-stat-card">
-                        <div className="icon-circle blue">💬</div>
+                        <div className="icon-circle blue"><MessageSquare size={20} /></div>
                         <div className="stat-info">
                             <span className="label">AI ASSISTANT</span>
                             <div className="val-row">
@@ -424,9 +430,9 @@ function Analytics() {
                 <div className="nav-center">
                     {view === 'day' && (
                         <div className="date-picker-control">
-                            <button className="date-nav-btn" onClick={handlePreviousDay}>‹</button>
+                            <button className="date-nav-btn" onClick={handlePreviousDay}><ChevronLeft size={20} /></button>
                             <div className="current-date-display">
-                                <span className="calendar-icon">📅</span>
+                                <span className="calendar-icon"><Calendar size={16} /></span>
                                 <DatePicker 
                                     selected={selectedDate}
                                     onChange={(date) => setSelectedDate(date)}
@@ -443,7 +449,7 @@ function Analytics() {
                                     opacity: new Date(selectedDate).setHours(0,0,0,0) >= new Date().setHours(0,0,0,0) ? 0.3 : 1,
                                     cursor: new Date(selectedDate).setHours(0,0,0,0) >= new Date().setHours(0,0,0,0) ? 'default' : 'pointer'
                                 }}
-                            >›</button>
+                            ><ChevronRight size={20} /></button>
                         </div>
                     )}
                     {(view === 'week' || view === 'month') && (
@@ -453,15 +459,15 @@ function Analytics() {
 
                 <div className="nav-right">
                     {view === 'month' && (
-                        <button className="download-report-btn">📥 Download Report</button>
+                        <button className="download-report-btn"><Download size={16} /> Download Report</button>
                     )}
                     {view === 'week' && weeklyData && (
                         <div className="streak-badge-mini">
-                            🔥 STREAK <span className="val">{weeklyData.streak || 0} Days</span>
+                            <Flame size={14} /> STREAK <span className="val">{weeklyData.streak || 0} Days</span>
                         </div>
                     )}
                     {view === 'day' && (
-                        <button onClick={() => navigate('/dashboard')} className="close-analytics-btn">✕</button>
+                        <button onClick={() => navigate('/dashboard')} className="close-analytics-btn"><X size={20} /></button>
                     )}
                 </div>
             </div>

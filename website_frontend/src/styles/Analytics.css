@@ -401,6 +401,28 @@
     border: 0 !important;
 }
 
+.react-datepicker__day:hover {
+    background-color: #1e1b4b !important;
+    color: white !important;
+}
+
+.react-datepicker__day--selected {
+    background-color: #1e1b4b !important;
+    color: white !important;
+}
+
+.react-datepicker__header {
+    background-color: white !important;
+    border-bottom: 1px solid #E2E8F0 !important;
+}
+
+.react-datepicker {
+    border: 1px solid #E2E8F0 !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+}
+
 /* Week View */
 .week-header-stats {
     display: grid;
