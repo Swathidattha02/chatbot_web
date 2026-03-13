@@ -239,11 +239,15 @@ const getTeacherDashboard = async (req, res) => {
             const subjectProgress = {};
 
             subjects.forEach((subj) => {
-                const subjProgs = progs.filter((p) => p.subject === subj);
+                const subjProgs = progs.filter((p) => p.subjectName === subj);
                 const avgCompletion =
                     subjProgs.length > 0
                         ? Math.round(
-                            subjProgs.reduce((sum, p) => sum + (p.completionPercentage || 0), 0) /
+                            subjProgs.reduce((sum, p) => {
+                                // 2 minutes = 100%, scale accordingly
+                                const completion = p.completed ? 100 : Math.min((p.timeSpent / 2) * 100, 99);
+                                return sum + completion;
+                            }, 0) /
                             subjProgs.length
                         )
                         : 0;
