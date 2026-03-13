@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { 
     Eye, EyeOff, LayoutDashboard, Bell, Users, GraduationCap, 
     Building2, Settings, LogOut, BookOpen, CheckCircle, 
-    XCircle, Trash2, MapPin, Hand, Lock, Key, ShieldAlert 
+    XCircle, Trash2, MapPin, Hand, Lock, Key, ShieldAlert,
+    ArrowRight
 } from "lucide-react";
 import ViolationTable from "../components/ViolationTable";
 import "../styles/AdminDashboard.css";
@@ -914,24 +915,41 @@ function AdminDashboard() {
             {/* ── Pending Approvals Notification Modal ──────────────── */}
             {showApprovalPopup && (
                 <div className="admin-modal-overlay">
-                    <div className="admin-confirm-modal">
-                        <div className="admin-modal-icon"><Bell size={48} color="#4f46e5" /></div>
+                    <div className="admin-confirm-modal admin-approval-popup">
+                        <div className="admin-popup-icon-wrapper">
+                            <div className="admin-modal-icon"><Bell size={32} /></div>
+                            <div className="admin-icon-ring"></div>
+                        </div>
+                        
                         <h2 className="admin-modal-title">Action Required</h2>
                         <p className="admin-modal-text">
-                            You have pending registrations awaiting your review!
-                            <br/><br/>
-                            {pendingTeachers.length > 0 && <><strong>{pendingTeachers.length}</strong> Teacher(s)<br/></>}
-                            {pendingStudents.length > 0 && <><strong>{pendingStudents.length}</strong> Student(s)</>}
+                            You have pending registrations awaiting your review! Keep your school data up to date.
                         </p>
-                        <div className="admin-modal-actions" style={{ justifyContent: 'center' }}>
-                            <button className="admin-btn-secondary" onClick={() => setShowApprovalPopup(false)}>
+
+                        <div className="admin-popup-stats">
+                            {pendingTeachers.length > 0 && (
+                                <div className="admin-popup-stat-item teachers">
+                                    <span className="stat-count">{pendingTeachers.length}</span>
+                                    <span className="stat-label">Pending Teacher(s)</span>
+                                </div>
+                            )}
+                            {pendingStudents.length > 0 && (
+                                <div className="admin-popup-stat-item students">
+                                    <span className="stat-count">{pendingStudents.length}</span>
+                                    <span className="stat-label">Pending Student(s)</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="admin-modal-actions horizontal">
+                            <button className="admin-popup-btn secondary" onClick={() => setShowApprovalPopup(false)}>
                                 Dismiss
                             </button>
-                            <button className="admin-btn-danger" style={{ background: '#4f46e5', borderColor: '#4f46e5', color: 'white' }} onClick={() => {
+                            <button className="admin-popup-btn primary" onClick={() => {
                                 setShowApprovalPopup(false);
                                 setActiveTab("approvals");
                             }}>
-                                Review Now
+                                Review Now <ArrowRight size={16} />
                             </button>
                         </div>
                     </div>
