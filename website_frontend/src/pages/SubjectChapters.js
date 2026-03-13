@@ -13,7 +13,9 @@ import {
     Lock, Timer, Award, Lightbulb, Square, 
     User, Bot, Volume2, Mic, StopCircle, 
     Send, Play, RotateCcw, Target, X,
-    Languages as LanguagesIcon
+    Languages as LanguagesIcon,
+    Calculator, Microscope, Dna, Globe, FileText,
+    Atom, Beaker, Monitor
 } from "lucide-react";
 import "../styles/SubjectChapters.css";
 
@@ -355,6 +357,9 @@ function SubjectChapters() {
                              subject.icon === "📚" ? <BookOpen size={32} /> :
                              subject.icon === "🌍" ? <Globe size={32} /> :
                              subject.icon === "🇮🇳" ? <LanguagesIcon size={32} /> :
+                             subject.icon === "⚛️" ? <Atom size={32} /> :
+                             subject.icon === "🧪" ? <Beaker size={32} /> :
+                             subject.icon === "💻" ? <Monitor size={32} /> :
                              <BookOpen size={32} />}
                         </div>
                         <div className="subject-header-info-chapters">
@@ -436,6 +441,7 @@ function SubjectChapters() {
                                     {!chapter.isLocked && (
                                         <div className="chapter-quiz-row">
                                             <div className="chapter-quiz-label">
+                                                {quizPassed ? (
                                                     <span className="quiz-done-badge"><CheckCircle2 size={14} /> Quiz Passed · {qStatus?.bestPercentage}%</span>
                                                 ) : (
                                                     <span className="quiz-todo-badge"><FileText size={14} /> Quiz Required for 100%</span>

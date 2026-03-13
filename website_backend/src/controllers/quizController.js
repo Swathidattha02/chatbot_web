@@ -176,7 +176,21 @@ exports.submitQuiz = async (req, res) => {
 
         // ── Fetch student details so we can link to teacher dashboard ────────────
         const User = require("../models/User");
-        const student = await User.findById(userId).select("name school class section classTeacher").lean();
+        let student = await User.findById(userId).select("name school class section classTeacher").lean();
+
+        // ── Robustness: If student has no teacher link, try to find one by class/section ──
+        if (student && !student.classTeacher) {
+            const Teacher = require("../models/Teacher");
+            const classTeacher = await Teacher.findOne({
+                school: student.school,
+                assignedClass: (student.class || "").replace("Class ", ""),
+                assignedSection: student.section
+            });
+            if (classTeacher) {
+                await User.findByIdAndUpdate(userId, { classTeacher: classTeacher._id });
+                student.classTeacher = classTeacher._id;
+            }
+        }
 
         // Grade the answers
         let correct = 0;
@@ -302,12 +316,22 @@ exports.getClassQuizResults = async (req, res) => {
         const teacher = await Teacher.findById(req.user.id).lean();
         if (!teacher) return res.status(404).json({ success: false, message: "Teacher not found" });
 
-        // Query by classTeacher ObjectId — exact match, no string comparison issues
-        const quizzes = await Quiz.find({ classTeacher: teacher._id })
+        // Query by teacher's specific assignments as a fallback to the classTeacher ID link
+        // This ensures results show up even if the student-to-teacher ID link was missed
+        const quizzes = await Quiz.find({
+            $or: [
+                { classTeacher: teacher._id },
+                { 
+                    school: teacher.school, 
+                    studentClass: `Class ${teacher.assignedClass}`, 
+                    section: teacher.assignedSection 
+                }
+            ]
+        })
             .sort({ lastAttempt: -1 })
             .lean();
 
-        console.log(`📊 Teacher ${teacher.name}: fetched ${quizzes.length} quiz results`);
+        console.log(`📊 Teacher ${teacher.name}: fetched ${quizzes.length} quiz results (including class/section matches)`);
         return res.json({ success: true, quizzes });
     } catch (error) {
         console.error("❌ getClassQuizResults error:", error.message);
