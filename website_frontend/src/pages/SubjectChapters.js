@@ -8,8 +8,6 @@ import LanguageSelector from "../components/LanguageSelector";
 import LipSyncAvatar from "../components/LipSyncAvatar";
 import translationService from "../services/translationService";
 import QuizModal from "../components/QuizModal";
-import { useFocusMonitor } from "../hooks/useFocusMonitor";
-import FocusWarning from "../components/FocusWarning";
 import { 
     MessageSquare, BookOpen, Clock, CheckCircle2, 
     Lock, Timer, Award, Lightbulb, Square, 
@@ -53,14 +51,6 @@ function SubjectChapters() {
     const [isListening, setIsListening] = useState(false);
     const [isVoiceSupported, setIsVoiceSupported] = useState(false);
 
-    // ── Focus Monitoring (for study sessions) ─────────────────────
-    const [isStudying, setIsStudying] = useState(() => {
-        const stored = localStorage.getItem('isStudying');
-        return stored === 'true';
-    });
-    const [showFocusWarning, setShowFocusWarning] = useState(false);
-    const [alarmActive, setAlarmActive] = useState(false);
-
     const messagesEndRef = useRef(null);
     const recognitionRef = useRef(null);
     const abortControllerRef = useRef(null);
@@ -71,41 +61,6 @@ function SubjectChapters() {
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
-
-    // ── Focus Monitoring Handlers ────────────────────────────────
-    const handleViolation = useCallback((v) => {
-        console.log('Violation:', v.reason);
-    }, []);
-
-    const handleAlarmStart = useCallback(() => {
-        setAlarmActive(true);
-    }, []);
-
-    const handleAlarmStop = useCallback(() => {
-        setAlarmActive(false);
-    }, []);
-
-    const handleFocusLost = useCallback(() => {
-        setShowFocusWarning(true);
-    }, []);
-
-    const handleFocusGained = useCallback(() => {
-        // The warning is hidden by the "I am back" button
-    }, []);
-
-    const { stopAlarm } = useFocusMonitor({
-        onViolation: handleViolation,
-        onAlarmStart: handleAlarmStart,
-        onAlarmStop: handleAlarmStop,
-        onFocusLost: handleFocusLost,
-        onFocusGained: handleFocusGained,
-        isStudying: isStudying,
-    });
-
-    const handleImBack = () => {
-        setShowFocusWarning(false);
-        stopAlarm();
-    };
 
     // ── Load chapters ─────────────────────────────────────────────
     useEffect(() => {
@@ -390,9 +345,7 @@ function SubjectChapters() {
     }
 
     return (
-        <>
-            {showFocusWarning && <FocusWarning onConfirm={handleImBack} />}
-            <div className="chapters-container">
+        <div className="chapters-container">
             {/* ── Header ─────────────────────────────────────────── */}
             <div className="chapters-header">
                 {subject && (
@@ -637,8 +590,7 @@ function SubjectChapters() {
                     }}
                 />
             )}
-            </div>
-        </>
+        </div>
     );
 }
 

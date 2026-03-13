@@ -18,6 +18,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 
 // Components
 import Navbar from "./components/Navbar";
+import SubjectLayout from "./components/SubjectLayout";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -85,7 +86,9 @@ function AppContent() {
           path="/subjects/:subjectId/chapters"
           element={
             <ProtectedRoute>
-              <SubjectChapters />
+              <SubjectLayout>
+                <SubjectChapters />
+              </SubjectLayout>
             </ProtectedRoute>
           }
         />
@@ -93,7 +96,9 @@ function AppContent() {
           path="/subjects/:subjectId/chapters/:chapterId/pdf"
           element={
             <ProtectedRoute>
-              <PDFViewer />
+              <SubjectLayout>
+                <PDFViewer />
+              </SubjectLayout>
             </ProtectedRoute>
           }
         />
