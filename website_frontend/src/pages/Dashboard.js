@@ -30,6 +30,8 @@ function Dashboard() {
         streak: 0
     });
     const [todayActivity, setTodayActivity] = useState([]);
+    const [achievements, setAchievements] = useState([]);
+    const [recommendations, setRecommendations] = useState([]);
     const [alarmActive, setAlarmActive] = useState(false);
     const [countdown, setCountdown] = useState(0);
     const [violationReason, setViolationReason] = useState('');
@@ -100,8 +102,10 @@ function Dashboard() {
                             }
                         });
                         const analyticsData = await analyticsResponse.json();
+                        console.log("Monthly analytics response:", analyticsData);
                         if (analyticsData.success) {
                             const { totalTime, aiTutorQueries, streak } = analyticsData.analytics;
+                            console.log("Setting stats - totalChats:", aiTutorQueries, "hoursLearned:", totalTime, "streak:", streak);
 
                             setStats(prev => ({
                                 ...prev,
@@ -138,14 +142,47 @@ function Dashboard() {
                             }
                         });
                         const docsData = await docsResponse.json();
+                        console.log("Documents response:", docsData);
                         if (docsData.success) {
+                            const docsCount = docsData.documents?.length || 0;
+                            console.log("Setting stats - docsUploaded:", docsCount);
                             setStats(prev => ({
                                 ...prev,
-                                docsUploaded: docsData.documents?.length || 0
+                                docsUploaded: docsCount
                             }));
                         }
                     } catch (error) {
                         console.error("Error fetching documents:", error);
+                    }
+
+                    // Fetch user achievements
+                    try {
+                        const token = localStorage.getItem('token');
+                        const achievementsResponse = await fetch(`${API_BASE_URL}/progress/achievements`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        const achievementsData = await achievementsResponse.json();
+                        console.log("Achievements response:", achievementsData);
+                        if (achievementsResponse.ok && achievementsData.success) {
+                            setAchievements(achievementsData.achievements || []);
+                        }
+                    } catch (error) {
+                        console.error("Error fetching achievements:", error);
+                    }
+
+                    // Fetch personalized recommendations
+                    try {
+                        const token = localStorage.getItem('token');
+                        const recsResponse = await fetch(`${API_BASE_URL}/progress/recommendations`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        const recsData = await recsResponse.json();
+                        console.log("Recommendations response:", recsData);
+                        if (recsResponse.ok && recsData.success) {
+                            setRecommendations(recsData.recommendations || []);
+                        }
+                    } catch (error) {
+                        console.error("Error fetching recommendations:", error);
                     }
 
                     // Add progress and chapter counts to subjects
@@ -538,27 +575,29 @@ function Dashboard() {
                             <span className="view-all-link">View All</span>
                         </div>
                         <div className="achievements-grid">
-                            <div className="achievement-card">
-                                <div className="achievement-icon gold"><Trophy size={20} /></div>
-                                <div className="achievement-info">
-                                    <h3>Math Whiz</h3>
-                                    <p>Scored 100% in Algebra Quiz</p>
-                                </div>
-                            </div>
-                            <div className="achievement-card">
-                                <div className="achievement-icon streak"><Flame size={20} /></div>
-                                <div className="achievement-info">
-                                    <h3>Consistent Learner</h3>
-                                    <p>Maintained a 3-day streak</p>
-                                </div>
-                            </div>
-                            <div className="achievement-card">
-                                <div className="achievement-icon silver"><BookOpen size={20} /></div>
-                                <div className="achievement-info">
-                                    <h3>First Document</h3>
-                                    <p>Uploaded and analyzed a PDF</p>
-                                </div>
-                            </div>
+                            {achievements.length > 0 ? (
+                                achievements.slice(0, 3).map((achievement, idx) => {
+                                    const iconTypeMap = {
+                                        'trophy': Trophy,
+                                        'flame': Flame,
+                                        'book': BookOpen,
+                                        'default': Trophy
+                                    };
+                                    const IconComponent = iconTypeMap[achievement.type] || Trophy;
+                                    const colorClass = achievement.colorClass || 'gold';
+                                    return (
+                                        <div key={idx} className="achievement-card">
+                                            <div className={`achievement-icon ${colorClass}`}><IconComponent size={20} /></div>
+                                            <div className="achievement-info">
+                                                <h3>{achievement.name}</h3>
+                                                <p>{achievement.description}</p>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <p className="no-data-placeholder">No achievements yet. Keep studying!</p>
+                            )}
                         </div>
                     </div>
 
@@ -568,22 +607,45 @@ function Dashboard() {
                             <h2 className="section-title">Recommended Next Steps</h2>
                         </div>
                         <div className="recommendations-list">
-                            <div className="recommendation-item">
-                                <div className="rec-icon"><Target size={20} color="#10b981" /></div>
-                                <div className="rec-content">
-                                    <h3>Take Chapter 3 Practice Quiz</h3>
-                                    <p>You completed the chapter reading. Test your knowledge now!</p>
-                                </div>
-                                <button className="rec-btn">Start Quiz</button>
-                            </div>
-                            <div className="recommendation-item">
-                                <div className="rec-icon"><Bot size={20} color="#4f46e5" /></div>
-                                <div className="rec-content">
-                                    <h3>Review Biology with AI</h3>
-                                    <p>You struggled with 'Photosynthesis' in the last quiz. Have the chatbot explain it again.</p>
-                                </div>
-                                <button className="rec-btn btn-secondary">Chat Now</button>
-                            </div>
+                            {recommendations.length > 0 ? (
+                                recommendations.map((rec, idx) => {
+                                    const iconTypeMap = {
+                                        'target': Target,
+                                        'bot': Bot,
+                                        'default': Target
+                                    };
+                                    const IconComponent = iconTypeMap[rec.iconType] || Target;
+                                    const getColorForIcon = (type) => {
+                                        const colors = {
+                                            'target': '#10b981',
+                                            'bot': '#4f46e5',
+                                            'default': '#10b981'
+                                        };
+                                        return colors[type] || colors.default;
+                                    };
+                                    const handleAction = () => {
+                                        if (rec.action === 'quiz') {
+                                            navigate('/quiz');
+                                        } else if (rec.action === 'chat') {
+                                            navigate('/chat');
+                                        }
+                                    };
+                                    return (
+                                        <div key={idx} className="recommendation-item">
+                                            <div className="rec-icon"><IconComponent size={20} color={getColorForIcon(rec.iconType)} /></div>
+                                            <div className="rec-content">
+                                                <h3>{rec.title}</h3>
+                                                <p>{rec.description}</p>
+                                            </div>
+                                            <button className={`rec-btn ${rec.action === 'chat' ? 'btn-secondary' : ''}`} onClick={handleAction}>
+                                                {rec.buttonText}
+                                            </button>
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <p className="no-data-placeholder">No recommendations at the moment. Great work!</p>
+                            )}
                         </div>
                     </div>
                 </div>
