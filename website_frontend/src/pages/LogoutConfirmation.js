@@ -7,14 +7,12 @@ function LogoutConfirmation() {
     const { logout } = useAuth();
     const navigate = useNavigate();
 
-    const handleConfirmLogout = async () => {
-        console.log("🔓 Starting logout process...");
-        await logout();
-        console.log("✅ Logout complete, redirecting...");
-        // Small delay to ensure backend has time to process
-        setTimeout(() => {
-            navigate("/");
-        }, 500);
+    const handleConfirmLogout = () => {
+        console.log("🔓 [Logout] Button clicked");
+        logout(); // Immediate frontend state clear
+        // No need to await or setTimeout, ProtectedRoute will handle redirect to /login
+        // but we can also force navigate to / just in case
+        navigate("/");
     };
 
     const handleStayBack = () => {
