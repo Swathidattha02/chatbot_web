@@ -12,6 +12,14 @@ uploads/
 app_backend/
 app_frontend/
 Ai_Avatar/
+
+# Python / RAG service
+**/venv/
+**/__pycache__/
+**/chroma_db/
+**/uploads/
+.pytest_cache/
+
 *.bat
 .github/
 .gitattributes
