@@ -128,7 +128,11 @@ function QuizModal({ chapter, subject, onClose, onPassed }) {
                     <div className="quiz-body quiz-loading">
                         <div className="quiz-spinner"></div>
                         <p className="quiz-loading-text">🧠 AI is generating your quiz...</p>
-                        <p className="quiz-loading-sub">Creating 10 custom questions for this chapter</p>
+                        <p className="quiz-loading-sub">Creating 5 high-quality questions for this chapter</p>
+                        <div className="quiz-loading-tips">
+                            <p>✨ <strong>Tip:</strong> This usually takes 30-60 seconds</p>
+                            <p>⚡ <em>Generates questions specific to your curriculum</em></p>
+                        </div>
                     </div>
                 )}
 

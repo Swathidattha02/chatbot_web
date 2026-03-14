@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import { Canvas } from "@react-three/fiber";
 import { chatAPI } from "../services/api";
@@ -22,7 +22,7 @@ function ChatWithAvatar() {
     const [currentLanguage, setCurrentLanguage] = useState('en');
     const [isAvatarSpeaking, setIsAvatarSpeaking] = useState(false);
     const [mouthValue, setMouthValue] = useState(0);
-    const [currentExpression, setCurrentExpression] = useState('neutral');
+    const [currentExpression] = useState('neutral');
     const [isListening, setIsListening] = useState(false);
     const [isVoiceSupported, setIsVoiceSupported] = useState(false);
     const [loadedDocument, setLoadedDocument] = useState(null);
@@ -30,25 +30,141 @@ function ChatWithAvatar() {
     const recognitionRef = useRef(null);
     const mouthAnimationFrameRef = useRef(null);
     const utteranceRef = useRef(null);
+    const abortControllerRef = useRef(null);
+    const isTtsProcessingRef = useRef(false);
+    const internalQueueRef = useRef([]);
 
-    const scrollToBottom = () => {
+    // Maintain a ref for handleSendMessage to avoid re-initializing speech recognition
+    const handleSendMessageRef = useRef(null);
+
+    const scrollToBottom = useCallback(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, []);
+
+    const handleStopResponse = useCallback(() => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+        }
+        setLoading(false);
+    }, []);
+
+    const cleanTextForTTS = (text) => {
+        if (!text) return "";
+        return text
+            .replace(/```[\s\S]*?```/g, " [code] ") // Skip code blocks
+            .replace(/[*_~`#]/g, "") // Remove markdown
+            .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // Simplify links
+            .replace(/\n+/g, ". ") // Better pauses
+            .replace(/\.\.+/g, ".") // Clean ellipses
+            .trim();
     };
+
+    const stopSpeaking = useCallback(() => {
+        isTtsProcessingRef.current = false;
+        internalQueueRef.current = [];
+
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+
+            if (mouthAnimationFrameRef.current) {
+                cancelAnimationFrame(mouthAnimationFrameRef.current);
+                mouthAnimationFrameRef.current = null;
+            }
+
+            setMouthValue(0);
+            setIsAvatarSpeaking(false);
+            utteranceRef.current = null;
+        }
+    }, []);
+
+    const animateMouth = useCallback(() => {
+        if (!isTtsProcessingRef.current && !window.speechSynthesis.speaking) {
+            setMouthValue(0);
+            return;
+        }
+        const now = Date.now();
+        const intensity = Math.max(0.08, Math.min(0.5, 0.25 + Math.sin(now * 0.02) * 0.15 + Math.sin(now * 0.008) * 0.2 + Math.sin(now * 0.003) * 0.1 + (Math.random() - 0.5) * 0.04));
+        setMouthValue(intensity);
+        mouthAnimationFrameRef.current = requestAnimationFrame(animateMouth);
+    }, []);
+
+    const processInternalQueue = useCallback(() => {
+        if (internalQueueRef.current.length === 0) {
+            setIsAvatarSpeaking(false);
+            isTtsProcessingRef.current = false;
+            setMouthValue(0);
+            return;
+        }
+
+        const text = internalQueueRef.current.shift();
+        if (!text) {
+            processInternalQueue();
+            return;
+        }
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utteranceRef.current = utterance;
+        const langMap = {
+            'en': 'en-US',
+            'hi': 'hi-IN',
+            'ta': 'ta-IN',
+            'te': 'te-IN',
+            'kn': 'kn-IN',
+            'ml': 'ml-IN',
+            'bn': 'bn-IN',
+            'mr': 'mr-IN',
+            'gu': 'gu-IN',
+            'pa': 'pa-IN'
+        };
+        utterance.lang = langMap[currentLanguage] || 'en-US';
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+
+        isTtsProcessingRef.current = true;
+        setIsAvatarSpeaking(true);
+
+        utterance.onstart = () => {
+            if (!mouthAnimationFrameRef.current) {
+                mouthAnimationFrameRef.current = requestAnimationFrame(animateMouth);
+            }
+        };
+
+        utterance.onend = () => {
+            processInternalQueue();
+        };
+
+        utterance.onerror = (e) => {
+            console.error("Speech chunk error:", e);
+            processInternalQueue();
+        };
+
+        window.speechSynthesis.speak(utterance);
+    }, [currentLanguage, animateMouth]);
+
+    const speakMessage = useCallback((text) => {
+        if (!text || !('speechSynthesis' in window)) return;
+        
+        window.speechSynthesis.cancel();
+        
+        setTimeout(() => {
+            const chunks = text.match(/[^.!?\n]+[.!?\n]?/g) || [text];
+            internalQueueRef.current = chunks.map(c => c.trim()).filter(c => c.length > 0);
+            processInternalQueue();
+        }, 200);
+    }, [processInternalQueue]);
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages]);
+    }, [messages, scrollToBottom]);
 
-    // Check for uploaded document from navigation state
     useEffect(() => {
         if (location.state?.uploadedDocument) {
             const doc = location.state.uploadedDocument;
-
-            // Use a functional update to avoid closures and double-adding
             setMessages(prev => {
                 const alreadyAdded = prev.some(m => m.isSystemMessage && m.content.includes(doc.name));
                 if (alreadyAdded) return prev;
-
                 setLoadedDocument(doc);
                 return [...prev, {
                     role: 'assistant',
@@ -57,61 +173,16 @@ function ChatWithAvatar() {
                     isSystemMessage: true
                 }];
             });
-
-            // Clear the navigation state
             window.history.replaceState({}, document.title);
         }
     }, [location.state]);
 
-    // Initialize voice recognition
-    useEffect(() => {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-        if (SpeechRecognition) {
-            setIsVoiceSupported(true);
-            recognitionRef.current = new SpeechRecognition();
-            recognitionRef.current.continuous = false;
-            recognitionRef.current.interimResults = false;
-            recognitionRef.current.lang = currentLanguage === 'en' ? 'en-US' : 'hi-IN';
-
-            recognitionRef.current.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                if (transcript && transcript.trim()) {
-                    handleSendMessage(transcript);
-                }
-            };
-
-            recognitionRef.current.onerror = (event) => {
-                console.error('Speech recognition error:', event.error);
-                setIsListening(false);
-            };
-
-            recognitionRef.current.onend = () => {
-                setIsListening(false);
-            };
-        }
-
-        return () => {
-            if (recognitionRef.current) {
-                recognitionRef.current.stop();
-            }
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-            }
-            if (mouthAnimationFrameRef.current) {
-                cancelAnimationFrame(mouthAnimationFrameRef.current);
-            }
-        };
-    }, [currentLanguage]);
-
-    const handleSendMessage = async (messageText) => {
+    const handleSendMessage = useCallback(async (messageText) => {
         if (!messageText.trim() || loading) return;
 
-        // Stop current speech when sending a new message
-        if (isAvatarSpeaking) {
-            stopSpeaking();
-        }
-
+        handleStopResponse();
+        if (isAvatarSpeaking) stopSpeaking();
+        
         const userMessage = {
             role: "user",
             content: messageText,
@@ -122,7 +193,6 @@ function ChatWithAvatar() {
         setInputMessage("");
         setLoading(true);
 
-        // Add placeholder for streaming response
         const streamingMessage = {
             role: "assistant",
             content: "",
@@ -134,19 +204,18 @@ function ChatWithAvatar() {
         try {
             let fullContent = "";
             let messageIndex = null;
+            abortControllerRef.current = new AbortController();
 
             await chatAPI.streamMessage(
                 {
                     message: messageText,
                     sessionId,
                     language: currentLanguage,
-                    use_rag: !!loadedDocument // Explicitly enable RAG if a document is loaded
+                    use_rag: !!loadedDocument 
                 },
-                // onChunk - called for each chunk received
                 (chunk) => {
                     fullContent += chunk;
                     setMessages((prev) => {
-                        // Get the index of the last message (the streaming one)
                         if (messageIndex === null) {
                             messageIndex = prev.length - 1;
                         }
@@ -160,15 +229,15 @@ function ChatWithAvatar() {
                         return newMessages;
                     });
                 },
-                // onComplete - called when streaming is done
                 (data) => {
+                    const finalResponse = fullContent || data.fullResponse;
                     setMessages((prev) => {
                         const newMessages = [...prev];
                         const finalIndex = messageIndex !== null ? messageIndex : prev.length - 1;
                         if (newMessages[finalIndex]) {
                             newMessages[finalIndex] = {
                                 role: "assistant",
-                                content: fullContent || data.fullResponse,
+                                content: finalResponse,
                                 timestamp: new Date(),
                                 isStreaming: false,
                             };
@@ -179,13 +248,10 @@ function ChatWithAvatar() {
                     if (!sessionId && data.sessionId) {
                         setSessionId(data.sessionId);
                     }
-
                     setLoading(false);
                 },
-                // onError - called if streaming fails
                 (error) => {
                     console.error("Stream error:", error);
-
                     setMessages((prev) => {
                         const newMessages = [...prev];
                         const errorIndex = messageIndex !== null ? messageIndex : prev.length - 1;
@@ -200,34 +266,66 @@ function ChatWithAvatar() {
                         }
                         return newMessages;
                     });
-
                     setLoading(false);
-                }
+                },
+                abortControllerRef.current.signal
             );
         } catch (error) {
             console.error("Chat error:", error);
-
-            const errorMessage = {
-                role: "assistant",
-                content: "Sorry, I encountered an error. Please try again.",
-                timestamp: new Date(),
-                isError: true,
-            };
-
             setMessages((prev) => {
                 const newMessages = [...prev];
                 const lastIndex = newMessages.length - 1;
+                const errorMsg = {
+                    role: "assistant",
+                    content: "Sorry, I encountered an error. Please try again.",
+                    timestamp: new Date(),
+                    isError: true,
+                };
                 if (newMessages[lastIndex] && newMessages[lastIndex].isStreaming) {
-                    newMessages[lastIndex] = errorMessage;
+                    newMessages[lastIndex] = errorMsg;
                 } else {
-                    newMessages.push(errorMessage);
+                    newMessages.push(errorMsg);
                 }
                 return newMessages;
             });
-
             setLoading(false);
         }
-    };
+    }, [loading, sessionId, currentLanguage, loadedDocument, handleStopResponse, isAvatarSpeaking, stopSpeaking]);
+
+    useEffect(() => {
+        handleSendMessageRef.current = handleSendMessage;
+    }, [handleSendMessage]);
+
+    useEffect(() => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            setIsVoiceSupported(true);
+            recognitionRef.current = new SpeechRecognition();
+            recognitionRef.current.continuous = false;
+            recognitionRef.current.interimResults = false;
+            recognitionRef.current.lang = currentLanguage === 'en' ? 'en-US' : 'hi-IN';
+
+            recognitionRef.current.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                if (transcript && transcript.trim()) {
+                    if (handleSendMessageRef.current) {
+                        handleSendMessageRef.current(transcript);
+                    }
+                }
+            };
+            recognitionRef.current.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                setIsListening(false);
+            };
+            recognitionRef.current.onend = () => {
+                setIsListening(false);
+            };
+        }
+        return () => {
+            if (recognitionRef.current) recognitionRef.current.stop();
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        };
+    }, [currentLanguage]);
 
     const handleFormSubmit = (e) => {
         e.preventDefault();
@@ -239,114 +337,28 @@ function ChatWithAvatar() {
             alert('Speech recognition is not supported in your browser. Please use Chrome or Edge.');
             return;
         }
-
-        // Stop current speech when starting voice input
-        if (!isListening && isAvatarSpeaking) {
-            stopSpeaking();
-        }
         if (isListening) {
             recognitionRef.current.stop();
             setIsListening(false);
         } else {
-            recognitionRef.current.start();
-            setIsListening(true);
+            try {
+                recognitionRef.current.start();
+                setIsListening(true);
+            } catch (err) {
+                console.error("Recognition start error:", err);
+            }
         }
     };
 
-    const handleLanguageChange = (language) => {
+    const handleLanguageChange = useCallback((language) => {
         setCurrentLanguage(language);
-        console.log('Language changed to:', language);
-
         const translatedMsg = translationService.getLanguageChangeMessage(language);
-        const systemMsg = {
+        setMessages(prev => [...prev, {
             role: 'assistant',
             content: translatedMsg,
             timestamp: new Date()
-        };
-        setMessages(prev => [...prev, systemMsg]);
-    };
-
-    const stopSpeaking = () => {
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
-
-            if (mouthAnimationFrameRef.current) {
-                cancelAnimationFrame(mouthAnimationFrameRef.current);
-                mouthAnimationFrameRef.current = null;
-            }
-
-            // Gradually close mouth
-            let closeValue = mouthValue;
-            const closeInterval = setInterval(() => {
-                closeValue *= 0.7;
-                setMouthValue(closeValue);
-                if (closeValue < 0.05) {
-                    clearInterval(closeInterval);
-                    setMouthValue(0);
-                }
-            }, 30);
-
-            setIsAvatarSpeaking(false);
-            utteranceRef.current = null;
-        }
-    };
-
-    const handleReadAgain = (message) => {
-        if (isAvatarSpeaking) {
-            stopSpeaking();
-            return;
-        }
-
-        // Use Web Speech API to read the message
-        if ('speechSynthesis' in window) {
-            const utterance = new SpeechSynthesisUtterance(message);
-            utteranceRef.current = utterance;
-            utterance.lang = currentLanguage === 'en' ? 'en-US' : 'hi-IN';
-
-            // Animate mouth while speaking
-            const animateMouth = () => {
-                const now = Date.now();
-                const fast = Math.sin(now * 0.02) * 0.15;
-                const medium = Math.sin(now * 0.008) * 0.2;
-                const slow = Math.sin(now * 0.003) * 0.1;
-                const microVariation = (Math.random() - 0.5) * 0.04;
-
-                let intensity = 0.25 + fast + medium + slow + microVariation;
-                intensity = Math.max(0.08, Math.min(0.5, intensity));
-                setMouthValue(intensity);
-                mouthAnimationFrameRef.current = requestAnimationFrame(animateMouth);
-            };
-
-            utterance.onstart = () => {
-                setIsAvatarSpeaking(true);
-                mouthAnimationFrameRef.current = requestAnimationFrame(animateMouth);
-            };
-
-            utterance.onend = () => {
-                if (mouthAnimationFrameRef.current) {
-                    cancelAnimationFrame(mouthAnimationFrameRef.current);
-                }
-                // Gradually close mouth
-                let closeValue = mouthValue;
-                const closeInterval = setInterval(() => {
-                    closeValue *= 0.7;
-                    setMouthValue(closeValue);
-                    if (closeValue < 0.05) {
-                        clearInterval(closeInterval);
-                        setMouthValue(0);
-                    }
-                }, 30);
-                setIsAvatarSpeaking(false);
-                utteranceRef.current = null;
-            };
-
-            utterance.onerror = () => {
-                stopSpeaking();
-            };
-
-            window.speechSynthesis.speak(utterance);
-        }
-    };
+        }]);
+    }, []);
 
     const handleNewChat = () => {
         setMessages([
@@ -359,86 +371,62 @@ function ChatWithAvatar() {
         setSessionId(null);
     };
 
+    const handleReadAgain = (text) => {
+        speakMessage(cleanTextForTTS(text));
+    };
+
     return (
         <div className="chat-page">
             <div className="chat-interface">
-                {/* Avatar Header - Top 30% */}
                 <div
-                    className={`chat-avatar-header ${isAvatarSpeaking ? 'speaking' : ''}`}
-                    onClick={isAvatarSpeaking ? stopSpeaking : null}
-                    title={isAvatarSpeaking ? "Click to stop speaking" : ""}
+                    className={`chat-avatar-header ${(isAvatarSpeaking || loading) ? 'speaking' : ''}`}
+                    onClick={() => {
+                        if (loading) handleStopResponse();
+                        else if (isAvatarSpeaking) stopSpeaking();
+                    }}
+                    title={(isAvatarSpeaking || loading) ? "Click to stop" : ""}
                 >
                     <div className="avatar-canvas-container">
-                        <Canvas
-                            camera={{
-                                position: [0, 1.6, 5.5],
-                                fov: 15
-                            }}
-                            style={{
-                                width: '100%',
-                                height: '100%',
-                                background: 'transparent'
-                            }}
-                        >
+                        <Canvas camera={{ position: [0, 1.6, 5.5], fov: 15 }} style={{ width: '100%', height: '100%', background: 'transparent' }}>
                             <ambientLight intensity={0.8} />
                             <directionalLight position={[0, 5, 5]} intensity={1} />
-
-                            <LipSyncAvatar
-                                url="/avatar1.glb"
-                                animation="idle"
-                                mouthValue={mouthValue}
-                                expression={currentExpression}
-                                gesture="none"
-                                position={[0, -4, 0]}
-                                scale={2.5}
-                            />
+                            <LipSyncAvatar url="/avatar1.glb" animation="idle" mouthValue={mouthValue} expression={currentExpression} gesture="none" position={[0, -4, 0]} scale={2.5} />
                         </Canvas>
                     </div>
                     <div className="avatar-background-blur"></div>
                 </div>
 
-                {/* Chat Content - Bottom 70% */}
                 <div className="chat-content">
-                    {/* Language Selector */}
-                    <LanguageSelector
-                        currentLanguage={currentLanguage}
-                        onLanguageChange={handleLanguageChange}
-                        supportedLanguages={translationService.getSupportedLanguages()}
-                    />
+                    <LanguageSelector currentLanguage={currentLanguage} onLanguageChange={handleLanguageChange} supportedLanguages={translationService.getSupportedLanguages()} />
 
                     <div className="chat-header">
                         <h3>
                             <span className="chat-header-icon">🤖</span>
                             AI Educational Tutor
                         </h3>
+                        {loading && (
+                            <div className="speaking-control">
+                                <span className="speaking-indicator">⚡ Generating...</span>
+                                <button onClick={handleStopResponse} className="btn-stop-speaking" title="Stop">Stop ⏹</button>
+                            </div>
+                        )}
                         {isAvatarSpeaking && (
                             <div className="speaking-control">
                                 <span className="speaking-indicator">🎤 Speaking...</span>
-                                <button onClick={stopSpeaking} className="btn-stop-speaking" title="Stop speaking">
-                                    Stop ⏹
-                                </button>
+                                <button onClick={stopSpeaking} className="btn-stop-speaking" title="Stop">Stop ⏹</button>
                             </div>
                         )}
-                        <button onClick={handleNewChat} className="btn-new-chat">
-                            New Chat
-                        </button>
+                        <button onClick={handleNewChat} className="btn-new-chat">New Chat</button>
                     </div>
 
                     <div className="chat-messages">
                         {messages.map((msg, index) => (
-                            <div
-                                key={index}
-                                className={`message ${msg.role === 'user' ? 'user-message' : 'avatar-message'}`}
-                            >
-                                <div className="message-avatar">
-                                    {msg.role === 'user' ? '👤' : '🤖'}
-                                </div>
+                            <div key={index} className={`message ${msg.role === 'user' ? 'user-message' : 'avatar-message'}`}>
+                                <div className="message-avatar">{msg.role === 'user' ? '👤' : '🤖'}</div>
                                 <div className="message-content">
                                     <div className="message-text">{msg.content}</div>
                                     <div className="message-footer">
-                                        <div className="message-time">
-                                            {new Date(msg.timestamp).toLocaleTimeString()}
-                                        </div>
+                                        <div className="message-time">{new Date(msg.timestamp).toLocaleTimeString()}</div>
                                         {msg.role === 'assistant' && msg.content && !msg.isStreaming && (
                                             <button
                                                 className="read-again-button"
@@ -457,11 +445,7 @@ function ChatWithAvatar() {
                             <div className="message avatar-message">
                                 <div className="message-avatar">🤖</div>
                                 <div className="message-content">
-                                    <div className="typing-indicator">
-                                        <span></span>
-                                        <span></span>
-                                        <span></span>
-                                    </div>
+                                    <div className="typing-indicator"><span></span><span></span><span></span></div>
                                 </div>
                             </div>
                         )}
@@ -469,30 +453,11 @@ function ChatWithAvatar() {
                     </div>
 
                     <form className="chat-input-form" onSubmit={handleFormSubmit}>
-                        <input
-                            type="text"
-                            className="chat-input"
-                            placeholder="Type your message..."
-                            value={inputMessage}
-                            onChange={(e) => setInputMessage(e.target.value)}
-                            disabled={loading}
-                        />
-                        <button
-                            type="button"
-                            className={`voice-input-button ${isListening ? 'listening' : ''}`}
-                            onClick={toggleVoiceListening}
-                            disabled={loading || isAvatarSpeaking || !isVoiceSupported}
-                            title={!isVoiceSupported ? 'Voice not supported' : isListening ? 'Stop listening' : 'Voice input'}
-                        >
+                        <input type="text" className="chat-input" placeholder="Type your message..." value={inputMessage} onChange={(e) => setInputMessage(e.target.value)} disabled={loading} />
+                        <button type="button" className={`voice-input-button ${isListening ? 'listening' : ''}`} onClick={toggleVoiceListening} disabled={loading || !isVoiceSupported} title={!isVoiceSupported ? 'Voice not supported' : isListening ? 'Stop listening' : 'Voice input'}>
                             {isListening ? '🎤' : '🎙️'}
                         </button>
-                        <button
-                            type="submit"
-                            className="send-button"
-                            disabled={loading || !inputMessage.trim()}
-                        >
-                            {loading ? '⏳' : '📤'}
-                        </button>
+                        <button type="submit" className="send-button" disabled={loading || !inputMessage.trim()}>{loading ? '⏳' : '📤'}</button>
                     </form>
                 </div>
             </div>

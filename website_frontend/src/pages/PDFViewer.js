@@ -9,7 +9,7 @@ import LipSyncAvatar from "../components/LipSyncAvatar";
 import translationService from "../services/translationService";
 import { 
     FileText, Mic, StopCircle, User, Bot, 
-    Volume2, Square, Send, ChevronLeft
+    Volume2, Square, Send 
 } from "lucide-react";
 import "../styles/PDFViewer.css";
 
@@ -41,10 +41,129 @@ function PDFViewer() {
     // Remove visible timeSpent state as timer is removed from UI
     const messagesEndRef = useRef(null);
     const recognitionRef = useRef(null);
-    const timeTrackingRef = useRef(null);
     const abortControllerRef = useRef(null);
+    const timeTrackingRef = useRef(null);
     const mouthAnimationFrameRef = useRef(null);
     const utteranceRef = useRef(null);
+
+    const internalQueueRef = useRef([]);
+    const sentenceBufferRef = useRef("");
+    const isAvatarSpeakingRef = useRef(false);
+    const handleSendMessageRef = useRef(null);
+
+
+    const cleanTextForTTS = (text) => {
+        if (!text) return "";
+        return text
+            .replace(/```[\s\S]*?```/g, " [code] ")
+            .replace(/[*_~`#]/g, "")
+            .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+            .replace(/\n+/g, ". ")
+            .replace(/\.\.+/g, ".")
+            .trim();
+    };
+
+    const animateMouth = useCallback(() => {
+        if (!window.speechSynthesis.speaking && !isAvatarSpeakingRef.current) {
+            setMouthValue(0);
+            mouthAnimationFrameRef.current = null;
+            return;
+        }
+        const now = Date.now();
+        let intensity = 0.25 + Math.sin(now * 0.02) * 0.15 + Math.sin(now * 0.008) * 0.2 + (Math.random() - 0.5) * 0.04;
+        setMouthValue(Math.max(0.08, Math.min(0.5, intensity)));
+        mouthAnimationFrameRef.current = requestAnimationFrame(animateMouth);
+    }, []);
+
+    const stopSpeaking = useCallback(() => {
+        isAvatarSpeakingRef.current = false;
+        internalQueueRef.current = [];
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            if (mouthAnimationFrameRef.current) {
+                cancelAnimationFrame(mouthAnimationFrameRef.current);
+                mouthAnimationFrameRef.current = null;
+            }
+            setMouthValue(0);
+            setIsAvatarSpeaking(false);
+            utteranceRef.current = null;
+        }
+    }, []);
+
+    const processInternalQueue = useCallback(() => {
+        if (internalQueueRef.current.length === 0) {
+            setIsAvatarSpeaking(false);
+            isAvatarSpeakingRef.current = false;
+            setMouthValue(0);
+            return;
+        }
+
+        const text = internalQueueRef.current.shift();
+        if (!text) {
+            processInternalQueue();
+            return;
+        }
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utteranceRef.current = utterance;
+        utterance.lang = currentLanguage === 'en' ? 'en-US' : 'hi-IN';
+
+        const resumeInterval = setInterval(() => {
+            if (window.speechSynthesis.speaking) {
+                window.speechSynthesis.pause();
+                window.speechSynthesis.resume();
+            } else {
+                clearInterval(resumeInterval);
+            }
+        }, 10000);
+
+        utterance.onstart = () => {
+            isAvatarSpeakingRef.current = true;
+            setIsAvatarSpeaking(true);
+            if (!mouthAnimationFrameRef.current) {
+                mouthAnimationFrameRef.current = requestAnimationFrame(animateMouth);
+            }
+        };
+
+        utterance.onend = () => {
+            clearInterval(resumeInterval);
+            processInternalQueue();
+        };
+
+        utterance.onerror = () => {
+            clearInterval(resumeInterval);
+            processInternalQueue();
+        };
+
+        window.speechSynthesis.speak(utterance);
+    }, [currentLanguage, animateMouth]);
+
+    const handleStopResponse = useCallback(() => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+        }
+        setLoading(false);
+    }, []);
+
+    const speakMessage = useCallback((text) => {
+        if (!text || !('speechSynthesis' in window)) return;
+        window.speechSynthesis.cancel();
+        setTimeout(() => {
+            const chunks = text.match(/[^.!?\n]+[.!?\n]?/g) || [text];
+            internalQueueRef.current = chunks.map(c => c.trim()).filter(c => c.length > 0);
+            processInternalQueue();
+        }, 200);
+    }, [processInternalQueue]);
+
+    const unlockTTS = useCallback(() => {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const unlockUtterance = new SpeechSynthesisUtterance(" ");
+            unlockUtterance.volume = 0;
+            window.speechSynthesis.speak(unlockUtterance);
+        }
+    }, []);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -53,6 +172,18 @@ function PDFViewer() {
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
+
+
+
+    // Pre-load voices for better reliability in Chrome
+    useEffect(() => {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.getVoices();
+            if (window.speechSynthesis.onvoiceschanged !== undefined) {
+                window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+            }
+        }
+    }, []);
 
     const [currentChapter, setCurrentChapter] = useState(chapter);
     const [currentSubject, setCurrentSubject] = useState(subject);
@@ -71,6 +202,8 @@ function PDFViewer() {
             }
         }
     }, [user, subjectId, chapterId, currentChapter, currentSubject]);
+
+
 
     // Track time spent on chapter using Refs to avoid re-render issues
     const timeSpentRef = useRef(0);
@@ -169,13 +302,17 @@ function PDFViewer() {
         };
     }, [user, subjectId, chapterId, currentChapter, currentSubject]);
 
+
+
     const handleSendMessage = useCallback(async (messageText) => {
         if (!messageText.trim() || loading) return;
 
-        // Stop current speech when sending a new message
-        if (isAvatarSpeaking) {
-            stopSpeaking();
-        }
+        // Stop current speech and state when sending a new message
+        stopSpeaking();
+        handleStopResponse();
+        unlockTTS();
+        isAvatarSpeakingRef.current = false; // Force reset to allow new response to trigger
+        sentenceBufferRef.current = ""; // Reset buffer
 
         const userMessage = {
             role: "user",
@@ -240,12 +377,9 @@ function PDFViewer() {
                         return next;
                     });
 
-                    // Handle expressions if returned
-                    if (fullContent.includes('[EXPRESSION:')) {
+                    if (fullContent.includes("[EXPRESSION:")) {
                         const match = fullContent.match(/\[EXPRESSION:\s*(\w+)\]/);
-                        if (match && match[1]) {
-                            setCurrentExpression(match[1].toLowerCase());
-                        }
+                        if (match?.[1]) setCurrentExpression(match[1].toLowerCase());
                     }
                 },
                 (error) => {
@@ -271,7 +405,11 @@ function PDFViewer() {
             abortControllerRef.current = null;
             setLoading(false);
         }
-    }, [loading, sessionId, currentLanguage, currentSubject, currentChapter]);
+    }, [loading, sessionId, currentLanguage, currentSubject, currentChapter, stopSpeaking, unlockTTS, handleStopResponse]);
+
+    useEffect(() => {
+        handleSendMessageRef.current = handleSendMessage;
+    }, [handleSendMessage]);
 
     // Initialize voice recognition
     useEffect(() => {
@@ -287,7 +425,9 @@ function PDFViewer() {
             recognitionRef.current.onresult = (event) => {
                 const transcript = event.results[0][0].transcript;
                 if (transcript && transcript.trim()) {
-                    handleSendMessage(transcript);
+                    if (handleSendMessageRef.current) {
+                        handleSendMessageRef.current(transcript);
+                    }
                 }
             };
 
@@ -312,17 +452,12 @@ function PDFViewer() {
                 cancelAnimationFrame(mouthAnimationFrameRef.current);
             }
         };
-    }, [currentLanguage, handleSendMessage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentLanguage]);
 
 
 
-    const handleStopResponse = () => {
-        if (abortControllerRef.current) {
-            abortControllerRef.current.abort();
-            abortControllerRef.current = null;
-            setLoading(false);
-        }
-    };
+
 
     const handleFormSubmit = (e) => {
         e.preventDefault();
@@ -360,88 +495,17 @@ function PDFViewer() {
         setMessages(prev => [...prev, systemMsg]);
     };
 
-    const stopSpeaking = () => {
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
 
-            if (mouthAnimationFrameRef.current) {
-                cancelAnimationFrame(mouthAnimationFrameRef.current);
-                mouthAnimationFrameRef.current = null;
-            }
 
-            // Gradually close mouth
-            let closeValue = mouthValue;
-            const closeInterval = setInterval(() => {
-                closeValue *= 0.7;
-                setMouthValue(closeValue);
-                if (closeValue < 0.05) {
-                    clearInterval(closeInterval);
-                    setMouthValue(0);
-                }
-            }, 30);
 
-            setIsAvatarSpeaking(false);
-            utteranceRef.current = null;
-        }
-    };
 
     const handleReadAgain = (message) => {
-        if (isAvatarSpeaking) {
-            stopSpeaking();
-            return;
-        }
-
-        if ('speechSynthesis' in window) {
-            const utterance = new SpeechSynthesisUtterance(message);
-            utteranceRef.current = utterance;
-            utterance.lang = currentLanguage === 'en' ? 'en-US' : 'hi-IN';
-
-            const animateMouth = () => {
-                const now = Date.now();
-                const fast = Math.sin(now * 0.02) * 0.15;
-                const medium = Math.sin(now * 0.008) * 0.2;
-                const slow = Math.sin(now * 0.003) * 0.1;
-                const microVariation = (Math.random() - 0.5) * 0.04;
-
-                let intensity = 0.25 + fast + medium + slow + microVariation;
-                intensity = Math.max(0.08, Math.min(0.5, intensity));
-                setMouthValue(intensity);
-                mouthAnimationFrameRef.current = requestAnimationFrame(animateMouth);
-            };
-
-            utterance.onstart = () => {
-                setIsAvatarSpeaking(true);
-                mouthAnimationFrameRef.current = requestAnimationFrame(animateMouth);
-            };
-
-            utterance.onend = () => {
-                if (mouthAnimationFrameRef.current) {
-                    cancelAnimationFrame(mouthAnimationFrameRef.current);
-                }
-                let closeValue = mouthValue;
-                const closeInterval = setInterval(() => {
-                    closeValue *= 0.7;
-                    setMouthValue(closeValue);
-                    if (closeValue < 0.05) {
-                        clearInterval(closeInterval);
-                        setMouthValue(0);
-                    }
-                }, 30);
-                setIsAvatarSpeaking(false);
-                utteranceRef.current = null;
-            };
-
-            utterance.onerror = () => {
-                stopSpeaking();
-            };
-
-            window.speechSynthesis.speak(utterance);
-        }
+        speakMessage(cleanTextForTTS(message));
     };
 
-    const handleBack = () => {
-        navigate(`/subjects/${subjectId}/chapters`);
-    };
+
+
+
 
     if ((!currentChapter || !currentSubject) && !user) {
         return (
@@ -505,9 +569,12 @@ function PDFViewer() {
                     <div className="chat-interface-pdf">
                         {/* Avatar Header */}
                         <div
-                            className={`chat-avatar-header-pdf ${isAvatarSpeaking ? 'speaking' : ''}`}
-                            onClick={isAvatarSpeaking ? stopSpeaking : null}
-                            title={isAvatarSpeaking ? "Click to stop speaking" : ""}
+                            className={`chat-avatar-header-pdf ${(isAvatarSpeaking || loading) ? 'speaking' : ''}`}
+                            onClick={() => {
+                                if (loading) handleStopResponse();
+                                else if (isAvatarSpeaking) stopSpeaking();
+                            }}
+                            title={(isAvatarSpeaking || loading) ? "Click to stop" : ""}
                         >
                             <div className="avatar-canvas-container-pdf">
                                 <Canvas
