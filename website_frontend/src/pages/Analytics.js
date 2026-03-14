@@ -1,13 +1,14 @@
-import React, { useState, useEffect, useCallback } from "react";
+    import React, { useState, useEffect, useCallback } from "react";
+import PropTypes from "prop-types";
 import { 
     TrendingUp, Flame, MapPin, BookOpen, 
     Calculator, Atom, Clock, CheckCircle2, 
     ChevronLeft, ChevronRight, Calendar, Download, 
-    X, Trophy, Languages, MessageSquare
+    X, MessageSquare
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import "../styles/Analytics.css";
@@ -25,6 +26,35 @@ function Analytics() {
     const [dailyData, setDailyData] = useState(null);
     const [weeklyData, setWeeklyData] = useState(null);
     const [monthlyData, setMonthlyData] = useState(null);
+
+    // Week Streak UI Component
+    const WeekStreak = ({ streak, dailyBreakdown }) => {
+        const daysOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        // Use backend data for completed days
+        const completedDays = daysOrder.map(day => (dailyBreakdown?.[day] && dailyBreakdown[day] > 0));
+        return (
+            <div className="week-streak-ui">
+                <span className="streak-title"><Flame size={18} /> Week Streak</span>
+                <span className="streak-count">{streak || 0} Days</span>
+                <div className="week-days-row">
+                    {daysOrder.map((day, idx) => (
+                        <div
+                            key={day}
+                            className={`week-day-chip ${completedDays[idx] ? 'completed' : ''}`}
+                            title={completedDays[idx] ? 'Completed' : 'Not completed'}
+                        >
+                            <span className="day-label">{day}</span>
+                            {completedDays[idx] ? <span className="day-check">✔</span> : <span className="day-dot"></span>}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+    WeekStreak.propTypes = {
+        streak: PropTypes.number,
+        dailyBreakdown: PropTypes.object
+    };
 
     const fetchDailyAnalytics = useCallback(async (date) => {
         try {
@@ -86,16 +116,65 @@ function Analytics() {
     const handleNextDay = () => {
         const newDate = new Date(selectedDate);
         newDate.setDate(newDate.getDate() + 1);
-        
         // Prevent going into the future
         const today = new Date();
         today.setHours(0,0,0,0);
         const compareDate = new Date(newDate);
         compareDate.setHours(0,0,0,0);
-
         if (compareDate <= today) {
             setSelectedDate(newDate);
         }
+    };
+
+    // CSV Export Utility (TeacherDashboard style)
+    const exportMonthlyDataToCSV = () => {
+        if ((monthlyData?.weeklyData?.length ?? 0) <= 0) {
+            alert("No data available to export.");
+            return;
+        }
+
+        // CSV Header
+        const headers = ["Week", "Study Minutes", "Goal (Minutes)", "Streak", "Personal Best", "Total Hours", "Total Minutes", "Subject", "Proficiency (%)"];
+        const rows = [];
+
+        // Weekly Data
+        (monthlyData.weeklyData || []).forEach((val, i) => {
+            rows.push([
+                `Week ${i+1}`,
+                Math.round(val),
+                600,
+                monthlyData.streak,
+                monthlyData.personalBest || 0,
+                monthlyData.totalTime,
+                monthlyData.totalMinutes,
+                '', // Subject
+                ''  // Proficiency
+            ]);
+        });
+
+        // Subject Growth
+        (monthlyData.subjectGrowth || []).forEach(sub => {
+            rows.push([
+                '', '', '', '', '', '', '',
+                sub.name,
+                sub.proficiency
+            ]);
+        });
+
+        // Combine Header and Rows
+        const csvContent = [headers.join(","), ...rows.map(row => row.join(","))].join("\n");
+
+        // Create Blob and Download
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Monthly_Analytics_Report_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     };
 
     const renderDayView = () => {
@@ -118,11 +197,7 @@ function Analytics() {
                         <div className="chart-wrapper-h">
                             <ResponsiveContainer width="100%" height={200}>
                                 <BarChart data={dailyData.hourlyData}>
-                                    <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={30}>
-                                        {dailyData.hourlyData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.value > 0 ? "#1e1b4b" : "#F0F0F0"} />
-                                        ))}
-                                    </Bar>
+                                    <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={30} fill="#1e1b4b" />
                                     <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#999' }} />
                                     <Tooltip
                                         cursor={{ fill: 'transparent' }}
@@ -459,12 +534,20 @@ function Analytics() {
 
                 <div className="nav-right">
                     {view === 'month' && (
-                        <button className="download-report-btn"><Download size={16} /> Download Report</button>
+                        <button
+                            className="download-report-btn"
+                            onClick={exportMonthlyDataToCSV}
+                            disabled={(monthlyData?.weeklyData?.length ?? 0) <= 0}
+                            title={(monthlyData?.weeklyData?.length ?? 0) > 0 ? 'Download monthly analytics report' : 'No data to download'}
+                        >
+                            <Download size={16} /> Download Report
+                        </button>
                     )}
                     {view === 'week' && weeklyData && (
-                        <div className="streak-badge-mini">
-                            <Flame size={14} /> STREAK <span className="val">{weeklyData.streak || 0} Days</span>
-                        </div>
+                        <WeekStreak
+                            streak={weeklyData.streak}
+                            dailyBreakdown={weeklyData.dailyBreakdown}
+                        />
                     )}
                     {view === 'day' && (
                         <button onClick={() => navigate('/dashboard')} className="close-analytics-btn"><X size={20} /></button>
