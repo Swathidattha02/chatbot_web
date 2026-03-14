@@ -1,11 +1,12 @@
 import React from 'react';
+import { User, Clock, LogOut, Info } from "lucide-react";
 
 const REASON_LABELS = {
-  tab_switch: { label: 'Tab Switch', color: '#667eea', icon: '\u{1F504}' },
-  focus_lost: { label: 'Focus Lost', color: '#f59e0b', icon: '\u{1F634}' },
-  window_blur: { label: 'Window Blur', color: '#ff9f43', icon: '\u{1FA9F}' },
-  visibility_hidden: { label: 'Tab Hidden', color: '#a29bfe', icon: '\u{1F441}\u{FE0F}' },
-  window_resize: { label: 'Window Resize', color: '#ec4899', icon: '\u{1F5A5}' }
+  tab_switch: { label: 'Tab Switch', color: '#667eea' },
+  focus_lost: { label: 'Focus Lost', color: '#f59e0b' },
+  window_blur: { label: 'Window Blur', color: '#ff9f43' },
+  visibility_hidden: { label: 'Tab Hidden', color: '#a29bfe' },
+  window_resize: { label: 'Window Resize', color: '#ec4899' }
 };
 
 // Helper function to format milliseconds to readable duration
@@ -62,7 +63,8 @@ export default function ViolationTable({ violations, showUser = false, activityL
         <table className="admin-table">
           <thead>
             <tr>
-              {showUser && <th>User</th>}
+              {showUser && <th>Student</th>}
+              {showUser && <th>Class/Sec</th>}
               <th>Event</th>
               <th>Left Time</th>
               <th>Return Time</th>
@@ -143,9 +145,18 @@ export default function ViolationTable({ violations, showUser = false, activityL
                   {showUser && (
                     <td>
                       <div className="admin-teacher-name">
-                        <div className="admin-avatar-sm">{reasonInfo.icon}</div>
-                        {v.username || 'Unknown'}
+                        <div className="admin-avatar-sm" style={{ background: '#f1f5f9' }}>
+                          <User size={14} color="#64748b" />
+                        </div>
+                        <span style={{ fontWeight: 600 }}>{v.username || 'Unknown'}</span>
                       </div>
+                    </td>
+                  )}
+                  {showUser && (
+                    <td>
+                      <span className="admin-drill-count" style={{ fontSize: '11px', background: '#eef2ff', color: '#4f46e5' }}>
+                        {v.class || 'N/A'} - {v.section || 'N/A'}
+                      </span>
                     </td>
                   )}
                   <td>
@@ -196,7 +207,8 @@ export default function ViolationTable({ violations, showUser = false, activityL
       <table className="admin-table">
         <thead>
           <tr>
-            {showUser && <th>User</th>}
+            {showUser && <th>Student</th>}
+            {showUser && <th>Class/Sec</th>}
             <th>Timestamp</th>
             <th>Reason</th>
             <th>Duration</th>
@@ -212,9 +224,18 @@ export default function ViolationTable({ violations, showUser = false, activityL
                 {showUser && (
                   <td>
                     <div className="admin-teacher-name">
-                      <div className="admin-avatar-sm">{reasonInfo.icon}</div>
-                      {v.username || 'Unknown'}
+                      <div className="admin-avatar-sm" style={{ background: '#f1f5f9' }}>
+                        <User size={14} color="#64748b" />
+                      </div>
+                      <span style={{ fontWeight: 600 }}>{v.username || 'Unknown'}</span>
                     </div>
+                  </td>
+                )}
+                {showUser && (
+                  <td>
+                    <span className="admin-drill-count" style={{ fontSize: '11px', background: '#eef2ff', color: '#4f46e5' }}>
+                      {v.class || 'N/A'} - {v.section || 'N/A'}
+                    </span>
                   </td>
                 )}
                 <td>

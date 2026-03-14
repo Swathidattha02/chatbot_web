@@ -690,7 +690,6 @@ function SubjectChapters() {
                     onClose={() => setActiveQuiz(null)}
                     onPassed={(chapterId) => {
                         handleQuizPassed(chapterId);
-                        setActiveQuiz(null);
                     }}
                 />
             )}

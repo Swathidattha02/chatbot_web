@@ -549,6 +549,12 @@
     font-weight: 600;
 }
 
+.quiz-your-ans-correct {
+    font-size: 12px;
+    color: #059669;
+    font-weight: 600;
+}
+
 .quiz-correct-ans {
     font-size: 12px;
     color: #059669;

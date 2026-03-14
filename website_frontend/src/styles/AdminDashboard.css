@@ -42,7 +42,7 @@
 /* ── Sidebar ─────────────────────────────────────────────────── */
 .admin-sidebar {
     width: 260px;
-    min-height: 100vh;
+    height: 100vh;
     background: linear-gradient(180deg, #1e1b4b 0%, #312e81 100%);
     display: flex;
     flex-direction: column;
@@ -50,15 +50,17 @@
     position: sticky;
     top: 0;
     flex-shrink: 0;
+    z-index: 100;
 }
 
 .admin-logo {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 0 8px 28px;
+    gap: 10px;
+    padding: 16px 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     margin-bottom: 24px;
+    flex-shrink: 0;
 }
 
 .admin-logo-icon {
@@ -82,18 +84,33 @@
     flex-direction: column;
     gap: 4px;
     flex: 1;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.admin-nav::-webkit-scrollbar {
+    width: 4px;
+}
+
+.admin-nav::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+.admin-nav:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
 }
 
 .admin-nav-item {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 14px;
-    border-radius: 10px;
+    padding: 10px 14px;
+    border-radius: 8px;
     border: none;
     background: transparent;
     color: rgba(255, 255, 255, 0.65);
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
@@ -113,9 +130,12 @@
 }
 
 .admin-sidebar-footer {
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    padding-top: 16px;
-    margin-top: 16px;
+    padding: 12px 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
 }
 
 .admin-profile-mini {
@@ -127,9 +147,9 @@
 }
 
 .admin-avatar-mini {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
     background: rgba(255, 255, 255, 0.15);
     display: flex;
     align-items: center;
@@ -140,7 +160,7 @@
 
 .admin-name-mini {
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 600;
     color: white;
 }
 
@@ -151,8 +171,8 @@
 
 .admin-logout-btn {
     width: 100%;
-    padding: 10px;
-    border-radius: 10px;
+    padding: 8px;
+    border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.15);
     background: transparent;
     color: rgba(255, 255, 255, 0.65);
@@ -176,7 +196,7 @@
 /* ── Main Content ────────────────────────────────────────────── */
 .admin-main {
     flex: 1;
-    padding: 28px 32px;
+    padding: 16px 24px;
     overflow-y: auto;
 }
 
@@ -188,10 +208,10 @@
 }
 
 .admin-page-title {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 800;
     color: #1e1b4b;
-    margin: 0 0 4px 0;
+    margin: 0;
 }
 
 .admin-page-sub {
@@ -204,17 +224,17 @@
 .admin-stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: 12px;
+    margin-bottom: 16px;
 }
 
 .admin-stat-card {
     background: white;
-    border-radius: 16px;
-    padding: 20px;
+    border-radius: 10px;
+    padding: 12px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 2px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
     border-left: 4px solid transparent;
     position: relative;
@@ -242,15 +262,15 @@
 }
 
 .admin-stat-value {
-    font-size: 32px;
+    font-size: 24px;
     font-weight: 900;
     color: #1e1b4b;
 }
 
 .admin-stat-label {
-    font-size: 13px;
+    font-size: 11px;
     color: #64748b;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 /* ── Info Card ───────────────────────────────────────────────── */
@@ -387,7 +407,7 @@
 }
 
 .admin-table td {
-    padding: 14px 20px;
+    padding: 8px 14px;
     border-bottom: 1px solid #f1f5f9;
     color: #374151;
 }
@@ -408,14 +428,14 @@
 }
 
 .admin-avatar-sm {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
     background: #eef2ff;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 14px;
 }
 
 /* ── Empty State ─────────────────────────────────────────────── */
@@ -515,6 +535,37 @@
 }
 
 /* ── Delete Button ───────────────────────────────────────────── */
+.admin-clear-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 36px;
+}
+
+.admin-clear-btn:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #1e293b;
+}
+
+.admin-clear-btn:focus {
+    outline: none;
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.admin-controls input.admin-clear-btn {
+    cursor: text;
+}
 .admin-delete-btn {
     padding: 6px 14px;
     border-radius: 8px;
@@ -1391,4 +1442,53 @@
     50% {
         transform: translateY(-4px);
     }
+}
+
+/* ── Pagination ────────────────────────────────────────────── */
+.admin-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 12px 24px;
+    background: #fff;
+    border-top: 1px solid #f1f5f9;
+}
+
+.admin-page-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.admin-page-btn:hover:not(:disabled) {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #1e293b;
+    transform: translateY(-1px);
+}
+
+.admin-page-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #f1f5f9;
+}
+
+.admin-page-info {
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 4px 12px;
+    border-radius: 100px;
 }
