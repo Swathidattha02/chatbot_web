@@ -20,8 +20,9 @@ async function autoCompleteOldViolations() {
 
     // Update each violation with calculated duration
     for (const violation of oldViolations) {
-      const duration = Date.now() - new Date(violation.startTime);
-      violation.endTime = new Date();
+      const now = Date.now();
+      const duration = Math.max(0, now - new Date(violation.startTime));
+      violation.endTime = new Date(now);
       violation.duration = duration;
       await violation.save();
       console.log(`✅ [autoCompleteOldViolations] Auto-completed old violation ${violation._id}: ${Math.floor(duration / 1000)}s`);
@@ -100,10 +101,17 @@ exports.getAllViolations = async (req, res) => {
     await autoCompleteOldViolations();
 
     const { page = 1, limit = 50, username } = req.query;
-    const query = username ? { username: new RegExp(username, 'i') } : {};
+    
+    // Admin should only see violations from their school's students
+    const students = await User.find({ school: req.user.id }).distinct('_id');
+    const query = { userId: { $in: students } };
+    
+    if (username) {
+      query.username = new RegExp(username, 'i');
+    }
 
     const violations = await Violation.find(query)
-      .sort({ startTime: -1, timestamp: -1 })  // Sort by startTime first, then timestamp
+      .sort({ startTime: -1, timestamp: -1 })
       .skip((page - 1) * limit)
       .limit(parseInt(limit));
 
@@ -138,24 +146,31 @@ exports.getStats = async (req, res) => {
       return res.status(403).json({ message: 'Forbidden' });
     }
 
-    const totalViolations = await Violation.countDocuments();
+    // Filter stats by admin's school
+    const studentsInSchool = await User.find({ school: req.user.id }).distinct('_id');
+    const studentUsernames = await User.find({ school: req.user.id }).distinct('name');
+
+    const totalViolations = await Violation.countDocuments({ userId: { $in: studentsInSchool } });
 
     const byReason = await Violation.aggregate([
+      { $match: { userId: { $in: studentsInSchool } } },
       { $group: { _id: '$reason', count: { $sum: 1 } } }
     ]);
 
     const byUser = await Violation.aggregate([
+      { $match: { userId: { $in: studentsInSchool } } },
       { $group: { _id: '$username', count: { $sum: 1 }, totalDuration: { $sum: '$duration' } } },
       { $sort: { count: -1 } },
       { $limit: 10 }
     ]);
 
     const last24h = await Violation.countDocuments({
+      userId: { $in: studentsInSchool },
       timestamp: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
     });
 
-    // Total violation duration (in milliseconds, convert to seconds)
     const totalDurationStats = await Violation.aggregate([
+      { $match: { userId: { $in: studentsInSchool } } },
       { $group: { _id: null, totalDuration: { $sum: '$duration' }, avgDuration: { $avg: '$duration' } } }
     ]);
 
