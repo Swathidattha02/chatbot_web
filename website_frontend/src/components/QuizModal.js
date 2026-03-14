@@ -258,12 +258,14 @@ function QuizModal({ chapter, subject, onClose, onPassed }) {
                                         <span className={`quiz-review-icon`}>{r.isCorrect ? "✅" : "❌"}</span>
                                         <span>Q{r.id}: {r.question}</span>
                                     </div>
-                                    {!r.isCorrect && (
-                                        <div className="quiz-review-answer">
-                                            <span className="quiz-your-ans">Your: {r.userAnswer || "Not answered"}</span>
+                                    <div className="quiz-review-answer">
+                                        <span className={r.isCorrect ? "quiz-your-ans-correct" : "quiz-your-ans"}>
+                                            Your: {r.userAnswer || "Not answered"}
+                                        </span>
+                                        {!r.isCorrect && (
                                             <span className="quiz-correct-ans">Correct: {r.correctAnswer}</span>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>

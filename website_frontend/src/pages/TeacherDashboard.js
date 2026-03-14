@@ -897,7 +897,6 @@ function TeacherDashboard() {
                                         </thead>
                                         <tbody>
                                             {paginatedQuizzes.map((q, idx) => {
-                                                const colors = getPercentageColor(q.percentage);
                                                 return (
                                                     <tr key={q._id} className="td-quiz-row">
                                                         <td className="td-quiz-rank">{(quizCurrentPage - 1) * quizzesPerPage + idx + 1}</td>

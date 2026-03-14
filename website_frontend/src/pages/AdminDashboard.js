@@ -4,7 +4,7 @@ import {
     Eye, EyeOff, LayoutDashboard, Bell, Users, GraduationCap, 
     Building2, Settings, LogOut, BookOpen, CheckCircle, 
     XCircle, Trash2, MapPin, Hand, Lock, Key, ShieldAlert,
-    ArrowRight
+    ArrowRight, Activity, ChevronLeft, ChevronRight, Search
 } from "lucide-react";
 import ViolationTable from "../components/ViolationTable";
 import "../styles/AdminDashboard.css";
@@ -35,6 +35,13 @@ function AdminDashboard() {
     const [showConfirmPw, setShowConfirmPw] = useState(false);
     const [violations, setViolations] = useState([]);
     const [violationStats, setViolationStats] = useState(null);
+    const [monitoringFilter, setMonitoringFilter] = useState({ class: "", section: "", name: "" });
+    const [studentPage, setStudentPage] = useState(1);
+    const [monitoringPage, setMonitoringPage] = useState(1);
+    const [teacherPage, setTeacherPage] = useState(1);
+    const [pendingTeacherPage, setPendingTeacherPage] = useState(1);
+    const [pendingStudentPage, setPendingStudentPage] = useState(1);
+    const itemsPerPage = 6;
 
     const token = localStorage.getItem("token");
     const authHeader = { Authorization: `Bearer ${token}` };
@@ -410,7 +417,6 @@ function AdminDashboard() {
                             {activeTab === "students" && "Manage Students"}
                             {activeTab === "monitoring" && "Focus Monitoring"}
                         </h1>
-                        <p className="admin-page-sub">{admin.schoolName} · Admin Portal</p>
                     </div>
                 </div>
 
@@ -422,22 +428,22 @@ function AdminDashboard() {
                     <div className="admin-overview">
                         <div className="admin-stats-grid">
                             <div className="admin-stat-card blue">
-                                <div className="admin-stat-icon"><Users size={28} color="#667eea" /></div>
+                                <div className="admin-stat-icon"><Users size={22} color="#667eea" /></div>
                                 <div className="admin-stat-value">{teachers.length}</div>
                                 <div className="admin-stat-label">Total Teachers</div>
                             </div>
                             <div className="admin-stat-card purple">
-                                <div className="admin-stat-icon"><GraduationCap size={28} color="#764ba2" /></div>
+                                <div className="admin-stat-icon"><GraduationCap size={22} color="#764ba2" /></div>
                                 <div className="admin-stat-value">{students.length}</div>
                                 <div className="admin-stat-label">Total Students</div>
                             </div>
                             <div className="admin-stat-card green">
-                                <div className="admin-stat-icon"><BookOpen size={28} color="#10b981" /></div>
+                                <div className="admin-stat-icon"><BookOpen size={22} color="#10b981" /></div>
                                 <div className="admin-stat-value">6</div>
                                 <div className="admin-stat-label">Subjects</div>
                             </div>
                             <div className="admin-stat-card orange">
-                                <div className="admin-stat-icon"><Bell size={28} color="#f59e0b" /></div>
+                                <div className="admin-stat-icon"><Bell size={22} color="#f59e0b" /></div>
                                 <div className="admin-stat-value">{pendingTeachers.length + pendingStudents.length}</div>
                                 <div className="admin-stat-label">Pending Approvals</div>
                             </div>
@@ -511,9 +517,9 @@ function AdminDashboard() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {pendingTeachers.map((t, i) => (
+                                        {pendingTeachers.slice((pendingTeacherPage - 1) * itemsPerPage, pendingTeacherPage * itemsPerPage).map((t, i) => (
                                             <tr key={t._id}>
-                                                <td>{i + 1}</td>
+                                                <td>{(pendingTeacherPage - 1) * itemsPerPage + i + 1}</td>
                                                 <td>
                                                     <div className="admin-teacher-name">
                                                         <div className="admin-avatar-sm"><Users size={16} color="#4f46e5" /></div>
@@ -549,11 +555,33 @@ function AdminDashboard() {
                                         ))}
                                     </tbody>
                                 </table>
+
+                                {pendingTeachers.length > itemsPerPage && (
+                                    <div className="admin-pagination">
+                                        <button 
+                                            disabled={pendingTeacherPage === 1}
+                                            onClick={() => setPendingTeacherPage(pendingTeacherPage - 1)}
+                                            className="admin-page-btn"
+                                        >
+                                            <ChevronLeft size={18} /> Prev
+                                        </button>
+                                        <span className="admin-page-info">
+                                            Page {pendingTeacherPage} of {Math.ceil(pendingTeachers.length / itemsPerPage)}
+                                        </span>
+                                        <button 
+                                            disabled={pendingTeacherPage === Math.ceil(pendingTeachers.length / itemsPerPage)}
+                                            onClick={() => setPendingTeacherPage(pendingTeacherPage + 1)}
+                                            className="admin-page-btn"
+                                        >
+                                            Next <ChevronRight size={18} />
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         )}
 
                         {/* ── STUDENT APPROVALS ── */}
-                        <div className="admin-table-header" style={{ marginTop: '24px' }}>
+                        <div className="admin-table-header" style={{ marginTop: '12px' }}>
                             <h3>Pending Student Registrations ({pendingStudents.length})</h3>
                         </div>
                         {pendingStudents.length === 0 ? (
@@ -577,9 +605,9 @@ function AdminDashboard() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {pendingStudents.map((s, i) => (
+                                        {pendingStudents.slice((pendingStudentPage - 1) * itemsPerPage, pendingStudentPage * itemsPerPage).map((s, i) => (
                                             <tr key={s._id}>
-                                                <td>{i + 1}</td>
+                                                <td>{(pendingStudentPage - 1) * itemsPerPage + i + 1}</td>
                                                 <td>
                                                     <div className="admin-teacher-name">
                                                         <div className="admin-avatar-sm"><GraduationCap size={16} color="#4f46e5" /></div>
@@ -614,6 +642,28 @@ function AdminDashboard() {
                                         ))}
                                     </tbody>
                                 </table>
+
+                                {pendingStudents.length > itemsPerPage && (
+                                    <div className="admin-pagination">
+                                        <button 
+                                            disabled={pendingStudentPage === 1}
+                                            onClick={() => setPendingStudentPage(pendingStudentPage - 1)}
+                                            className="admin-page-btn"
+                                        >
+                                            <ChevronLeft size={18} /> Prev
+                                        </button>
+                                        <span className="admin-page-info">
+                                            Page {pendingStudentPage} of {Math.ceil(pendingStudents.length / itemsPerPage)}
+                                        </span>
+                                        <button 
+                                            disabled={pendingStudentPage === Math.ceil(pendingStudents.length / itemsPerPage)}
+                                            onClick={() => setPendingStudentPage(pendingStudentPage + 1)}
+                                            className="admin-page-btn"
+                                        >
+                                            Next <ChevronRight size={18} />
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -647,9 +697,9 @@ function AdminDashboard() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {teachers.map((t, i) => (
+                                        {teachers.slice((teacherPage - 1) * itemsPerPage, teacherPage * itemsPerPage).map((t, i) => (
                                             <tr key={t._id}>
-                                                <td>{i + 1}</td>
+                                                <td>{(teacherPage - 1) * itemsPerPage + i + 1}</td>
                                                 <td>
                                                     <div className="admin-teacher-name">
                                                         <div className="admin-avatar-sm"><Users size={16} color="#4f46e5" /></div>
@@ -688,6 +738,28 @@ function AdminDashboard() {
                                         ))}
                                     </tbody>
                                 </table>
+
+                                {teachers.length > itemsPerPage && (
+                                    <div className="admin-pagination">
+                                        <button 
+                                            disabled={teacherPage === 1}
+                                            onClick={() => setTeacherPage(teacherPage - 1)}
+                                            className="admin-page-btn"
+                                        >
+                                            <ChevronLeft size={18} /> Prev
+                                        </button>
+                                        <span className="admin-page-info">
+                                            Page {teacherPage} of {Math.ceil(teachers.length / itemsPerPage)}
+                                        </span>
+                                        <button 
+                                            disabled={teacherPage === Math.ceil(teachers.length / itemsPerPage)}
+                                            onClick={() => setTeacherPage(teacherPage + 1)}
+                                            className="admin-page-btn"
+                                        >
+                                            Next <ChevronRight size={18} />
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -784,7 +856,7 @@ function AdminDashboard() {
                                         <p>No students have registered for this specific class and section yet.</p>
                                     </div>
                                 ) : (
-                                    <div className="admin-table-wrap">
+                                    <div className="admin-table-wrap" style={{ marginTop: '8px' }}>
                                         <table className="admin-table">
                                             <thead>
                                                 <tr>
@@ -798,9 +870,9 @@ function AdminDashboard() {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {filteredStudents.map((s, i) => (
+                                                {filteredStudents.slice((studentPage - 1) * itemsPerPage, studentPage * itemsPerPage).map((s, i) => (
                                                     <tr key={s._id}>
-                                                        <td>{i + 1}</td>
+                                                        <td>{(studentPage - 1) * itemsPerPage + i + 1}</td>
                                                         <td>
                                                             <div className="admin-teacher-name">
                                                                 <div className="admin-avatar-sm"><GraduationCap size={16} color="#4f46e5" /></div>
@@ -826,6 +898,28 @@ function AdminDashboard() {
                                                 ))}
                                             </tbody>
                                         </table>
+
+                                        {filteredStudents.length > itemsPerPage && (
+                                            <div className="admin-pagination">
+                                                <button 
+                                                    disabled={studentPage === 1}
+                                                    onClick={() => setStudentPage(studentPage - 1)}
+                                                    className="admin-page-btn"
+                                                >
+                                                    <ChevronLeft size={18} /> Prev
+                                                </button>
+                                                <span className="admin-page-info">
+                                                    Page {studentPage} of {Math.ceil(filteredStudents.length / itemsPerPage)}
+                                                </span>
+                                                <button 
+                                                    disabled={studentPage === Math.ceil(filteredStudents.length / itemsPerPage)}
+                                                    onClick={() => setStudentPage(studentPage + 1)}
+                                                    className="admin-page-btn"
+                                                >
+                                                    Next <ChevronRight size={18} />
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -833,24 +927,91 @@ function AdminDashboard() {
                     </div>
                 )}
 
-                {/* ── Monitoring Tab ──────────────────────────────────── */}
                 {activeTab === "monitoring" && (
-                    <div>
+                    <div className="admin-monitoring-view">
+                        <div className="admin-controls-row" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+                            <div className="admin-controls" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <div style={{ position: 'relative' }}>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Search student..."
+                                        className="admin-clear-btn"
+                                        style={{ padding: '8px 12px 8px 32px', height: 'auto', width: '180px', background: '#fff' }}
+                                        value={monitoringFilter.name}
+                                        onChange={(e) => {
+                                            setMonitoringFilter({ ...monitoringFilter, name: e.target.value });
+                                            setMonitoringPage(1);
+                                        }}
+                                    />
+                                    <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                                </div>
+                                <select 
+                                    className="admin-clear-btn" 
+                                    style={{ padding: '8px 12px', height: 'auto' }}
+                                    value={monitoringFilter.class}
+                                    onChange={(e) => {
+                                        setMonitoringFilter({ ...monitoringFilter, class: e.target.value });
+                                        setMonitoringPage(1);
+                                    }}
+                                >
+                                    <option value="">All Classes</option>
+                                    {(admin?.classes || [6, 7, 8, 9, 10]).map(c => (
+                                        <option key={c} value={c.toString().includes("Class") ? c : `Class ${c}`}>
+                                            {c.toString().includes("Class") ? c : `Class ${c}`}
+                                        </option>
+                                    ))}
+                                </select>
+                                <select 
+                                    className="admin-clear-btn" 
+                                    style={{ padding: '8px 12px', height: 'auto' }}
+                                    value={monitoringFilter.section}
+                                    onChange={(e) => {
+                                        setMonitoringFilter({ ...monitoringFilter, section: e.target.value });
+                                        setMonitoringPage(1);
+                                    }}
+                                >
+                                    <option value="">All Sections</option>
+                                    {Array.from(new Set([
+                                        ...students.map(s => s.section),
+                                        "A", "B", "C", "D"
+                                    ])).filter(Boolean).sort().map(s => (
+                                        <option key={s} value={s}>{s}</option>
+                                    ))}
+                                </select>
+                                {(monitoringFilter.class || monitoringFilter.section || monitoringFilter.name) && (
+                                    <button 
+                                        className="admin-clear-btn" 
+                                        onClick={() => {
+                                            setMonitoringFilter({ class: "", section: "", name: "" });
+                                            setMonitoringPage(1);
+                                        }}
+                                        style={{ background: '#fee2e2', color: '#dc2626', borderColor: '#fca5a5' }}
+                                    >
+                                        Clear
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
                         {violationStats && (
-                            <div className="admin-stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
-                                <div className="admin-stat-card blue">
-                                    <div className="admin-stat-icon"><ShieldAlert size={28} color="#667eea" /></div>
-                                    <div className="admin-stat-value">{violationStats.totalViolations}</div>
+                             <div className="admin-stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', marginBottom: '16px', gap: '10px' }}>
+                                <div className="admin-stat-card blue" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%)', padding: '12px' }}>
+                                    <div className="admin-stat-icon" style={{ background: '#eef2ff', padding: '6px', borderRadius: '8px' }}>
+                                        <ShieldAlert size={20} color="#4f46e5" />
+                                    </div>
+                                    <div className="admin-stat-value" style={{ fontSize: '24px' }}>{violationStats.totalViolations}</div>
                                     <div className="admin-stat-label">Total Violations</div>
                                 </div>
-                                <div className="admin-stat-card orange">
-                                    <div className="admin-stat-icon"><Bell size={28} color="#f59e0b" /></div>
-                                    <div className="admin-stat-value">{violationStats.last24h}</div>
+                                <div className="admin-stat-card orange" style={{ background: 'linear-gradient(135deg, #ffffff 0%, #fffaf0 100%)', padding: '12px' }}>
+                                    <div className="admin-stat-icon" style={{ background: '#fff7ed', padding: '6px', borderRadius: '8px' }}>
+                                        <Bell size={20} color="#f59e0b" />
+                                    </div>
+                                    <div className="admin-stat-value" style={{ fontSize: '24px' }}>{violationStats.last24h}</div>
                                     <div className="admin-stat-label">Last 24 Hours</div>
                                 </div>
-                                {violationStats.byReason?.map((r) => (
-                                    <div className="admin-stat-card purple" key={r._id}>
-                                        <div className="admin-stat-value">{r.count}</div>
+                                {violationStats.byReason?.slice(0, 3).map((r, i) => (
+                                    <div className="admin-stat-card purple" key={r._id} style={{ background: 'linear-gradient(135deg, #ffffff 0%, #faf5ff 100%)', padding: '12px' }}>
+                                        <div className="admin-stat-value" style={{ fontSize: '24px' }}>{r.count}</div>
                                         <div className="admin-stat-label" style={{ textTransform: 'capitalize' }}>
                                             {(r._id || 'unknown').replace(/_/g, ' ')}
                                         </div>
@@ -859,29 +1020,102 @@ function AdminDashboard() {
                             </div>
                         )}
 
-                        {violationStats?.byUser && violationStats.byUser.length > 0 && (
-                            <div className="admin-info-card">
-                                <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <Users size={20} /> Top Violators
-                                </h3>
-                                <div className="admin-info-grid">
-                                    {violationStats.byUser.slice(0, 5).map((u) => (
-                                        <div className="admin-info-row" key={u._id}>
-                                            <span className="admin-info-label">{u._id}</span>
-                                            <span className="admin-info-value">
-                                                {u.count} violations • {u.totalDuration ? Math.floor(u.totalDuration / (1000 * 60)) : 0}m
-                                            </span>
-                                        </div>
-                                    ))}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '24px' }}>
+                            <div className="admin-table-section" style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.05)', borderRadius: '16px' }}>
+                                <div className="admin-table-header" style={{ padding: '16px 20px' }}>
+                                    <h3 style={{ fontSize: '18px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <Activity size={20} color="#4f46e5" /> Focus Activity Log
+                                    </h3>
                                 </div>
-                            </div>
-                        )}
+                                <ViolationTable 
+                                    violations={(() => {
+                                        const filtered = violations.map(v => {
+                                            const student = students.find(s => 
+                                                (s._id && v.userId && s._id.toString() === v.userId.toString()) || 
+                                                (s.name && v.username && s.name.toLowerCase().trim() === v.username.toLowerCase().trim())
+                                            );
+                                            return { ...v, class: student?.class, section: student?.section };
+                                        }).filter(v => {
+                                            const matchesClass = !monitoringFilter.class || v.class === monitoringFilter.class;
+                                            const matchesSection = !monitoringFilter.section || v.section === monitoringFilter.section;
+                                            const matchesName = !monitoringFilter.name || 
+                                                (v.username && v.username.toLowerCase().includes(monitoringFilter.name.toLowerCase()));
+                                            return matchesClass && matchesSection && matchesName;
+                                        });
+                                        return filtered.slice((monitoringPage - 1) * itemsPerPage, monitoringPage * itemsPerPage);
+                                    })()} 
+                                    showUser={true} 
+                                    activityLogView={true} 
+                                />
 
-                        <div className="admin-table-section">
-                            <div className="admin-table-header">
-                                <h3>Focus Activity Log - Recent Violations</h3>
+                                {(() => {
+                                    const totalItems = violations.map(v => {
+                                        const student = students.find(s => 
+                                            (s._id && v.userId && s._id.toString() === v.userId.toString()) || 
+                                            (s.name && v.username && s.name.toLowerCase().trim() === v.username.toLowerCase().trim())
+                                        );
+                                        return { ...v, class: student?.class, section: student?.section };
+                                    }).filter(v => {
+                                        const matchesClass = !monitoringFilter.class || v.class === monitoringFilter.class;
+                                        const matchesSection = !monitoringFilter.section || v.section === monitoringFilter.section;
+                                        const matchesName = !monitoringFilter.name || 
+                                            (v.username && v.username.toLowerCase().includes(monitoringFilter.name.toLowerCase()));
+                                        return matchesClass && matchesSection && matchesName;
+                                    }).length;
+
+                                    if (totalItems > itemsPerPage) {
+                                        return (
+                                            <div className="admin-pagination" style={{ padding: '15px 24px', borderTop: '1px solid #f1f5f9' }}>
+                                                <button 
+                                                    disabled={monitoringPage === 1}
+                                                    onClick={() => setMonitoringPage(monitoringPage - 1)}
+                                                    className="admin-page-btn"
+                                                >
+                                                    <ChevronLeft size={18} /> Prev
+                                                </button>
+                                                <span className="admin-page-info">
+                                                    Page {monitoringPage} of {Math.ceil(totalItems / itemsPerPage)}
+                                                </span>
+                                                <button 
+                                                    disabled={monitoringPage === Math.ceil(totalItems / itemsPerPage)}
+                                                    onClick={() => setMonitoringPage(monitoringPage + 1)}
+                                                    className="admin-page-btn"
+                                                >
+                                                    Next <ChevronRight size={18} />
+                                                </button>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })()}
                             </div>
-                            <ViolationTable violations={violations} showUser={true} activityLogView={true} />
+
+                            <div className="admin-right-panel" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                {violationStats?.byUser && violationStats.byUser.length > 0 && (
+                                    <div className="admin-info-card" style={{ margin: 0, padding: '16px 20px', borderRadius: '16px' }}>
+                                        <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', fontSize: '16px' }}>
+                                            <Users size={18} color="#4f46e5" /> Top Violators
+                                        </h3>
+                                        <div className="admin-info-grid" style={{ gap: '12px' }}>
+                                            {violationStats.byUser.slice(0, 5).map((u) => {
+                                                const student = students.find(s => 
+                                                    (s.name && u._id && s.name.toLowerCase().trim() === u._id.toLowerCase().trim())
+                                                );
+                                                return (
+                                                    <div className="admin-info-row" key={u._id} style={{ padding: '12px', border: '1px solid #f1f5f9' }}>
+                                                        <div style={{ fontWeight: 700, fontSize: '14px', color: '#1e1b4b' }}>
+                                                            {u._id} {student ? <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}> • {student.class}-{student.section}</span> : ""}
+                                                        </div>
+                                                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+                                                            {u.count} violations • {u.totalDuration ? Math.floor(u.totalDuration / (1000 * 60)) : 0}m away
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}
