@@ -91,6 +91,7 @@ async def health_check():
             model=DEFAULT_MODEL
         )
 
+@app.post("/chat/stream")
 @app.post("/chat")
 async def chat(request: ChatRequest):
     """Chat endpoint with streaming support"""
@@ -145,10 +146,10 @@ async def stream_ollama_response(messages: List[dict], model: str):
                             data = json.loads(line)
                             if "message" in data and "content" in data["message"]:
                                 chunk = data["message"]["content"]
-                                yield f"data: {json.dumps({'chunk': chunk, 'done': False})}\n\n"
+                                yield f"data: {json.dumps({'content': chunk, 'done': False})}\n\n"
                             
                             if data.get("done", False):
-                                yield f"data: {json.dumps({'chunk': '', 'done': True})}\n\n"
+                                yield f"data: {json.dumps({'content': '', 'done': True})}\n\n"
                                 break
                         except json.JSONDecodeError:
                             continue
