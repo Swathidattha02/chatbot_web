@@ -38,6 +38,13 @@ function TeacherDashboard() {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const studentsPerPage = 10;
 
+    // Quiz filters
+    const [quizSearchQuery, setQuizSearchQuery] = useState("");
+    const [quizFilterSubject, setQuizFilterSubject] = useState("All");
+    const [quizFilterStatus, setQuizFilterStatus] = useState("All");
+    const [quizCurrentPage, setQuizCurrentPage] = useState(1);
+    const quizzesPerPage = 10;
+
     // Get stored teacher from localStorage
     const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
     const token = localStorage.getItem("token");
@@ -316,6 +323,61 @@ function TeacherDashboard() {
         }
         return `${mins}m`;
     };
+
+    // Quiz helpers
+    const getPercentageColor = (pct) => {
+        if (pct >= 70) return { bg: "#dcfce7", text: "#15803d" };
+        if (pct >= 40) return { bg: "#fef9c3", text: "#854d0e" };
+        return { bg: "#fee2e2", text: "#b91c1c" };
+    };
+
+    const computeQuizStats = useCallback(() => {
+        if (!quizResults || quizResults.length === 0) {
+            return {
+                totalAttempts: 0,
+                avgScore: 0,
+                passRate: 0,
+                failedCount: 0,
+            };
+        }
+        const totalAttempts = quizResults.length;
+        const avgScore = Math.round(
+            quizResults.reduce((sum, q) => sum + (q.percentage || 0), 0) / totalAttempts
+        );
+        const passedCount = quizResults.filter((q) => q.passed).length;
+        const passRate = Math.round((passedCount / totalAttempts) * 100);
+        const failedCount = totalAttempts - passedCount;
+        return { totalAttempts, avgScore, passRate, failedCount };
+    }, [quizResults]);
+
+    const getFilteredQuizResults = useCallback(() => {
+        if (!quizResults) return [];
+        return quizResults.filter((q) => {
+            const matchesSearch =
+                !quizSearchQuery ||
+                (q.studentName && q.studentName.toLowerCase().includes(quizSearchQuery.toLowerCase()));
+            const matchesSubject =
+                quizFilterSubject === "All" ||
+                (q.subjectName && q.subjectName === quizFilterSubject);
+            const matchesStatus =
+                quizFilterStatus === "All" ||
+                (quizFilterStatus === "Passed" && q.passed) ||
+                (quizFilterStatus === "Failed" && !q.passed);
+            return matchesSearch && matchesSubject && matchesStatus;
+        });
+    }, [quizResults, quizSearchQuery, quizFilterSubject, quizFilterStatus]);
+
+    const filteredQuizzes = getFilteredQuizResults();
+    const quizStats = computeQuizStats();
+    const quizTotalPages = Math.ceil(filteredQuizzes.length / quizzesPerPage);
+    const paginatedQuizzes = filteredQuizzes.slice(
+        (quizCurrentPage - 1) * quizzesPerPage,
+        quizCurrentPage * quizzesPerPage
+    );
+
+    const quizSubjects = quizResults
+        ? Array.from(new Set(quizResults.map((q) => q.subjectName).filter(Boolean)))
+        : [];
 
     // Pagination
     const totalPages = Math.ceil(filtered.length / studentsPerPage);
@@ -717,72 +779,222 @@ function TeacherDashboard() {
 
                 {/* ── Quiz Results Tab ──────────────────────────────── */}
                 {activeTab === "quizzes" && (
-                    <div className="td-pending-section">
-                        <div className="td-pending-header">
+                    <div className="td-quiz-section">
+                        {/* Header */}
+                        <div className="td-quiz-header">
                             <h2 className="td-section-title" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                                 <FileText size={24} color="#6366f1" />
                                 Quiz Results — Class {teacher?.assignedClass}-{teacher?.assignedSection}
                             </h2>
-                            <p className="td-section-subtitle">All quiz attempts by your students</p>
+                            <p className="td-section-subtitle">Comprehensive analytics of your students' quiz performance</p>
                         </div>
 
                         {quizResults.length === 0 ? (
-                            <div className="td-empty" style={{ padding: "3rem", textAlign: "center" }}>
+                            <div className="td-empty" style={{ padding: "3rem", textAlign: "center", background: "#ffffff", borderRadius: "12px", border: "1px solid #f1f5f9" }}>
                                 <div style={{ marginBottom: "16px" }}><Inbox size={48} color="#94a3b8" /></div>
-                                <h3>No quiz results yet</h3>
-                                <p>Results will appear here once students take quizzes.</p>
+                                <h3 style={{ fontSize: "1.1rem", fontWeight: 600, color: "#1a202c", marginBottom: "8px" }}>No quiz results yet</h3>
+                                <p style={{ color: "#64748b", fontSize: "0.95rem" }}>Results will appear here once students take quizzes.</p>
                             </div>
                         ) : (
-                            <div className="td-table-wrap">
-                                <table className="td-student-table">
-                                    <thead>
-                                        <tr>
-                                            <th>#</th>
-                                            <th>Student</th>
-                                            <th>Subject</th>
-                                            <th>Chapter</th>
-                                            <th>Score</th>
-                                            <th>%</th>
-                                            <th>Status</th>
-                                            <th>Date</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {quizResults.map((q, i) => (
-                                            <tr key={q._id}>
-                                                <td>{i + 1}</td>
-                                                <td>
-                                                    <div className="td-student-name-cell">
-                                                        <div className="td-student-avatar" style={{ background: "#e0f2fe", color: "#0369a1" }}>
-                                                            {(q.studentName || "S").charAt(0).toUpperCase()}
-                                                        </div>
-                                                        <span>{q.studentName || "—"}</span>
-                                                    </div>
-                                                </td>
-                                                <td style={{ fontSize: "13px" }}>{q.subjectName}</td>
-                                                <td style={{ fontSize: "13px", maxWidth: "160px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q.chapterName}</td>
-                                                <td style={{ fontWeight: 700 }}>{q.score}/{q.totalQ}</td>
-                                                <td style={{ fontWeight: 700, color: q.percentage >= 60 ? "#16a34a" : "#dc2626" }}>{q.percentage}%</td>
-                                                <td>
-                                                    <span style={{
-                                                        padding: "4px 10px", borderRadius: "100px",
-                                                        fontSize: "11px", fontWeight: 700,
-                                                        background: q.passed ? "#dcfce7" : "#fee2e2",
-                                                        color: q.passed ? "#15803d" : "#b91c1c",
-                                                        display: "inline-flex", alignItems: "center", gap: "4px"
-                                                    }}>
-                                                        {q.passed ? <CheckCircle size={14} /> : <XCircle size={14} />}
-                                                        {q.passed ? "Passed" : "Failed"}
-                                                    </span>
-                                                </td>
-                                                <td style={{ fontSize: "12px", color: "#94a3b8" }}>
-                                                    {new Date(q.lastAttempt).toLocaleDateString()}
-                                                </td>
+                            <>
+                                {/* ── Summary Stats Cards ──────────────────────────────── */}
+                                <div className="td-quiz-stats-row">
+                                    <div className="td-quiz-stat-card">
+                                        <div className="td-quiz-stat-label">Total Attempts</div>
+                                        <div className="td-quiz-stat-icon" style={{ background: "#dbeafe" }}>
+                                            <BarChart3 size={22} color="#3b82f6" />
+                                        </div>
+                                        <div className="td-quiz-stat-value">{quizStats.totalAttempts}</div>
+                                    </div>
+
+                                    <div className="td-quiz-stat-card">
+                                        <div className="td-quiz-stat-label">Average Score</div>
+                                        <div className="td-quiz-stat-icon" style={{ background: "#dcfce7" }}>
+                                            <TrendingUp size={22} color="#16a34a" />
+                                        </div>
+                                        <div className="td-quiz-stat-value">{quizStats.avgScore}%</div>
+                                    </div>
+
+                                    <div className="td-quiz-stat-card">
+                                        <div className="td-quiz-stat-label">Pass Rate</div>
+                                        <div className="td-quiz-stat-icon" style={{ background: "#fef9c3" }}>
+                                            <CheckCircle size={22} color="#ea8c55" />
+                                        </div>
+                                        <div className="td-quiz-stat-value">{quizStats.passRate}%</div>
+                                    </div>
+
+                                    <div className="td-quiz-stat-card">
+                                        <div className="td-quiz-stat-label">Failed Students</div>
+                                        <div className="td-quiz-stat-icon" style={{ background: "#fee2e2" }}>
+                                            <AlertTriangle size={22} color="#ef4444" />
+                                        </div>
+                                        <div className="td-quiz-stat-value">{quizStats.failedCount}</div>
+                                    </div>
+                                </div>
+
+                                {/* ── Controls: Search & Filters ──────────────────────── */}
+                                <div className="td-quiz-controls">
+                                    <div className="td-quiz-search">
+                                        <Search size={16} color="#94a3b8" />
+                                        <input
+                                            type="text"
+                                            placeholder="Search by student name..."
+                                            value={quizSearchQuery}
+                                            onChange={(e) => {
+                                                setQuizSearchQuery(e.target.value);
+                                                setQuizCurrentPage(1);
+                                            }}
+                                            className="td-quiz-search-input"
+                                        />
+                                    </div>
+
+                                    <div className="td-quiz-filters">
+                                        <select
+                                            value={quizFilterSubject}
+                                            onChange={(e) => {
+                                                setQuizFilterSubject(e.target.value);
+                                                setQuizCurrentPage(1);
+                                            }}
+                                            className="td-quiz-select"
+                                        >
+                                            <option value="All">All Subjects</option>
+                                            {quizSubjects.map((subj) => (
+                                                <option key={subj} value={subj}>
+                                                    {subj}
+                                                </option>
+                                            ))}
+                                        </select>
+
+                                        <select
+                                            value={quizFilterStatus}
+                                            onChange={(e) => {
+                                                setQuizFilterStatus(e.target.value);
+                                                setQuizCurrentPage(1);
+                                            }}
+                                            className="td-quiz-select"
+                                        >
+                                            <option value="All">All Results</option>
+                                            <option value="Passed">Passed</option>
+                                            <option value="Failed">Failed</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {/* ── Table ───────────────────────────────────────── */}
+                                <div className="td-quiz-table-wrapper">
+                                    <table className="td-quiz-table">
+                                        <thead>
+                                            <tr>
+                                                <th className="td-quiz-th-rank">#</th>
+                                                <th className="td-quiz-th-student">Student</th>
+                                                <th className="td-quiz-th-subject">Subject</th>
+                                                <th className="td-quiz-th-chapter">Chapter</th>
+                                                <th className="td-quiz-th-score">Score</th>
+                                                <th className="td-quiz-th-percentage">Performance</th>
+                                                <th className="td-quiz-th-status">Status</th>
+                                                <th className="td-quiz-th-date">Date</th>
                                             </tr>
+                                        </thead>
+                                        <tbody>
+                                            {paginatedQuizzes.map((q, idx) => {
+                                                const colors = getPercentageColor(q.percentage);
+                                                return (
+                                                    <tr key={q._id} className="td-quiz-row">
+                                                        <td className="td-quiz-rank">{(quizCurrentPage - 1) * quizzesPerPage + idx + 1}</td>
+                                                        <td className="td-quiz-student">
+                                                            <div className="td-quiz-student-cell">
+                                                                <div className="td-quiz-avatar">
+                                                                    {(q.studentName || "S").charAt(0).toUpperCase()}
+                                                                </div>
+                                                                <span>{q.studentName || "—"}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="td-quiz-subject">{q.subjectName}</td>
+                                                        <td className="td-quiz-chapter" title={q.chapterName}>
+                                                            {q.chapterName}
+                                                        </td>
+                                                        <td className="td-quiz-score">{q.score}/{q.totalQ}</td>
+                                                        <td className="td-quiz-percentage">
+                                                            <div className="td-quiz-progress-wrap">
+                                                                <div className="td-quiz-progress-bar">
+                                                                    <div
+                                                                        className="td-quiz-progress-fill"
+                                                                        style={{
+                                                                            width: `${q.percentage}%`,
+                                                                            background:
+                                                                                q.percentage >= 70
+                                                                                    ? "#16a34a"
+                                                                                    : q.percentage >= 40
+                                                                                        ? "#f59e0b"
+                                                                                        : "#ef4444",
+                                                                        transition: "width 0.4s ease",
+                                                                        borderRadius: "6px",
+                                                                        height: "100%",
+                                                                    }}
+                                                                />
+                                                                </div>
+                                                                <span className="td-quiz-pct">{q.percentage}%</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="td-quiz-status">
+                                                            <span
+                                                                className="td-quiz-badge"
+                                                                style={{
+                                                                    background: q.passed ? "#dcfce7" : "#fee2e2",
+                                                                    color: q.passed ? "#15803d" : "#b91c1c",
+                                                                }}
+                                                            >
+                                                                {q.passed ? (
+                                                                    <CheckCircle size={14} />
+                                                                ) : (
+                                                                    <XCircle size={14} />
+                                                                )}
+                                                                {q.passed ? "Passed" : "Failed"}
+                                                            </span>
+                                                        </td>
+                                                        <td className="td-quiz-date">
+                                                            {new Date(q.lastAttempt).toLocaleDateString()}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* ── Pagination ──────────────────────────────────── */}
+                                <div className="td-quiz-pagination">
+                                    <span className="td-quiz-showing">
+                                        Showing {paginatedQuizzes.length > 0 ? (quizCurrentPage - 1) * quizzesPerPage + 1 : 0} to {(quizCurrentPage - 1) * quizzesPerPage + paginatedQuizzes.length} of{" "}
+                                        {filteredQuizzes.length} results
+                                    </span>
+                                    <div className="td-quiz-pages">
+                                        <button
+                                            className="td-quiz-page-btn"
+                                            onClick={() => setQuizCurrentPage((p) => Math.max(1, p - 1))}
+                                            disabled={quizCurrentPage === 1}
+                                        >
+                                            <ChevronLeft size={16} />
+                                        </button>
+                                        {Array.from({ length: quizTotalPages }, (_, i) => i + 1).map((p) => (
+                                            <button
+                                                key={p}
+                                                className={`td-quiz-page-btn ${quizCurrentPage === p ? "active" : ""}`}
+                                                onClick={() => setQuizCurrentPage(p)}
+                                            >
+                                                {p}
+                                            </button>
                                         ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                                        <button
+                                            className="td-quiz-page-btn"
+                                            onClick={() => setQuizCurrentPage((p) => Math.min(quizTotalPages, p + 1))}
+                                            disabled={quizCurrentPage === quizTotalPages}
+                                        >
+                                            <ChevronRight size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
                         )}
                     </div>
                 )}
