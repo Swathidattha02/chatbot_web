@@ -3,6 +3,8 @@ const jwt = require("jsonwebtoken");
 const Teacher = require("../models/Teacher");
 const Admin = require("../models/Admin");
 const User = require("../models/User");
+const crypto = require("crypto");
+const sendEmail = require("../utils/sendEmail");
 
 // ─── Helper: generate JWT ─────────────────────────────────────────────────────
 const generateToken = (id, role) =>
@@ -587,6 +589,128 @@ const changeAdminPassword = async (req, res) => {
     }
 };
 
+// ─── Forgot Password (Teacher & Admin) ─────────────────────────────────────────
+const forgotPasswordTeacherAdmin = async (req, res) => {
+    try {
+        const { email, role } = req.body; // role: "teacher" | "admin"
+        
+        let Model;
+        if (role === 'admin') Model = Admin;
+        else if (role === 'teacher') Model = Teacher;
+        else return res.status(400).json({ success: false, message: "Invalid role" });
+
+        const user = await Model.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: `No ${role} found with this email`,
+            });
+        }
+
+        // Generate reset token
+        const resetToken = crypto.randomBytes(20).toString("hex");
+
+        // Hash token and set to resetPasswordToken field
+        user.resetPasswordToken = crypto
+            .createHash("sha256")
+            .update(resetToken)
+            .digest("hex");
+
+        // Set expire (10 minutes)
+        user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+
+        await user.save({ validateBeforeSave: false });
+
+        // Create reset URL
+        const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${role}/${resetToken}`;
+
+        try {
+            await sendEmail({
+                email: user.email,
+                subject: "Password Reset Token",
+                message: `Password reset link: ${resetUrl}`,
+                html: `
+                    <h1>Password Reset Requested</h1>
+                    <p>Click the link below to reset your ${role} account password. This link is valid for 10 minutes.</p>
+                    <a href="${resetUrl}" style="padding: 10px 20px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a>
+                    <p>If you did not request this, please ignore this email.</p>
+                `,
+            });
+
+            res.status(200).json({
+                success: true,
+                message: "Email sent successfully",
+            });
+        } catch (err) {
+            console.error(err);
+            user.resetPasswordToken = undefined;
+            user.resetPasswordExpire = undefined;
+            await user.save({ validateBeforeSave: false });
+
+            return res.status(500).json({
+                success: false,
+                message: "Email could not be sent",
+            });
+        }
+    } catch (error) {
+        console.error("Forgot Password Error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+        });
+    }
+};
+
+// ─── Reset Password (Teacher & Admin) ──────────────────────────────────────────
+const resetPasswordTeacherAdmin = async (req, res) => {
+    try {
+        const { role } = req.body; // role: "teacher" | "admin"
+        
+        let Model;
+        if (role === 'admin') Model = Admin;
+        else if (role === 'teacher') Model = Teacher;
+        else return res.status(400).json({ success: false, message: "Invalid role" });
+
+        // Get hashed token
+        const resetPasswordToken = crypto
+            .createHash("sha256")
+            .update(req.params.token)
+            .digest("hex");
+
+        const user = await Model.findOne({
+            resetPasswordToken,
+            resetPasswordExpire: { $gt: Date.now() },
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid or expired token",
+            });
+        }
+
+        // Set the new password
+        const salt = await bcrypt.genSalt(12);
+        user.password = await bcrypt.hash(req.body.password, salt);
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpire = undefined;
+
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Password reset successful",
+        });
+    } catch (error) {
+        console.error("Reset Password Error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Server error",
+        });
+    }
+};
+
 module.exports = {
     getSchools,
     getTeachersBySchool,
@@ -607,4 +731,6 @@ module.exports = {
     getStudentsBySchool,
     deleteTeacher,
     deleteStudent,
+    forgotPasswordTeacherAdmin,
+    resetPasswordTeacherAdmin,
 };

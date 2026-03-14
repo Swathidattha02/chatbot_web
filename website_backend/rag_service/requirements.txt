@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+httpx
+pydantic
+python-multipart
+langchain
+langchain-community
+pypdf
+python-dotenv
+unstructured
+pydantic-settings

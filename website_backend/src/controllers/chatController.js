@@ -426,11 +426,15 @@ exports.streamMessage = async (req, res) => {
                     {
                         message,
                         use_rag: useRAG,
-                        language: language
+                        language: language,
+                        conversation_history: chatSession.messages.slice(-10).map(m => ({
+                            role: m.role,
+                            content: m.content
+                        }))
                     },
                     {
                         responseType: 'stream',
-                        timeout: 60000,
+                        timeout: 120000, 
                     }
                 );
 

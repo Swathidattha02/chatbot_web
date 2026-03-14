@@ -18,7 +18,7 @@ const uploadToRAG = async (filePath, originalName) => {
             headers: {
                 ...formData.getHeaders(),
             },
-            timeout: 120000, // 2 minutes for large PDFs
+            timeout: 300000, // 5 minutes for large PDFs/embedding
         });
 
         return {

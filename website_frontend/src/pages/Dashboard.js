@@ -20,6 +20,9 @@ function Dashboard() {
     const [subjects, setSubjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [uploadStatus, setUploadStatus] = useState('');
+    const [uploadStage, setUploadStage] = useState(0);
     const [stats, setStats] = useState({
         totalChats: 0,
         docsUploaded: 0,
@@ -205,58 +208,113 @@ function Dashboard() {
         if (!file) return;
 
         // Validate file type
-        const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-        if (!allowedTypes.includes(file.type)) {
-            alert('Please upload a PDF or Word document');
+        const allowedTypes = [
+            'application/pdf', 
+            'application/msword', 
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'text/plain'
+        ];
+        
+        if (!allowedTypes.includes(file.type) && !file.name.match(/\.(pdf|doc|docx|txt)$/i)) {
+            alert('Please upload a PDF, Word, or Text document');
             return;
         }
 
-        // Validate file size (max 10MB)
-        if (file.size > 10 * 1024 * 1024) {
-            alert('File size must be less than 10MB');
+        // Validate file size (max 15MB)
+        if (file.size > 15 * 1024 * 1024) {
+            alert('File size must be less than 15MB');
             return;
         }
 
         setUploading(true);
+        setUploadProgress(0);
+        setUploadStatus('Connecting...');
+        setUploadStage(0);
+
+        const stages = [
+            "Uploading file...",
+            "Analyzing document...",
+            "Extracting text content...",
+            "Creating searchable chunks...",
+            "Generating AI embeddings (this takes a moment)...",
+            "Finalizing index..."
+        ];
+
+        let stageInterval;
+        const startProcessingAnimation = () => {
+            let currentStage = 1;
+            setUploadStage(currentStage);
+            setUploadStatus(stages[currentStage]);
+            
+            stageInterval = setInterval(() => {
+                if (currentStage < stages.length - 1) {
+                    currentStage++;
+                    setUploadStage(currentStage);
+                    setUploadStatus(stages[currentStage]);
+                    // Only simulate progress up to 98% during processing
+                    setUploadProgress(prev => Math.min(prev + (100 - prev) * 0.2, 98));
+                }
+            }, 3000); // Change message every 3 seconds
+        };
 
         try {
             const formData = new FormData();
             formData.append('document', file);
             formData.append('userId', user?.id || 'guest');
 
-            // Upload to backend
-            const response = await fetch(`${API_BASE_URL}/documents/upload`, {
-                method: 'POST',
+            const axios = (await import('axios')).default;
+            const token = localStorage.getItem('token');
+
+            const response = await axios.post(`${API_BASE_URL}/documents/upload`, formData, {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data'
                 },
-                body: formData
-            });
-
-            if (!response.ok) {
-                throw new Error('Upload failed');
-            }
-
-            const data = await response.json();
-
-            // Navigate to chat with document info
-            navigate('/chat', {
-                state: {
-                    uploadedDocument: {
-                        name: file.name,
-                        documentId: data.documentId,
-                        message: `Document "${file.name}" loaded successfully! You can now ask questions about it.`
+                onUploadProgress: (progressEvent) => {
+                    const percentCompleted = Math.round((progressEvent.loaded * 95) / progressEvent.total);
+                    setUploadProgress(percentCompleted);
+                    if (percentCompleted < 90) {
+                        setUploadStatus(`Uploading: ${percentCompleted}%`);
+                    } else if (percentCompleted >= 90 && uploadStage === 0) {
+                        setUploadStatus('Processing on server...');
+                        startProcessingAnimation();
                     }
-                }
+                },
+                timeout: 300000 
             });
+
+            clearInterval(stageInterval);
+            if (response.data.success) {
+                setUploadProgress(100);
+                setUploadStatus('Success! Redirecting...');
+                const data = response.data;
+
+                // Navigate to chat with document info
+                navigate('/chat', {
+                    state: {
+                        uploadedDocument: {
+                            name: file.name,
+                            documentId: data.document?.id || data.documentId,
+                            message: `Document "${file.name}" loaded successfully! You can now ask questions about it.`
+                        }
+                    }
+                });
+            } else {
+                throw new Error(response.data.error || 'Upload failed');
+            }
 
             // Clear the input
             event.target.value = '';
         } catch (error) {
+            clearInterval(stageInterval);
             console.error('Upload error:', error);
-            alert(`❌ Upload failed: ${error.message}\n\nNote: Make sure the backend server is running.`);
+            const errorMsg = error.response?.data?.error || error.message;
+            alert(`❌ Upload failed: ${errorMsg}\n\nNote: For large documents, the processing can take up to a minute.`);
         } finally {
             setUploading(false);
+            setUploadProgress(0);
+            setUploadStatus('');
+            setUploadStage(0);
         }
     };
 
@@ -316,8 +374,18 @@ function Dashboard() {
                         <p className="card-description">
                             Upload PDFs and documents for AI-powered Q&A
                         </p>
-                        <label htmlFor="file-upload" className={`card-button ${uploading ? 'uploading' : ''}`}>
-                            {uploading ? <><Loader2 className="animate-spin" size={16} /> Uploading...</> : <><Upload size={16} /> Upload Document</>}
+                        <label htmlFor="file-upload" className={`card-button ${uploading ? 'uploading disabled' : ''}`}>
+                            {uploading ? (
+                                <div className="upload-status-container">
+                                    <Loader2 className="animate-spin" size={16} />
+                                    <span>{uploadStatus}</span>
+                                    <div className="upload-progress-mini">
+                                        <div className="progress-bar-inner" style={{ width: `${uploadProgress}%` }}></div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <><Upload size={16} /> Upload Document</>
+                            )}
                         </label>
                         <input
                             id="file-upload"

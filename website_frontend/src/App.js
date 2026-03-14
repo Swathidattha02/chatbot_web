@@ -15,6 +15,8 @@ import LogoutConfirmation from "./pages/LogoutConfirmation";
 import Contact from "./pages/Contact";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 // Components
 import Navbar from "./components/Navbar";
@@ -58,6 +60,8 @@ function AppContent() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:role/:token" element={<ResetPassword />} />
         <Route
           path="/dashboard"
           element={

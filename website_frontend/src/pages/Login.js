@@ -111,7 +111,7 @@ function Login() {
                     <div className="form-group-new full-width">
                         <div className="label-row">
                             <label>Password</label>
-                            <a href="#forgot" className="forgot-link">Forgot password?</a>
+                            <Link to={`/forgot-password?role=${activeRole}`} className="forgot-link">Forgot password?</Link>
                         </div>
                         <div className="password-field">
                             <span className="input-icon"><Lock size={16} /></span>

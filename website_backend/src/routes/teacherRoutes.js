@@ -20,6 +20,8 @@ const {
     deleteTeacher,
     deleteStudent,
     changeAdminPassword,
+    forgotPasswordTeacherAdmin,
+    resetPasswordTeacherAdmin,
 } = require("../controllers/teacherController");
 const { getTeacherViolations } = require("../controllers/violationController");
 const { protect } = require("../middleware/auth");
@@ -30,6 +32,10 @@ router.get("/schools/:schoolId/teachers", getTeachersBySchool);
 router.post("/auth/teacher/register", registerTeacher);
 router.post("/auth/teacher/login", loginTeacher);
 router.post("/auth/admin/login", loginAdmin);
+router.post("/auth/teacher/forgot-password", forgotPasswordTeacherAdmin);
+router.put("/auth/teacher/reset-password/:token", resetPasswordTeacherAdmin);
+router.post("/auth/admin/forgot-password", forgotPasswordTeacherAdmin);
+router.put("/auth/admin/reset-password/:token", resetPasswordTeacherAdmin);
 
 // ── Protected: Teacher routes ───────────────────────────────────────────────────
 router.get("/teacher/dashboard", protect, getTeacherDashboard);

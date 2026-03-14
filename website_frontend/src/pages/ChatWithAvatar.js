@@ -162,16 +162,27 @@ function ChatWithAvatar() {
     useEffect(() => {
         if (location.state?.uploadedDocument) {
             const doc = location.state.uploadedDocument;
+            
+            // RESET SESSION for new document to avoid stale history context
+            setSessionId(null);
+            
             setMessages(prev => {
-                const alreadyAdded = prev.some(m => m.isSystemMessage && m.content.includes(doc.name));
-                if (alreadyAdded) return prev;
+                // If it's a new document, we might want to keep the hello but clear other things
+                // Or just append the system message. Resetting sessionId is the most important part.
                 setLoadedDocument(doc);
-                return [...prev, {
-                    role: 'assistant',
-                    content: `📄 ${doc.message}`,
-                    timestamp: new Date(),
-                    isSystemMessage: true
-                }];
+                return [
+                    {
+                        role: 'assistant',
+                        content: 'Hello! I\'m your interactive avatar. How can I help you today?',
+                        timestamp: new Date()
+                    },
+                    {
+                        role: 'assistant',
+                        content: `📄 ${doc.message}`,
+                        timestamp: new Date(),
+                        isSystemMessage: true
+                    }
+                ];
             });
             window.history.replaceState({}, document.title);
         }
