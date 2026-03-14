@@ -1,3 +1,126 @@
+/* Week Streak UI */
+.week-streak-ui {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(30,27,75,0.08);
+    padding: 16px 24px;
+    min-width: 220px;
+    margin-left: 12px;
+    margin-top: 4px;
+}
+.streak-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1e1b4b;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.streak-count {
+    font-size: 22px;
+    font-weight: 800;
+    color: #ef4444;
+    margin-bottom: 6px;
+    letter-spacing: 0.02em;
+    transition: color 0.2s;
+}
+.week-days-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+}
+.week-day-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #F1F5F9;
+    border-radius: 8px;
+    padding: 6px 10px;
+    min-width: 38px;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(30,27,75,0.04);
+}
+.week-day-chip.completed {
+    background: #10b981;
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(16,185,129,0.12);
+    transform: translateY(-2px) scale(1.05);
+}
+.week-day-chip:hover {
+    background: #312e81;
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(49,46,129,0.12);
+    transform: scale(1.08);
+}
+.day-label {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+.day-check {
+    font-size: 16px;
+    color: #fff;
+    font-weight: 700;
+    margin-top: 2px;
+    transition: color 0.2s;
+}
+.day-dot {
+    width: 8px;
+    height: 8px;
+    background: #94A3B8;
+    border-radius: 50%;
+    margin-top: 2px;
+}
+@media (max-width: 1024px) {
+    .week-streak-ui {
+        min-width: 100px;
+        padding: 12px 8px;
+        margin-left: 0;
+    }
+    .week-days-row {
+        gap: 4px;
+    }
+    .week-day-chip {
+        min-width: 28px;
+        padding: 4px 6px;
+    }
+    .streak-count {
+        font-size: 16px;
+    }
+}
+/* Download Report Button */
+.download-report-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    background: #1e1b4b;
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(30,27,75,0.08);
+    transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+.download-report-btn:hover:not(:disabled), .download-report-btn:focus:not(:disabled) {
+    background: #312e81;
+    box-shadow: 0 4px 16px rgba(30,27,75,0.12);
+    transform: translateY(-2px);
+}
+.download-report-btn:disabled {
+    background: #E2E8F0;
+    color: #94A3B8;
+    cursor: not-allowed;
+    box-shadow: none;
+}
 .analytics-page-wrapper {
     min-height: 100vh;
     background: #F8FAFC;
