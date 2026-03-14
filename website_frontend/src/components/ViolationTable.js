@@ -10,7 +10,12 @@ const REASON_LABELS = {
 
 // Helper function to format milliseconds to readable duration
 function formatDuration(ms) {
-  if (!ms || ms === 0) return '0s';
+  if (ms == null || Number.isNaN(ms)) return '0s';
+
+  // Clamp negative or tiny values to 0 for safety
+  if (ms < 0) ms = 0;
+  if (ms === 0) return '0s';
+
   const seconds = Math.floor((ms / 1000) % 60);
   const minutes = Math.floor((ms / (1000 * 60)) % 60);
   const hours = Math.floor(ms / (1000 * 60 * 60));
@@ -70,7 +75,13 @@ export default function ViolationTable({ violations, showUser = false, activityL
               const startT = new Date(v.startTime);
               const endT = v.endTime ? new Date(v.endTime) : null;
               const now = Date.now();
-              const violationAge = now - startT;
+              let violationAge = now - startT;
+
+              // Guard against clock / timezone issues where startTime appears in the future
+              if (violationAge < 0) {
+                console.warn('[ViolationTable] Negative violationAge detected, clamping to 0 for', v._id);
+                violationAge = 0;
+              }
               
               // CRITICAL: Only show "(ongoing)" for violations < 2 minutes without endTime
               // Anything older is a historical record and should NEVER show "(ongoing)"
@@ -95,7 +106,7 @@ export default function ViolationTable({ violations, showUser = false, activityL
               // Calculate duration - use ONLY real stored data, never fabricate
               let displayDuration;
               let isStillAway;
-              if (v.duration && typeof v.duration === 'number' && v.duration > 0) {
+              if (typeof v.duration === 'number' && v.duration > 0) {
                 // Use real stored duration (best source of truth from backend)
                 displayDuration = v.duration;
                 isStillAway = false;
@@ -114,7 +125,13 @@ export default function ViolationTable({ violations, showUser = false, activityL
                 displayDuration = 0;
                 isStillAway = false;
               }
-              
+
+              // Clamp any negative duration to 0 so UI never shows -1s or similar
+              if (displayDuration < 0) {
+                console.warn('[ViolationTable] Negative displayDuration detected, clamping to 0 for', v._id, 'value:', displayDuration);
+                displayDuration = 0;
+              }
+
               // FINAL SAFETY CHECK: Force isStillAway to false for any violation >= 2 minutes old
               // This guarantees even with stale data, no "(ongoing)" appears for old violations
               if (violationAge >= ONGOING_THRESHOLD_MS) {
