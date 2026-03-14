@@ -437,8 +437,12 @@ exports.streamMessage = async (req, res) => {
                 usedRAG = true;
 
                 // Pipe the RAG stream directly
+                let ragStreamingBuffer = "";
                 for await (const chunk of response.data) {
-                    const lines = chunk.toString().split('\n').filter(line => line.trim());
+                    ragStreamingBuffer += chunk.toString();
+                    const lines = ragStreamingBuffer.split("\n");
+                    ragStreamingBuffer = lines.pop();
+
                     for (const line of lines) {
                         if (line.startsWith('data: ')) {
                             try {
@@ -579,10 +583,14 @@ exports.streamMessage = async (req, res) => {
                     );
 
                     // Stream Ollama response
+                    let streamingBuffer = "";
                     for await (const chunk of ollamaResponse.data) {
-                        const lines = chunk.toString().split('\n').filter(line => line.trim());
+                        streamingBuffer += chunk.toString();
+                        const lines = streamingBuffer.split("\n");
+                        streamingBuffer = lines.pop(); // Keep partial line in buffer
 
                         for (const line of lines) {
+                            if (!line.trim()) continue;
                             try {
                                 const json = JSON.parse(line);
                                 if (json.message?.content) {
@@ -593,7 +601,7 @@ exports.streamMessage = async (req, res) => {
                                     break;
                                 }
                             } catch (e) {
-                                // Skip invalid JSON
+                                console.error('Error parsing Ollama chunk:', e.message, line);
                             }
                         }
                     }

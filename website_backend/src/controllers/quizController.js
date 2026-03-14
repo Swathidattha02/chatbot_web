@@ -6,64 +6,7 @@ const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
 const LLM_MODEL = process.env.LLM_MODEL || "llama3.2";
 const PASS_PERCENT = 60;
 
-// ── Helper: call the right AI backend (local Ollama OR RunPod) ─────────────────
-async function callLLM(prompt) {
-    const RUNPOD_API_KEY = process.env.RUNPOD_API_KEY;
-    const RUNPOD_ENDPOINT_ID = process.env.RUNPOD_ENDPOINT_ID;
-
-    // ── PRODUCTION: RunPod ──────────────────────────────────────────────────────
-    if (RUNPOD_API_KEY && RUNPOD_ENDPOINT_ID) {
-        console.log("🚀 Quiz: using RunPod endpoint:", RUNPOD_ENDPOINT_ID);
-
-        const response = await axios.post(
-            `https://api.runpod.ai/v2/${RUNPOD_ENDPOINT_ID}/runsync`,
-            {
-                input: {
-                    model: LLM_MODEL,
-                    prompt,
-                    stream: false,
-                    options: { temperature: 0.7, num_predict: 2000 },
-                },
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${RUNPOD_API_KEY}`,
-                    "Content-Type": "application/json",
-                },
-                timeout: 180000, // 3 min for cold starts
-            }
-        );
-
-        const output = response.data?.output;
-        if (!output) throw new Error("RunPod returned empty output");
-
-        // RunPod workers may return string or object
-        if (typeof output === "string") return output;
-        if (output.response) return output.response;
-        if (output.message?.content) return output.message.content;
-        throw new Error("Unrecognised RunPod output format");
-    }
-
-    // ── LOCAL DEV: Ollama ───────────────────────────────────────────────────────
-    console.log("🧠 Quiz: using local Ollama →", OLLAMA_BASE_URL);
-
-    const response = await axios.post(
-        `${OLLAMA_BASE_URL}/api/generate`,
-        {
-            model: LLM_MODEL,
-            prompt,
-            stream: false,
-            options: { temperature: 0.7, num_predict: 2000 },
-        },
-        { timeout: 120000 }
-    );
-
-    const text = response.data?.response;
-    if (!text) throw new Error("Ollama returned empty response");
-    return text;
-}
-
-// ── Repair & parse JSON that LLMs sometimes truncate or malform ────────────────
+// @desc  Generate 10 MCQ questions for a chapter using Llama
 function repairAndParseJSON(raw) {
     const start = raw.indexOf('[');
     if (start === -1) throw new Error('No JSON array found in response');
@@ -103,58 +46,99 @@ function repairAndParseJSON(raw) {
 // @access Private
 // ─────────────────────────────────────────────────────────────────────────────
 exports.generateQuiz = async (req, res) => {
-    try {
-        const { chapterName, subjectName } = req.body;
+    const { chapterName, subjectName } = req.body;
 
-        if (!chapterName || !subjectName) {
-            return res.status(400).json({ success: false, message: "chapterName and subjectName are required" });
-        }
+    if (!chapterName || !subjectName) {
+        return res.status(400).json({ success: false, message: "chapterName and subjectName are required" });
+    }
 
-        // Short, concrete prompt — llama3.2 omits "answer" with long prompts
-        const prompt = `Generate 10 MCQ questions for the chapter "${chapterName}" from ${subjectName} for school students.
-Output ONLY a valid JSON array. Each object must have these exact keys: id, question, options, answer.
-"answer" must exactly match one of the 4 options.
+    console.log(`🧠 Generating quiz: ${subjectName} — ${chapterName}`);
+
+    const prompt = `Task: Generate exactly 5 MCQ questions for school students based on the chapter "${chapterName}" from the subject "${subjectName}".
+Output format: ONLY a valid JSON array. Do not include any introductory or concluding text.
+JSON Structure per object: {"id": number, "question": "string", "options": ["Option A", "Option B", "Option C", "Option D"], "answer": "The exact string of the correct option"}.
+The "answer" must be exactly one of the items in the "options" array.
 Example:
-[{"id":1,"question":"What is 1/2 + 1/4?","options":["A) 1/4","B) 3/4","C) 1","D) 1/2"],"answer":"B) 3/4"}]
-Now output all 10:`;
+[{"id":1,"question":"What is the capital of France?","options":["Paris","London","Berlin","Madrid"],"answer":"Paris"}]
+Now output all 5 questions:`;
 
-        console.log(`🧠 Generating quiz: ${subjectName} — ${chapterName}`);
+    let attempts = 0;
+    const maxAttempts = 2;
 
-        const rawText = await callLLM(prompt);
-        console.log(`📄 LLM output (first 200 chars): ${rawText.substring(0, 200)}`);
-
-        let questions;
+    while (attempts < maxAttempts) {
+        attempts++;
         try {
-            questions = repairAndParseJSON(rawText);
-        } catch (e) {
-            console.error('❌ JSON repair failed:', e.message);
-            throw new Error('Model returned unparseable JSON. Please try again.');
+            // Lower temperature (0.1) for much faster and more reliable JSON generation
+            const RUNPOD_API_KEY = process.env.RUNPOD_API_KEY;
+            const RUNPOD_ENDPOINT_ID = process.env.RUNPOD_ENDPOINT_ID;
+            
+            let rawText;
+            if (RUNPOD_API_KEY && RUNPOD_ENDPOINT_ID) {
+                // RunPod
+                const response = await axios.post(
+                    `https://api.runpod.ai/v2/${RUNPOD_ENDPOINT_ID}/runsync`,
+                    {
+                        input: {
+                            model: LLM_MODEL,
+                            prompt,
+                            stream: false,
+                            options: { temperature: 0.1, num_predict: 1200 },
+                        },
+                    },
+                    {
+                        headers: { Authorization: `Bearer ${RUNPOD_API_KEY}`, "Content-Type": "application/json" },
+                        timeout: 180000,
+                    }
+                );
+                rawText = response.data?.output?.response || response.data?.output || "";
+            } else {
+                // Local Ollama
+                const response = await axios.post(
+                    `${OLLAMA_BASE_URL}/api/generate`,
+                    {
+                        model: LLM_MODEL,
+                        prompt,
+                        stream: false,
+                        options: { temperature: 0.1, num_predict: 1200 },
+                    },
+                    { timeout: 180000 } // Increased to 3 min
+                );
+                rawText = response.data?.response || "";
+            }
+
+            if (!rawText) throw new Error("Empty response from LLM");
+
+            let parsedQuestions = repairAndParseJSON(rawText);
+
+            // Sanitise: keep only well-formed questions
+            const questions = parsedQuestions
+                .filter(q => q && typeof q.question === 'string' && Array.isArray(q.options) && q.options.length >= 2)
+                .slice(0, 5)
+                .map((q, i) => {
+                    const opts = q.options.slice(0, 4);
+                    const ans = q.answer && opts.includes(q.answer) ? q.answer : opts[0];
+                    return { id: i + 1, question: q.question, options: opts, answer: ans };
+                });
+
+            if (questions.length < 3) {
+                throw new Error(`Only ${questions.length} valid questions returned.`);
+            }
+
+            console.log(`✅ delivered ${questions.length} questions for "${chapterName}" (Attempt ${attempts})`);
+            return res.json({ success: true, questions });
+
+        } catch (error) {
+            console.error(`❌ Quiz attempt ${attempts} failed:`, error.message);
+            if (attempts >= maxAttempts) {
+                return res.status(500).json({
+                    success: false,
+                    message: "Failed to generate quiz. The AI might be under heavy load.",
+                    error: error.message,
+                });
+            }
+            // Wait 1s before retry
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
-
-        // Sanitise: keep only well-formed questions, fill missing answer with options[0]
-        questions = questions
-            .filter(q => q && typeof q.question === 'string' && Array.isArray(q.options) && q.options.length >= 2)
-            .slice(0, 10)
-            .map((q, i) => {
-                const opts = q.options.slice(0, 4);
-                const ans = q.answer && opts.includes(q.answer) ? q.answer : opts[0];
-                return { id: i + 1, question: q.question, options: opts, answer: ans };
-            });
-
-        if (questions.length < 3) {
-            throw new Error(`Only ${questions.length} valid questions returned. Please try again.`);
-        }
-
-        console.log(`✅ Delivered ${questions.length} questions for "${chapterName}"`);
-        return res.json({ success: true, questions });
-
-    } catch (error) {
-        console.error("❌ Quiz generate error:", error.message);
-        return res.status(500).json({
-            success: false,
-            message: "Failed to generate quiz. Please try again.",
-            error: error.message,
-        });
     }
 };
 

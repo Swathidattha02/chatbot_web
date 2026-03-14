@@ -169,4 +169,5 @@ module.exports = {
     getRAGStats,
     clearRAGStore,
     checkRAGHealth,
+    RAG_SERVICE_URL,
 };
