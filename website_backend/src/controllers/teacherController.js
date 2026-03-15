@@ -274,6 +274,8 @@ const getTeacherDashboard = async (req, res) => {
                 name: student.name,
                 rollNumber: student.rollNumber || "-",
                 email: student.email,
+                class: student.class,
+                section: student.section,
                 subjectProgress,
                 totalCompletion: Math.round(totalCompletion),
             };

@@ -68,6 +68,16 @@ function TeacherDashboard() {
 
             const result = await dashboardService.fetchTeacherDashboardBatch();
 
+            console.log("📊 Teacher Dashboard Data:", {
+                teacher: result.data.dashboard?.teacher,
+                stats: result.data.dashboard?.stats,
+                studentsCount: result.data.dashboard?.students?.length,
+                students: result.data.dashboard?.students,
+                pendingCount: result.data.pendingStudents?.students?.length,
+                quizzesCount: result.data.quizResults?.quizzes?.length,
+                violationsCount: result.data.violations?.violations?.length
+            });
+
             if (result.data.dashboard?.success) {
                 setTeacher(result.data.dashboard.teacher);
                 setStats(result.data.dashboard.stats);
@@ -398,10 +408,7 @@ function TeacherDashboard() {
                         <div className="td-school-name">
                             {teacher?.schoolName || "School"}
                         </div>
-                        <div className="td-class-info">
-                            Class {teacher?.assignedClass}-{teacher?.assignedSection} •{" "}
-                            Academic Year 2023-24
-                        </div>
+                      
                     </div>
                 </div>
 
@@ -486,7 +493,6 @@ function TeacherDashboard() {
                                             <th>Name</th>
                                             <th>Email</th>
                                             <th>Roll No.</th>
-                                            <th>Class</th>
                                             <th>Applied On</th>
                                             <th>Action</th>
                                         </tr>
@@ -504,7 +510,6 @@ function TeacherDashboard() {
                                                 </td>
                                                 <td style={{ fontSize: "13px", color: "#64748b" }}>{s.email}</td>
                                                 <td>{s.rollNumber || "—"}</td>
-                                                <td>{s.class} / {s.section}</td>
                                                 <td style={{ fontSize: "12px", color: "#94a3b8" }}>
                                                     {new Date(s.createdAt).toLocaleDateString()}
                                                 </td>
