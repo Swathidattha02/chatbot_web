@@ -171,7 +171,7 @@ function TeacherDashboard() {
         loadDashboardData();
     }, [loadDashboardData, token, navigate]);
 
-    // Search filter for Dashboard Tab
+    // Search filter
     useEffect(() => {
         const q = searchQuery.toLowerCase();
         setFiltered(
@@ -307,35 +307,7 @@ function TeacherDashboard() {
         });
     }, [quizResults, quizSearchQuery, quizFilterSubject, quizFilterStatus]);
 
-    // ─── FILTERED DATA FOR ALL TABS ─────────────────────────────────────────
-    // Pending Students filtered
-    const filteredPending = searchQuery.trim() === "" 
-        ? pendingStudents 
-        : pendingStudents.filter((s) => 
-            s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (s.rollNumber && s.rollNumber.toLowerCase().includes(searchQuery.toLowerCase()))
-        );
-
-    // Quiz Results filtered
-    const filteredQuizzesWithSearch = searchQuery.trim() === ""
-        ? getFilteredQuizResults()
-        : getFilteredQuizResults().filter((q) =>
-            (q.studentName && q.studentName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-            (q.subjectName && q.subjectName.toLowerCase().includes(searchQuery.toLowerCase()))
-        );
-
-    // Violations filtered
-    const filteredViolations = searchQuery.trim() === ""
-        ? violations
-        : violations.filter((v) =>
-            (v.username && v.username.toLowerCase().includes(searchQuery.toLowerCase())) ||
-            (v.class && v.class.toLowerCase().includes(searchQuery.toLowerCase())) ||
-            (v.section && v.section.toLowerCase().includes(searchQuery.toLowerCase())) ||
-            (v.reason && v.reason.toLowerCase().includes(searchQuery.toLowerCase()))
-        );
-
-    const filteredQuizzes = filteredQuizzesWithSearch;
+    const filteredQuizzes = getFilteredQuizResults();
     const quizStats = computeQuizStats();
     const quizTotalPages = Math.ceil(filteredQuizzes.length / quizzesPerPage);
     const paginatedQuizzes = filteredQuizzes.slice(
@@ -481,7 +453,7 @@ function TeacherDashboard() {
                     <span><Search size={16} color="#94a3b8" /></span>
                     <input
                         type="text"
-                        placeholder="Search across all sections..."
+                        placeholder="Search student name or ID..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -513,12 +485,6 @@ function TeacherDashboard() {
                                 <h3>No pending approvals</h3>
                                 <p>All student registrations have been reviewed!</p>
                             </div>
-                        ) : filteredPending.length === 0 ? (
-                            <div className="td-empty" style={{ textAlign: "center", padding: "40px 0" }}>
-                                <Search size={48} color="#94a3b8" style={{ marginBottom: "16px" }} />
-                                <h3>No matching students found</h3>
-                                <p>Try a different search term.</p>
-                            </div>
                         ) : (
                             <div className="td-table-wrapper">
                                 <table className="td-table">
@@ -532,7 +498,7 @@ function TeacherDashboard() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {filteredPending.map((s) => (
+                                        {pendingStudents.map((s) => (
                                             <tr key={s._id} className="td-row">
                                                 <td className="td-student-cell">
                                                     <div className="td-student-info">
@@ -812,12 +778,6 @@ function TeacherDashboard() {
                                 <h3 style={{ fontSize: "1.1rem", fontWeight: 600, color: "#1a202c", marginBottom: "8px" }}>No quiz results yet</h3>
                                 <p style={{ color: "#64748b", fontSize: "0.95rem" }}>Results will appear here once students take quizzes.</p>
                             </div>
-                        ) : filteredQuizzes.length === 0 ? (
-                            <div className="td-empty" style={{ padding: "3rem", textAlign: "center", background: "#ffffff", borderRadius: "12px", border: "1px solid #f1f5f9" }}>
-                                <div style={{ marginBottom: "16px" }}><Search size={48} color="#94a3b8" /></div>
-                                <h3 style={{ fontSize: "1.1rem", fontWeight: 600, color: "#1a202c", marginBottom: "8px" }}>No matching quizzes found</h3>
-                                <p style={{ color: "#64748b", fontSize: "0.95rem" }}>Try a different search term.</p>
-                            </div>
                         ) : (
                             <>
                                 {/* ── Summary Stats Cards ──────────────────────────────── */}
@@ -1061,12 +1021,6 @@ function TeacherDashboard() {
                                 <h3>No violations recorded</h3>
                                 <p>All students are focused during sessions!</p>
                             </div>
-                        ) : filteredViolations.length === 0 ? (
-                            <div className="td-empty" style={{ padding: "3rem", textAlign: "center" }}>
-                                <div style={{ marginBottom: "16px" }}><Search size={48} color="#94a3b8" /></div>
-                                <h3>No matching violations found</h3>
-                                <p>Try a different search term.</p>
-                            </div>
                         ) : (
                             <div>
                                 <div style={{ marginBottom: '20px', padding: '12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px' }}>
@@ -1074,7 +1028,7 @@ function TeacherDashboard() {
                                         ℹ️ <strong>Focus Activity Log:</strong> Shows when students left the study page, when they returned, and how long they were away.
                                     </p>
                                 </div>
-                                <ViolationTable violations={filteredViolations} showUser={true} activityLogView={true} />
+                                <ViolationTable violations={violations} showUser={true} activityLogView={true} />
                             </div>
                         )}
                     </div>
