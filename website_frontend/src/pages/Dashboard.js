@@ -7,9 +7,10 @@ import {
     FileText, Clock, Flame, Trophy, Target, 
     Bot, Loader2, Play, ArrowRight, Calculator, 
     Microscope, Dna, Globe, Languages, Atom, 
-    Beaker, Monitor 
+    Beaker, Monitor, AlertCircle, RefreshCw
 } from "lucide-react";
 import Footer from "../components/Footer";
+import dashboardService from "../services/dashboardService";
 import "../styles/Dashboard.css";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
@@ -19,6 +20,8 @@ function Dashboard() {
     const navigate = useNavigate();
     const [subjects, setSubjects] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]); // YYYY-MM-DD format
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [uploadStatus, setUploadStatus] = useState('');
@@ -62,183 +65,134 @@ function Dashboard() {
         console.log("Study session stopped.");
     };
 
-    // Load subjects based on user's class and fetch progress
-    useEffect(() => {
-        const fetchSubjectsAndProgress = async () => {
-            try {
-                if (user?.class) {
-                    // Ensure user class is formatted as "Class X"
-                    const normalizedClass = user.class.toString().trim().startsWith("Class")
-                        ? user.class.toString().trim()
-                        : `Class ${user.class.toString().trim()}`;
+    // ─── LOAD DASHBOARD DATA ───────────────────────────────────────────────────
+    const loadDashboardData = useCallback(async (dateToFetch = null) => {
+        try {
+            setLoading(true);
+            setError(null);
 
-                    const classSubjects = getSubjectsForClass(normalizedClass);
-                    let userProgress = [];
+            // Check if user is authenticated
+            if (!user?.class) {
+                setError("User information not available. Please login again.");
+                return;
+            }
 
-                    // Fetch user progress from backend
-                    try {
-                        const token = localStorage.getItem('token');
-                        if (token) {
-                            const response = await fetch(`${API_BASE_URL}/progress/user`, {
-                                headers: {
-                                    'Authorization': `Bearer ${token}`
-                                }
-                            });
-                            const data = await response.json();
-                            if (data.success) {
-                                userProgress = data.progress || [];
-                            }
-                        }
-                    } catch (error) {
-                        console.error("Error fetching user progress:", error);
+            // Normalize class name
+            const normalizedClass = user.class.toString().trim().startsWith("Class")
+                ? user.class.toString().trim()
+                : `Class ${user.class.toString().trim()}`;
+
+            // Get subjects from config
+            const classSubjects = getSubjectsForClass(normalizedClass);
+            
+            if (!classSubjects || classSubjects.length === 0) {
+                setError("No subjects found for your class. Please contact support.");
+                return;
+            }
+
+            // Fetch all dashboard data in parallel using batch service with the selected date
+            const result = await dashboardService.fetchStudentDashboardBatch(dateToFetch || selectedDate);
+
+                // Extract data from results
+                const progressData = result.data.progress?.progress || [];
+                const monthlyAnalytics = result.data.monthlyAnalytics?.analytics || {};
+                const dailyAnalytics = result.data.dailyAnalytics?.analytics || {};
+                const docsData = result.data.documents?.documents || [];
+
+                // Update stats
+                setStats(prev => ({
+                    ...prev,
+                    totalChats: monthlyAnalytics.aiTutorQueries || 0,
+                    hoursLearned: (monthlyAnalytics.totalTime || 0) / 60, // Convert minutes to hours
+                    streak: monthlyAnalytics.streak || 0,
+                    docsUploaded: docsData.length || 0
+                }));
+
+                // Update today's activity
+                setTodayActivity(dailyAnalytics.subjects || []);
+
+                // Fetch achievements and recommendations (these are handled separately)
+                try {
+                    const achievementsResult = await dashboardService.fetchAchievements?.();
+                    if (achievementsResult?.success) {
+                        setAchievements(achievementsResult.achievements || []);
                     }
-
-                    // Fetch monthly analytics for stats cards
-                    try {
-                        const token = localStorage.getItem('token');
-                        const analyticsResponse = await fetch(`${API_BASE_URL}/progress/analytics/monthly`, {
-                            headers: {
-                                'Authorization': `Bearer ${token}`
-                            }
-                        });
-                        const analyticsData = await analyticsResponse.json();
-                        console.log("Monthly analytics response:", analyticsData);
-                        if (analyticsData.success) {
-                            const { totalTime, aiTutorQueries, streak } = analyticsData.analytics;
-                            console.log("Setting stats - totalChats:", aiTutorQueries, "hoursLearned:", totalTime, "streak:", streak);
-
-                            setStats(prev => ({
-                                ...prev,
-                                totalChats: aiTutorQueries || 0,
-                                hoursLearned: totalTime || 0,
-                                streak: streak || 0
-                            }));
-                        }
-                    } catch (error) {
-                        console.error("Error fetching monthly analytics:", error);
-                    }
-
-                    // Fetch today's activity
-                    try {
-                        const token = localStorage.getItem('token');
-                        const todayStr = new Date().toISOString().split('T')[0];
-                        const dailyResponse = await fetch(`${API_BASE_URL}/progress/analytics/daily?date=${todayStr}`, {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        const dailyData = await dailyResponse.json();
-                        if (dailyData.success) {
-                            setTodayActivity(dailyData.analytics.subjects || []);
-                        }
-                    } catch (error) {
-                        console.error("Error fetching today's activity:", error);
-                    }
-
-                    // Fetch documents for count
-                    try {
-                        const token = localStorage.getItem('token');
-                        const docsResponse = await fetch(`${API_BASE_URL}/documents/list`, {
-                            headers: {
-                                'Authorization': `Bearer ${token}`
-                            }
-                        });
-                        const docsData = await docsResponse.json();
-                        console.log("Documents response:", docsData);
-                        if (docsData.success) {
-                            const docsCount = docsData.documents?.length || 0;
-                            console.log("Setting stats - docsUploaded:", docsCount);
-                            setStats(prev => ({
-                                ...prev,
-                                docsUploaded: docsCount
-                            }));
-                        }
-                    } catch (error) {
-                        console.error("Error fetching documents:", error);
-                    }
-
-                    // Fetch user achievements
-                    try {
-                        const token = localStorage.getItem('token');
-                        const achievementsResponse = await fetch(`${API_BASE_URL}/progress/achievements`, {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        const achievementsData = await achievementsResponse.json();
-                        console.log("Achievements response:", achievementsData);
-                        if (achievementsResponse.ok && achievementsData.success) {
-                            setAchievements(achievementsData.achievements || []);
-                        }
-                    } catch (error) {
-                        console.error("Error fetching achievements:", error);
-                    }
-
-                    // Fetch personalized recommendations
-                    try {
-                        const token = localStorage.getItem('token');
-                        const recsResponse = await fetch(`${API_BASE_URL}/progress/recommendations`, {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        const recsData = await recsResponse.json();
-                        console.log("Recommendations response:", recsData);
-                        if (recsResponse.ok && recsData.success) {
-                            setRecommendations(recsData.recommendations || []);
-                        }
-                    } catch (error) {
-                        console.error("Error fetching recommendations:", error);
-                    }
-
-                    // Add progress and chapter counts to subjects
-                    const subjectsWithProgress = classSubjects.map(subject => {
-                        // Filter progress for this specific subject
-                        const subjectProgressEntries = userProgress.filter(p => p.subjectId === subject.id);
-
-                        // Calculate granular progress (sum of all chapter percentages / total chapters)
-                        let totalProgressPoints = 0;
-                        const totalChaptersCount = subject.chapters?.length || 0;
-
-                        if (totalChaptersCount > 0) {
-                            subject.chapters.forEach(chapter => {
-                                // Loose equality for ID matching to be safe
-                                const p = subjectProgressEntries.find(entry => entry.chapterId === chapter.id);
-                                if (p) {
-                                    if (p.completed) {
-                                        totalProgressPoints += 100;
-                                    } else {
-                                        // Partial credit based on time (capped at 99%)
-                                        // Formula matches SubjectChapters logic: (Time / 2min) * 100
-                                        const time = p.timeSpent || 0;
-                                        const percent = Math.min((time / 2) * 100, 99);
-                                        totalProgressPoints += percent;
-                                    }
-                                }
-                            });
-                        }
-
-                        // Average progress across all chapters
-                        const progressPercentage = totalChaptersCount > 0
-                            ? Math.round(totalProgressPoints / totalChaptersCount)
-                            : 0;
-
-                        // Count fully completed for display if needed
-                        const completedChaptersCount = subjectProgressEntries.filter(p => p.completed).length;
-
-                        return {
-                            ...subject,
-                            progress: progressPercentage,
-                            totalChapters: totalChaptersCount,
-                            completedChapters: completedChaptersCount
-                        };
-                    });
-
-                    setSubjects(subjectsWithProgress);
+                } catch (err) {
+                    console.warn("Could not load achievements:", err.message);
                 }
-                setLoading(false);
-            } catch (error) {
-                console.error("Error fetching subjects:", error);
+
+                try {
+                    const recsResult = await dashboardService.fetchRecommendations?.();
+                    if (recsResult?.success) {
+                        setRecommendations(recsResult.recommendations || []);
+                    }
+                } catch (err) {
+                    console.warn("Could not load recommendations:", err.message);
+                }
+
+                // Enrich subjects with progress data
+                const subjectsWithProgress = classSubjects.map(subject => {
+                    const subjectProgressEntries = progressData.filter(p => p.subjectId === subject.id);
+
+                    // Calculate overall progress
+                    let totalProgressPoints = 0;
+                    const totalChaptersCount = subject.chapters?.length || 0;
+
+                    if (totalChaptersCount > 0) {
+                        subject.chapters.forEach(chapter => {
+                            const p = subjectProgressEntries.find(entry => entry.chapterId === chapter.id);
+                            if (p) {
+                                if (p.completed) {
+                                    totalProgressPoints += 100;
+                                } else {
+                                    const time = p.timeSpent || 0;
+                                    const percent = Math.min((time / 2) * 100, 99);
+                                    totalProgressPoints += percent;
+                                }
+                            }
+                        });
+                    }
+
+                    const progressPercentage = totalChaptersCount > 0
+                        ? Math.round(totalProgressPoints / totalChaptersCount)
+                        : 0;
+
+                    const completedChaptersCount = subjectProgressEntries.filter(p => p.completed).length;
+
+                    return {
+                        ...subject,
+                        progress: progressPercentage,
+                        totalChapters: totalChaptersCount,
+                        completedChapters: completedChaptersCount
+                    };
+                });
+
+                setSubjects(subjectsWithProgress);
+            } catch (err) {
+                console.error("Error loading dashboard:", err);
+                
+                if (err.message?.includes("Authentication")) {
+                    navigate("/login");
+                    return;
+                }
+                
+                setError(err.message || "Failed to load dashboard. Please try again.");
+            } finally {
                 setLoading(false);
             }
-        };
+        }, [user, navigate, selectedDate]);
 
-        fetchSubjectsAndProgress();
-    }, [user]);
+        // Call the function when dependencies change
+        useEffect(() => {
+            loadDashboardData();
+        }, [loadDashboardData]);
+
+    // ─── HANDLE DATE CHANGE ────────────────────────────────────────────────────
+    const handleDateChange = useCallback(async (e) => {
+        const newDate = e.target.value;
+        setSelectedDate(newDate);
+        // The useEffect will automatically trigger and load data for the new date
+    }, []);
 
     const handleFileUpload = async (event) => {
         const file = event.target.files[0];
@@ -381,6 +335,70 @@ function Dashboard() {
 
     const renderSubjectIcon = (emoji) => subjectIconMap[emoji] || <span>{emoji}</span>;
 
+    // ─── LOADING STATE ────────────────────────────────────────────────────────
+    if (loading) {
+        return (
+            <div className="dashboard-container" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+                <div style={{ textAlign: "center", gap: "20px" }}>
+                    <Loader2 className="animate-spin" size={48} color="#4f46e5" style={{ margin: "0 auto 20px" }} />
+                    <h2 style={{ fontSize: "20px", fontWeight: "600", color: "#1e293b" }}>Loading your dashboard...</h2>
+                    <p style={{ color: "#64748b" }}>Fetching your progress and personalized content</p>
+                </div>
+            </div>
+        );
+    }
+
+    // ─── ERROR STATE ──────────────────────────────────────────────────────────
+    if (error) {
+        return (
+            <div className="dashboard-container" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+                <div style={{ textAlign: "center", gap: "20px", maxWidth: "500px" }}>
+                    <AlertCircle size={64} color="#ef4444" style={{ margin: "0 auto 20px" }} />
+                    <h1 style={{ fontSize: "24px", fontWeight: "600", color: "#1e293b", marginBottom: "12px" }}>
+                        Unable to Load Dashboard
+                    </h1>
+                    <p style={{ color: "#64748b", marginBottom: "24px" }}>
+                        {error}
+                    </p>
+                    <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+                        <button
+                            onClick={() => window.location.reload()}
+                            style={{
+                                padding: "10px 20px",
+                                backgroundColor: "#4f46e5",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "8px",
+                                cursor: "pointer",
+                                fontSize: "14px",
+                                fontWeight: "500",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px"
+                            }}
+                        >
+                            <RefreshCw size={16} /> Retry
+                        </button>
+                        <button
+                            onClick={() => navigate("/login")}
+                            style={{
+                                padding: "10px 20px",
+                                backgroundColor: "#e2e8f0",
+                                color: "#1e293b",
+                                border: "none",
+                                borderRadius: "8px",
+                                cursor: "pointer",
+                                fontSize: "14px",
+                            }}
+                        >
+                            Back to Login
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="dashboard-container">
                 <div className="dashboard-header">
@@ -517,8 +535,21 @@ function Dashboard() {
                 {todayActivity.length > 0 && (
                     <div className="subjects-section today-activity-section">
                         <div className="section-header">
-                            <h2 className="section-title">Studied Today</h2>
-                            <span className="date-badge">{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                            <h2 className="section-title">
+                                {selectedDate === new Date().toISOString().split('T')[0] ? 'Studied Today' : 'Study Progress'}
+                            </h2>
+                            <div className="date-picker-container">
+                                <input
+                                    type="date"
+                                    className="date-picker-input"
+                                    value={selectedDate}
+                                    onChange={handleDateChange}
+                                    max={new Date().toISOString().split('T')[0]}
+                                />
+                                <span className="date-badge">
+                                    {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </span>
+                            </div>
                         </div>
                         <div className="today-activity-grid">
                             {todayActivity.map((sub, i) => (

@@ -1,20 +1,17 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import { 
     BookOpen, FileText, Search, CheckCircle, XCircle, 
     Star, BarChart3, AlertTriangle, Calendar, Download,
     TrendingUp, TrendingDown, ChevronLeft, ChevronRight,
-    Inbox, LogOut, Eye
+    Inbox, LogOut, Eye, AlertCircle, Loader
 } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import "../styles/TeacherDashboard.css";
 import ViolationTable from "../components/ViolationTable";
-
-const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
-
-const SUBJECTS = ["Mathematics", "Science", "Social Studies", "Telugu", "English", "Hindi"];
+import { getSubjectsForClass } from "../config/syllabus";
+import dashboardService from "../services/dashboardService";
 
 function TeacherDashboard() {
     const navigate = useNavigate();
@@ -27,6 +24,7 @@ function TeacherDashboard() {
     const [violationStats, setViolationStats] = useState(null);
     const [filtered, setFiltered] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState("dashboard"); // dashboard | pending | quizzes
     const [actionMsg, setActionMsg] = useState("");
     const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -49,176 +47,110 @@ function TeacherDashboard() {
     const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
     const token = localStorage.getItem("token");
 
-    const fetchDashboard = useCallback(async () => {
+    // Calculate SUBJECTS dynamically from syllabus based on teacher's assigned class
+    const getTeacherSubjects = () => {
+        if (teacher?.assignedClass) {
+            const normalizedClass = `Class ${teacher.assignedClass}`;
+            const classSubjects = getSubjectsForClass(normalizedClass);
+            return classSubjects.map(s => s.name);
+        }
+        // Fallback during loading or if teacher data unavailable
+        return ["Mathematics", "Science", "Biology", "Social Studies", "Telugu", "English", "Hindi"];
+    };
+
+    const SUBJECTS = getTeacherSubjects();
+
+    // ─── FETCH ALL DASHBOARD DATA ────────────────────────────────────────────
+    const loadDashboardData = useCallback(async () => {
         try {
             setLoading(true);
-            const res = await axios.get(`${API_BASE}/teacher/dashboard`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (res.data.success) {
-                setTeacher(res.data.teacher);
-                setStats(res.data.stats);
-                setStudents(res.data.students);
-                setFiltered(res.data.students);
-            } else {
-                // Use fallback demo data if backend unavailable
-                loadDemoData();
+            setError(null);
+
+            const result = await dashboardService.fetchTeacherDashboardBatch();
+
+            if (result.data.dashboard?.success) {
+                setTeacher(result.data.dashboard.teacher);
+                setStats(result.data.dashboard.stats);
+                setStudents(result.data.dashboard.students);
+                setFiltered(result.data.dashboard.students);
+            }
+
+            if (result.data.pendingStudents?.success) {
+                setPendingStudents(result.data.pendingStudents.students || []);
+            }
+
+            if (result.data.quizResults?.success) {
+                setQuizResults(result.data.quizResults.quizzes || []);
+            }
+
+            if (result.data.violations?.success) {
+                setViolations(result.data.violations.violations || []);
+                setViolationStats(result.data.violations.stats || null);
+            }
+
+            // Check for critical errors
+            if (!result.data.dashboard) {
+                setError("Failed to load dashboard. Please refresh the page.");
             }
         } catch (err) {
-            if (err.response?.status === 401) {
+            console.error("Dashboard load error:", err);
+            
+            if (err.message?.includes("Authentication")) {
                 navigate("/login");
             } else {
-                loadDemoData();
+                setError(err.message || "Failed to load dashboard data. Please try again.");
             }
         } finally {
             setLoading(false);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [token, navigate]);
+    }, [navigate]);
 
-    const fetchPendingStudents = useCallback(async () => {
-        try {
-            const res = await axios.get(`${API_BASE}/teacher/pending-students`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (res.data.success) setPendingStudents(res.data.students);
-        } catch { }
-    }, [token]);
+    // ─── REFRESH DASHBOARD DATA ──────────────────────────────────────────────
+    const refreshData = useCallback(async () => {
+        dashboardService.invalidateCache();
+        await loadDashboardData();
+    }, [loadDashboardData]);
 
-    const fetchQuizResults = useCallback(async () => {
-        try {
-            const res = await axios.get(`${API_BASE}/quiz/class-results`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (res.data.success) setQuizResults(res.data.quizzes);
-        } catch { }
-    }, [token]);
-
-    const fetchViolations = useCallback(async () => {
-        try {
-            const res = await axios.get(`${API_BASE}/teacher/violations`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (res.data.success) {
-                setViolations(res.data.violations);
-                setViolationStats(res.data.stats);
-            }
-        } catch { }
-    }, [token]);
-
+    // ─── APPROVE STUDENT ─────────────────────────────────────────────────────
     const handleApproveStudent = async (studentId, studentName) => {
         try {
-            const res = await axios.post(`${API_BASE}/teacher/approve-student/${studentId}`, {}, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (res.data.success) {
+            const result = await dashboardService.approveStudent(studentId);
+
+            if (result.success) {
                 setActionMsg(
                     <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
                         <CheckCircle size={16} color="#10b981" /> {studentName} approved!
                     </span>
                 );
-                fetchPendingStudents();
-                fetchDashboard();
+                refreshData();
                 setTimeout(() => setActionMsg(""), 4000);
             }
-        } catch { setActionMsg("Action failed."); }
+        } catch (err) {
+            setActionMsg(err.message || "Action failed.");
+            setTimeout(() => setActionMsg(""), 4000);
+        }
     };
 
+    // ─── REJECT STUDENT ──────────────────────────────────────────────────────
     const handleRejectStudent = async (studentId, studentName) => {
         const reason = window.prompt(`Reason for rejecting ${studentName}:`) || "Not approved by class teacher.";
+
         try {
-            const res = await axios.post(`${API_BASE}/teacher/reject-student/${studentId}`, { reason }, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (res.data.success) {
+            const result = await dashboardService.rejectStudent(studentId, reason);
+
+            if (result.success) {
                 setActionMsg(
                     <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
                         <XCircle size={16} color="#ef4444" /> {studentName} rejected.
                     </span>
                 );
-                fetchPendingStudents();
+                refreshData();
                 setTimeout(() => setActionMsg(""), 4000);
             }
-        } catch { setActionMsg("Action failed."); }
-    };
-
-    const loadDemoData = () => {
-        const demoTeacher = {
-            name: storedUser.name || "Mr. Sharma",
-            schoolName: storedUser.schoolName || "Global Public School",
-            assignedClass: storedUser.assignedClass || "10",
-            assignedSection: storedUser.assignedSection || "A",
-        };
-
-        const demoStudents = [
-            {
-                _id: "1", name: "Aditya Rao", rollNumber: "10101", totalCompletion: 91,
-                subjectProgress: {
-                    "Mathematics": { chapter: "Sets & Relations", completion: 95 },
-                    "Science": { chapter: "Refraction", completion: 88 },
-                    "Social Studies": { chapter: "Indian Economy", completion: 100 },
-                    "Telugu": { chapter: "Vemana Satakam", completion: 92 },
-                    "English": { chapter: "Julius Caesar", completion: 85 },
-                    "Hindi": { chapter: "Gully Danda", completion: 90 },
-                },
-            },
-            {
-                _id: "2", name: "Sneha Reddy", rollNumber: "10102", totalCompletion: 82,
-                subjectProgress: {
-                    "Mathematics": { chapter: "Sets & Relations", completion: 78 },
-                    "Science": { chapter: "Refraction", completion: 82 },
-                    "Social Studies": { chapter: "Indian Economy", completion: 75 },
-                    "Telugu": { chapter: "Vemana Satakam", completion: 88 },
-                    "English": { chapter: "Julius Caesar", completion: 90 },
-                    "Hindi": { chapter: "Gully Danda", completion: 80 },
-                },
-            },
-            {
-                _id: "3", name: "Vikram Singh", rollNumber: "10103", totalCompletion: 51,
-                subjectProgress: {
-                    "Mathematics": { chapter: "Sets & Relations", completion: 45 },
-                    "Science": { chapter: "Refraction", completion: 52 },
-                    "Social Studies": { chapter: "Indian Economy", completion: 60 },
-                    "Telugu": { chapter: "Vemana Satakam", completion: 48 },
-                    "English": { chapter: "Julius Caesar", completion: 55 },
-                    "Hindi": { chapter: "Gully Danda", completion: 50 },
-                },
-            },
-            {
-                _id: "4", name: "Priya Sharma", rollNumber: "10104", totalCompletion: 76,
-                subjectProgress: {
-                    "Mathematics": { chapter: "Sets & Relations", completion: 80 },
-                    "Science": { chapter: "Refraction", completion: 74 },
-                    "Social Studies": { chapter: "Indian Economy", completion: 82 },
-                    "Telugu": { chapter: "Vemana Satakam", completion: 70 },
-                    "English": { chapter: "Julius Caesar", completion: 78 },
-                    "Hindi": { chapter: "Gully Danda", completion: 72 },
-                },
-            },
-            {
-                _id: "5", name: "Rahul Mehta", rollNumber: "10105", totalCompletion: 65,
-                subjectProgress: {
-                    "Mathematics": { chapter: "Sets & Relations", completion: 62 },
-                    "Science": { chapter: "Refraction", completion: 70 },
-                    "Social Studies": { chapter: "Indian Economy", completion: 65 },
-                    "Telugu": { chapter: "Vemana Satakam", completion: 60 },
-                    "English": { chapter: "Julius Caesar", completion: 68 },
-                    "Hindi": { chapter: "Gully Danda", completion: 65 },
-                },
-            },
-        ];
-
-        const classAvg = Math.round(demoStudents.reduce((s, st) => s + st.totalCompletion, 0) / demoStudents.length);
-
-        setTeacher(demoTeacher);
-        setStats({
-            topPerformer: demoStudents[0],
-            classAverage: classAvg,
-            atRiskCount: demoStudents.filter((s) => s.totalCompletion < 60).length,
-            totalStudents: demoStudents.length,
-        });
-        setStudents(demoStudents);
-        setFiltered(demoStudents);
+        } catch (err) {
+            setActionMsg(err.message || "Action failed.");
+            setTimeout(() => setActionMsg(""), 4000);
+        }
     };
 
     useEffect(() => {
@@ -226,10 +158,8 @@ function TeacherDashboard() {
             navigate("/login");
             return;
         }
-        fetchDashboard();
-        fetchPendingStudents();
-        fetchQuizResults();
-    }, [fetchDashboard, fetchPendingStudents, fetchQuizResults, token, navigate]);
+        loadDashboardData();
+    }, [loadDashboardData, token, navigate]);
 
     // Search filter
     useEffect(() => {
@@ -395,6 +325,64 @@ function TeacherDashboard() {
         );
     }
 
+    // ─── ERROR STATE ──────────────────────────────────────────────────────────
+    if (error) {
+        return (
+            <div className="td-container">
+                <div style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: "100vh",
+                    gap: "20px",
+                    padding: "20px",
+                    backgroundColor: "#f8fafc"
+                }}>
+                    <AlertCircle size={64} color="#ef4444" />
+                    <h1 style={{ fontSize: "24px", fontWeight: "600", color: "#1e293b" }}>
+                        Unable to Load Dashboard
+                    </h1>
+                    <p style={{ color: "#64748b", maxWidth: "500px", textAlign: "center" }}>
+                        {error}
+                    </p>
+                    <button
+                        onClick={refreshData}
+                        style={{
+                            padding: "10px 20px",
+                            backgroundColor: "#4f46e5",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "8px",
+                            cursor: "pointer",
+                            fontSize: "14px",
+                            fontWeight: "500",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px"
+                        }}
+                    >
+                        <Loader size={16} /> Retry
+                    </button>
+                    <button
+                        onClick={() => navigate("/login")}
+                        style={{
+                            padding: "10px 20px",
+                            backgroundColor: "#e2e8f0",
+                            color: "#1e293b",
+                            border: "none",
+                            borderRadius: "8px",
+                            cursor: "pointer",
+                            fontSize: "14px",
+                        }}
+                    >
+                        Back to Login
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     const avatarColors = [
         "#e0f2fe", "#dcfce7", "#fef9c3", "#fce7f3",
         "#ede9fe", "#fee2e2", "#f0fdf4", "#fff7ed",
@@ -434,7 +422,7 @@ function TeacherDashboard() {
                     </button>
                     <button
                         className={`td-nav-link ${activeTab === "quizzes" ? "active" : ""}`}
-                        onClick={() => { setActiveTab("quizzes"); fetchQuizResults(); }}
+                        onClick={() => setActiveTab("quizzes")}
                         style={{ position: "relative", display: "flex", alignItems: "center", gap: "6px" }}
                     >
                         <FileText size={16} /> Quiz Results
@@ -444,7 +432,7 @@ function TeacherDashboard() {
                     </button>
                     <button
                         className={`td-nav-link ${activeTab === "violations" ? "active" : ""}`}
-                        onClick={() => { setActiveTab("violations"); fetchViolations(); }}
+                        onClick={() => setActiveTab("violations")}
                         style={{ position: "relative", display: "flex", alignItems: "center", gap: "6px" }}
                     >
                         <Eye size={16} /> Violations
@@ -610,17 +598,7 @@ function TeacherDashboard() {
                                     ))}
                                 </div>
 
-                                {/* Date */}
-                                <div className="td-date-picker">
-                                    <Calendar size={16} />{" "}
-                                    <DatePicker
-                                        selected={selectedDate}
-                                        onChange={(date) => setSelectedDate(date)}
-                                        dateFormat="dd MMM yyyy"
-                                        className="td-custom-react-datepicker"
-                                        maxDate={new Date()}
-                                    />
-                                </div>
+                              
 
                                 {/* Export */}
                                 <button 

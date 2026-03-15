@@ -10,7 +10,7 @@
 
 .td-container {
     font-family: 'Inter', sans-serif;
-    background: #f0f4f8;
+    background: linear-gradient(135deg, #f0f4f8 0%, #f8fafc 100%);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -46,15 +46,15 @@
 /* ── Navbar ───────────────────────────────────────────────────── */
 .td-navbar {
     background: #ffffff;
-    border-bottom: 1px solid #e2e8f0;
-    padding: 0.85rem 1.5rem;
+    border-bottom: 2px solid #e8ecf1;
+    padding: 1rem 1.8rem;
     display: flex;
     align-items: center;
     gap: 1.5rem;
     position: sticky;
     top: 0;
     z-index: 100;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .td-navbar-left {
@@ -66,19 +66,23 @@
 
 .td-school-logo {
     font-size: 1.5rem;
-    background: #e0f2fe;
-    border-radius: 10px;
-    width: 40px;
-    height: 40px;
+    background: linear-gradient(135deg, #0c4a6e 0%, #0369a1 100%);
+    border-radius: 12px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
+    color: white;
+    font-weight: 800;
+    box-shadow: 0 4px 12px rgba(3, 105, 161, 0.25);
 }
 
 .td-school-name {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #1a202c;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.3px;
 }
 
 .td-class-info {
@@ -124,10 +128,17 @@
     align-items: center;
     gap: 0.5rem;
     background: #f8fafc;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 0.45rem 0.85rem;
+    border: 2px solid #e8ecf1;
+    border-radius: 10px;
+    padding: 0.55rem 1rem;
     max-width: 340px;
+    transition: all 0.3s ease;
+}
+
+.td-search-bar:focus-within {
+    border-color: #3b82f6;
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
 }
 
 .td-search-bar input {
@@ -203,14 +214,21 @@
 
 .td-stat-card {
     background: #ffffff;
-    border-radius: 12px;
-    padding: 1.1rem 1.25rem;
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
     display: flex;
     align-items: center;
-    gap: 1rem;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-    border: 1px solid #f1f5f9;
+    gap: 1.2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e8ecf1;
     position: relative;
+    transition: all 0.3s ease;
+}
+
+.td-stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    border-color: #d4dce5;
 }
 
 .td-stat-label {
@@ -225,10 +243,11 @@
 }
 
 .td-stat-value {
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: #1a202c;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #0f172a;
     margin-top: 1.5rem;
+    letter-spacing: -0.5px;
 }
 
 .td-stat-icon {
@@ -244,15 +263,15 @@
 }
 
 .td-icon-green {
-    background: #dcfce7;
+    background: linear-gradient(135deg, #dcfce7 0%, #c6f6d5 100%);
 }
 
 .td-icon-blue {
-    background: #dbeafe;
+    background: linear-gradient(135deg, #dbeafe 0%, #bfe7ff 100%);
 }
 
 .td-icon-red {
-    background: #fee2e2;
+    background: linear-gradient(135deg, #fee2e2 0%, #fccf7b 100%);
 }
 
 /* ── Table Header Row ─────────────────────────────────────────── */
@@ -266,10 +285,11 @@
 }
 
 .td-section-title {
-    font-size: 1.3rem;
-    font-weight: 800;
-    color: #1a202c;
-    margin: 0 0 0.2rem 0;
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: #0f172a;
+    margin: 0 0 0.3rem 0;
+    letter-spacing: -0.3px;
 }
 
 .td-section-subtitle {
@@ -295,23 +315,30 @@
 }
 
 .td-toggle-btn {
-    padding: 0.4rem 0.9rem;
+    padding: 0.5rem 1.1rem;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     background: transparent;
     font-size: 0.85rem;
-    font-weight: 500;
+    font-weight: 600;
     color: #64748b;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
-    transition: all 0.15s;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.td-toggle-btn:hover {
+    color: #475569;
+    background: rgba(59, 130, 246, 0.05);
 }
 
 .td-toggle-btn.active {
-    background: #ffffff;
-    color: #2563eb;
-    font-weight: 600;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+    background: linear-gradient(135deg, #e0f2fe 0%, #d4e7f5 100%);
+    color: #0c4a6e;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
 }
 
 /* Date Picker display */
@@ -319,15 +346,22 @@
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    padding: 0.45rem 0.9rem;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 8px;
+    padding: 0.55rem 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
     font-size: 0.85rem;
     color: #374151;
     background: #fff;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
-    font-weight: 500;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.td-date-picker:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .td-custom-date-input {
@@ -360,29 +394,38 @@
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    padding: 0.5rem 1.1rem;
-    background: #2563eb;
+    padding: 0.65rem 1.4rem;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 0.88rem;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
-    transition: background 0.2s;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    letter-spacing: 0.3px;
 }
 
 .td-export-btn:hover {
-    background: #312e81;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+}
+
+.td-export-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
 }
 
 /* ── Table ────────────────────────────────────────────────────── */
 .td-table-wrapper {
     background: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.05);
     overflow-x: auto;
-    border: 1px solid #f1f5f9;
+    border: 1px solid #e8ecf1;
 }
 
 .td-table {
@@ -392,15 +435,16 @@
 }
 
 .td-table th {
-    padding: 0.85rem 1rem;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    color: #64748b;
+    padding: 1rem 1.2rem;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: #475569;
     text-align: left;
-    background: #f8fafc;
-    border-bottom: 1px solid #e2e8f0;
+    background: linear-gradient(135deg, #f8fafc 0%, #f0f4f9 100%);
+    border-bottom: 2px solid #e2e8f0;
     white-space: nowrap;
+    text-transform: uppercase;
 }
 
 .td-th-name {
@@ -419,11 +463,12 @@
 
 .td-row {
     border-bottom: 1px solid #f1f5f9;
-    transition: background 0.15s;
+    transition: all 0.2s ease;
 }
 
 .td-row:hover {
-    background: #f8fafc;
+    background: linear-gradient(90deg, #f0f9ff 0%, #f8fafc 100%);
+    box-shadow: inset 4px 0 10px rgba(59, 130, 246, 0.1);
 }
 
 .td-row:last-child {
@@ -442,27 +487,33 @@
 }
 
 .td-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: #374151;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #ffffff;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+    letter-spacing: 0.5px;
 }
 
 .td-student-name {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #1a202c;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.3px;
 }
 
 .td-student-roll {
     font-size: 0.75rem;
-    color: #64748b;
+    color: #75869d;
+    font-weight: 500;
+    letter-spacing: 0.2px;
 }
 
 /* Subject cell */
@@ -482,22 +533,26 @@
 }
 
 .td-progress-bar-wrap {
-    height: 5px;
-    background: #e2e8f0;
-    border-radius: 10px;
+    height: 6px;
+    background: #e8ecf1;
+    border-radius: 12px;
     overflow: hidden;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.3rem;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .td-progress-bar-fill {
     height: 100%;
-    border-radius: 10px;
-    transition: width 0.4s ease;
+    border-radius: 12px;
+    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.15);
 }
 
 .td-pct {
-    font-size: 0.78rem;
-    font-weight: 600;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #1a202c;
+    letter-spacing: -0.2px;
 }
 
 /* Total cell */
@@ -508,9 +563,11 @@
 }
 
 .td-total-pct {
-    font-size: 1rem;
-    font-weight: 800;
+    font-size: 1.1rem;
+    font-weight: 900;
     display: block;
+    color: #0f172a;
+    letter-spacing: -0.5px;
 }
 
 .td-trend {
@@ -605,41 +662,57 @@
 
 /* ── Approval Buttons ──────────────────────────────────────────── */
 .td-approve-btn {
-    padding: 6px 14px;
-    border-radius: 8px;
+    padding: 8px 18px;
+    border-radius: 10px;
     border: none;
-    background: linear-gradient(135deg, #10b981, #059669);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: white;
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 0.8rem;
+    font-weight: 800;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
     white-space: nowrap;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+    letter-spacing: 0.3px;
 }
 
 .td-approve-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.45);
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+.td-approve-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
 }
 
 .td-reject-btn {
-    padding: 6px 14px;
-    border-radius: 8px;
+    padding: 8px 18px;
+    border-radius: 10px;
     border: none;
-    background: linear-gradient(135deg, #ef4444, #dc2626);
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     color: white;
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 0.8rem;
+    font-weight: 800;
     cursor: pointer;
     font-family: 'Inter', sans-serif;
     white-space: nowrap;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
+    letter-spacing: 0.3px;
 }
 
 .td-reject-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.35);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.45);
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+}
+
+.td-reject-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
 }
 
 /* ── Pending Badge on nav ──────────────────────────────────────── */
@@ -670,24 +743,26 @@
 /* ── Pending Section ──────────────────────────────────────────── */
 .td-pending-section {
     background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-    border: 1px solid #f1f5f9;
-    padding: 1.5rem;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e8ecf1;
+    padding: 1.75rem;
     margin-bottom: 1.5rem;
 }
 
 /* ── Action Message Toast ─────────────────────────────────────── */
 .td-action-msg {
-    padding: 10px 14px;
-    background: #f0fdf4;
-    border: 1px solid #bbf7d0;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #f0fdf4 0%, #e7f5ee 100%);
+    border: 2px solid #86efac;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 700;
     color: #15803d;
     margin-bottom: 1rem;
     animation: slideIn 0.3s ease;
+    box-shadow: 0 4px 12px rgba(132, 204, 22, 0.1);
+    letter-spacing: 0.2px;
 }
 
 @keyframes slideIn {
@@ -721,11 +796,12 @@
 .td-confirm-modal {
     background: white;
     width: 90%;
-    max-width: 400px;
-    padding: 32px;
-    border-radius: 24px;
+    max-width: 420px;
+    padding: 36px;
+    border-radius: 20px;
     text-align: center;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2), 0 10px 25px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.5);
     animation: modalSlideUpTd 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -735,10 +811,11 @@
 }
 
 .td-modal-title {
-    font-size: 22px;
-    font-weight: 800;
-    color: #1a202c;
+    font-size: 24px;
+    font-weight: 900;
+    color: #0f172a;
     margin-bottom: 12px;
+    letter-spacing: -0.3px;
 }
 
 .td-modal-text {
@@ -766,13 +843,20 @@
 }
 
 .td-modal-btn.confirm {
-    background: #ef4444;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     color: white;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .td-modal-btn.confirm:hover {
-    background: #e11d48;
-    transform: scale(1.02);
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
+}
+
+.td-modal-btn.confirm:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
 }
 
 /* Custom React-DatePicker Overrides */
@@ -820,12 +904,17 @@
 
 .td-modal-btn.cancel {
     background: #f1f5f9;
-    color: #64748b;
+    color: #475569;
+    border: 2px solid #e2e8f0;
+    font-weight: 700;
+    transition: all 0.3s ease;
 }
 
 .td-modal-btn.cancel:hover {
     background: #e2e8f0;
-    color: #1e293b;
+    color: #0f172a;
+    border-color: #cbd5e1;
+    transform: translateY(-2px);
 }
 
 @keyframes fadeInModal {
@@ -856,10 +945,10 @@
 
 .td-quiz-section {
     background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-    border: 1px solid #f1f5f9;
-    padding: 1.5rem;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e8ecf1;
+    padding: 1.75rem;
     margin-bottom: 1.5rem;
 }
 
@@ -879,21 +968,22 @@
 
 .td-quiz-stat-card {
     background: #ffffff;
-    border: 1px solid #f1f5f9;
-    border-radius: 12px;
-    padding: 1.1rem;
+    border: 1px solid #e8ecf1;
+    border-radius: 14px;
+    padding: 1.3rem;
     text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    transition: all 0.2s;
+    gap: 0.6rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
 }
 
 .td-quiz-stat-card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    transform: translateY(-4px);
+    border-color: #d4dce5;
 }
 
 .td-quiz-stat-label {
@@ -915,9 +1005,10 @@
 }
 
 .td-quiz-stat-value {
-    font-size: 1.6rem;
-    font-weight: 800;
-    color: #1a202c;
+    font-size: 1.75rem;
+    font-weight: 900;
+    color: #0f172a;
+    letter-spacing: -0.5px;
 }
 
 /* ── Search & Filter Controls ────────────────────────────────── */
@@ -934,11 +1025,17 @@
     align-items: center;
     gap: 0.5rem;
     background: #f8fafc;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 0.5rem 0.9rem;
+    border: 2px solid #e8ecf1;
+    border-radius: 10px;
+    padding: 0.6rem 1rem;
     flex: 1;
     min-width: 200px;
+    transition: all 0.3s ease;
+}
+
+.td-quiz-search:focus-within {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .td-quiz-search-input {
@@ -962,21 +1059,23 @@
 }
 
 .td-quiz-select {
-    padding: 0.5rem 0.85rem;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    border: 2px solid #e8ecf1;
+    border-radius: 10px;
     background: #fff;
-    font-size: 0.88rem;
+    font-size: 0.85rem;
     font-family: 'Inter', sans-serif;
-    color: #374151;
-    font-weight: 500;
+    color: #0f172a;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .td-quiz-select:hover {
     border-color: #cbd5e1;
     background: #f8fafc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
 }
 
 .td-quiz-select:focus {
