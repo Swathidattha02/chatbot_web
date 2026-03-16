@@ -7,6 +7,8 @@ const {
     getWeeklyAnalytics,
     getMonthlyAnalytics,
     getSubjectProgress,
+    getUserAchievements,
+    getRecommendations
 } = require("../controllers/progressController");
 const authMiddleware = require("../middleware/auth");
 
@@ -17,5 +19,7 @@ router.get("/analytics/daily", authMiddleware, getDailyAnalytics);
 router.get("/analytics/weekly", authMiddleware, getWeeklyAnalytics);
 router.get("/analytics/monthly", authMiddleware, getMonthlyAnalytics);
 router.get("/subject/:subjectId", authMiddleware, getSubjectProgress);
+router.get("/achievements", authMiddleware, getUserAchievements);
+router.get("/recommendations", authMiddleware, getRecommendations);
 
 module.exports = router;

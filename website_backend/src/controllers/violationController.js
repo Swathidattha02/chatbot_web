@@ -232,8 +232,8 @@ exports.getTeacherViolations = async (req, res) => {
 
     console.log('🔎 [getTeacherViolations] Student query:', query);
 
-    // Find approved students in teacher's class + section + school
-    const students = await User.find(query, '_id name email');
+    // Find approved students in teacher's class + section + school (include class and section)
+    const students = await User.find(query, '_id name email class section');
 
     console.log('✅ [getTeacherViolations] Found', students.length, 'students:',
       students.map(s => ({ id: s._id, name: s.name }))
@@ -263,17 +263,25 @@ exports.getTeacherViolations = async (req, res) => {
       .skip((Number.parseInt(page) - 1) * Number.parseInt(limit))
       .limit(Number.parseInt(limit));
 
+    // ─── ENRICH VIOLATIONS WITH STUDENT CLASS/SECTION ──────────────────────
+    // Create a map of userId to student for quick lookup
+    const studentMap = {};
+    students.forEach(s => {
+      studentMap[s._id.toString()] = s;
+    });
+
+    // Enrich violations with student class/section data
+    const enrichedViolations = violations.map(v => {
+      const student = studentMap[v.userId.toString()];
+      return {
+        ...v.toObject(),
+        class: student?.class || "N/A",
+        section: student?.section || "N/A",
+      };
+    });
+
     console.log('✅ [getTeacherViolations] Found', violations.length, 'violations');
-    console.log('📋 [getTeacherViolations] Violation details:', violations.map(v => ({
-      _id: v._id,
-      userId: v.userId,
-      username: v.username,
-      reason: v.reason,
-      startTime: v.startTime,
-      endTime: v.endTime,
-      duration: v.duration,
-      timestamp: v.timestamp
-    })));
+    console.log('📋 [getTeacherViolations] Enriched violation sample:', enrichedViolations[0]);
 
     const total = await Violation.countDocuments({ userId: { $in: studentIds } });
 
@@ -299,7 +307,7 @@ exports.getTeacherViolations = async (req, res) => {
 
     res.json({
       success: true,
-      violations,
+      violations: enrichedViolations,
       total,
       page: Number.parseInt(page),
       limit: Number.parseInt(limit),

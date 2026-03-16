@@ -137,6 +137,39 @@
     letter-spacing: -0.5px;
 }
 
+/* Date Picker Container */
+.date-picker-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 8px 16px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.date-picker-input {
+    border: none;
+    background: transparent;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e1b4b;
+    cursor: pointer;
+    outline: none;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    max-width: 150px;
+}
+
+.date-picker-input::-webkit-calendar-picker-indicator {
+    display: none;
+}
+
+.date-picker-input:focus {
+    background: rgba(99, 102, 241, 0.05);
+    border-radius: 8px;
+}
+
 .overall-progress-badge {
     display: flex;
     align-items: center;

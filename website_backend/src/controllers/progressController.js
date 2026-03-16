@@ -598,3 +598,250 @@ exports.getSubjectProgress = async (req, res) => {
         });
     }
 };
+
+// @desc    Get user achievements
+// @route   GET /api/progress/achievements
+// @access  Private
+exports.getUserAchievements = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        // Fetch user progress
+        const progress = await Progress.find({ userId });
+        console.log(`[getUserAchievements] userId: ${userId}, progress records found: ${progress.length}`);
+        
+        // Calculate achievements based on user data
+        const achievements = [];
+
+        // Achievement 1: Quiz Master - 100% score
+        const quizPassed = progress.find(p => p.quizPassed && p.completed);
+        if (quizPassed) {
+            achievements.push({
+                name: "Quiz Master",
+                description: "Scored 100% in a Quiz",
+                type: "trophy",
+                colorClass: "gold",
+                unlockedAt: quizPassed.lastAccessed
+            });
+        }
+
+        // Achievement 2: Consistent Learner - 3+ day streak
+        const { currentStreak } = await calculateStreakDetails(userId);
+        if (currentStreak >= 3) {
+            achievements.push({
+                name: "Consistent Learner",
+                description: `Maintained a ${currentStreak}-day streak`,
+                type: "flame",
+                colorClass: "streak",
+                unlockedAt: new Date()
+            });
+        }
+
+        // Achievement 3: Learning Path Started
+        const documentCount = progress.length;
+        if (documentCount >= 1) {
+            achievements.push({
+                name: "Learning Path Started",
+                description: `Completed ${Math.min(documentCount, 5)} chapters`,
+                type: "book",
+                colorClass: "silver",
+                unlockedAt: progress[0]?.createdAt || new Date()
+            });
+        }
+
+        // Achievement 4: Dedicated Learner - 5+ hours
+        const totalTime = progress.reduce((sum, p) => sum + (p.timeSpent || 0), 0);
+        if (totalTime >= 300) {
+            achievements.push({
+                name: "Dedicated Learner",
+                description: `Studied for ${Math.floor(totalTime / 60)} hours`,
+                type: "flame",
+                colorClass: "gold",
+                unlockedAt: new Date()
+            });
+        }
+
+        // Achievement 5: Versatile Scholar
+        const uniqueSubjects = new Set(progress.map(p => p.subjectId)).size;
+        if (uniqueSubjects >= 3) {
+            achievements.push({
+                name: "Versatile Scholar",
+                description: `Learning across ${uniqueSubjects} subjects`,
+                type: "trophy",
+                colorClass: "silver",
+                unlockedAt: progress[0]?.createdAt || new Date()
+            });
+        }
+
+        // Achievement 6: Subject Mastered - completed all chapters in a subject
+        const subjectCompletion = {};
+        progress.forEach(p => {
+            if (p.subjectName) {
+                if (!subjectCompletion[p.subjectName]) {
+                    subjectCompletion[p.subjectName] = { total: 0, completed: 0 };
+                }
+                subjectCompletion[p.subjectName].total++;
+                if (p.completed) {
+                    subjectCompletion[p.subjectName].completed++;
+                }
+            }
+        });
+
+        for (const [subject, stats] of Object.entries(subjectCompletion)) {
+            if (stats.completed > 0 && stats.completed === stats.total) {
+                achievements.push({
+                    name: "Subject Mastered",
+                    description: `Completed all chapters in ${subject}`,
+                    type: "trophy",
+                    colorClass: "gold",
+                    unlockedAt: new Date()
+                });
+                break; // Only add one Subject Mastered achievement
+            }
+        }
+
+        console.log(`[getUserAchievements] Total achievements calculated: ${achievements.length}`, achievements);
+
+        res.status(200).json({
+            success: true,
+            achievements: achievements.slice(0, 3)
+        });
+    } catch (error) {
+        console.error("Get Achievements Error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Server error fetching achievements",
+            error: error.message
+        });
+    }
+};
+
+// @desc    Get personalized recommendations
+// @route   GET /api/progress/recommendations
+// @access  Private
+exports.getRecommendations = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        // Fetch user progress
+        const progress = await Progress.find({ userId });
+        console.log(`[getRecommendations] userId: ${userId}, progress records found: ${progress.length}`);
+
+        const recommendations = [];
+
+        // Recommendation 1: Complete a chapter
+        const incompleteChapter = progress.find(p => !p.completed && p.timeSpent > 0);
+        if (incompleteChapter) {
+            recommendations.push({
+                title: `Complete ${incompleteChapter.chapterName}`,
+                description: `You've spent time on this chapter. Finish it to earn completion!`,
+                iconType: "target",
+                action: "quiz",
+                buttonText: "Complete Chapter",
+                priority: 1
+            });
+        }
+
+        // Recommendation 2: Take a quiz
+        if (progress.length > 0 && !progress[0].quizPassed) {
+            recommendations.push({
+                title: "Test Your Knowledge",
+                description: "You've learned the material. Take a quiz to solidify your understanding!",
+                iconType: "target",
+                action: "quiz",
+                buttonText: "Start Quiz",
+                priority: 2
+            });
+        }
+
+        // Recommendation 3: Use AI tutor for help
+        if (progress.length > 2) {
+            const subjectNeedingHelp = progress.find(p => p.timeSpent < 5);
+            if (subjectNeedingHelp) {
+                recommendations.push({
+                    title: `Get Help with ${subjectNeedingHelp.subjectName}`,
+                    description: "Need clarification? Chat with your AI tutor for instant explanations.",
+                    iconType: "bot",
+                    action: "chat",
+                    buttonText: "Chat Now",
+                    priority: 3
+                });
+            }
+        }
+
+        // Recommendation 4: Review weak areas
+        const incompletedCount = progress.filter(p => !p.completed).length;
+        if (incompletedCount > 0) {
+            recommendations.push({
+                title: "Review Weak Areas",
+                description: `You have ${incompletedCount} chapters to review. Let's strengthen those areas!`,
+                iconType: "target",
+                action: "chat",
+                buttonText: "Get Help",
+                priority: 4
+            });
+        }
+
+        // Recommendation 5: Pending Subjects - subjects with incomplete chapters
+        const completedSubjects = new Set();
+        const subjectStatus = {};
+        
+        progress.forEach(p => {
+            if (p.subjectName) {
+                if (!subjectStatus[p.subjectName]) {
+                    subjectStatus[p.subjectName] = { total: 0, completed: 0 };
+                }
+                subjectStatus[p.subjectName].total++;
+                if (p.completed) {
+                    subjectStatus[p.subjectName].completed++;
+                }
+            }
+        });
+
+        // Find pending subjects (incomplete ones)
+        const pendingSubjects = Object.entries(subjectStatus)
+            .filter(([subject, stats]) => stats.completed < stats.total)
+            .map(([subject]) => subject)
+            .slice(0, 2); // Limit to 2 pending subjects
+
+        pendingSubjects.forEach((subject, idx) => {
+            recommendations.push({
+                title: `Continue ${subject}`,
+                description: `You have pending chapters in ${subject}. Keep the momentum going!`,
+                iconType: "target",
+                action: "chat",
+                buttonText: "Resume",
+                priority: 5 + idx
+            });
+        });
+
+        // If no progress, recommend starting first chapter
+        if (progress.length === 0) {
+            recommendations.push({
+                title: "Start Your Learning Journey",
+                description: "Begin with Chapter 1 of your first subject to build momentum!",
+                iconType: "target",
+                action: "quiz",
+                buttonText: "Start Now",
+                priority: 1
+            });
+        }
+
+        // Sort by priority and return top 2
+        recommendations.sort((a, b) => a.priority - b.priority);
+
+        console.log(`[getRecommendations] Total recommendations calculated: ${recommendations.length}`, recommendations);
+
+        res.status(200).json({
+            success: true,
+            recommendations: recommendations.slice(0, 2)
+        });
+    } catch (error) {
+        console.error("Get Recommendations Error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Server error fetching recommendations",
+            error: error.message
+        });
+    }
+};

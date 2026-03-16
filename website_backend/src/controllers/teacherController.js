@@ -237,7 +237,7 @@ const getTeacherDashboard = async (req, res) => {
         const studentsWithProgress = students.map((student) => {
             const progs = progressMap[student._id.toString()] || [];
 
-            const subjects = ["Mathematics", "Science", "Social", "Telugu", "English", "Hindi"];
+            const subjects = ["Mathematics", "Science", "Biology", "Social Studies", "Telugu", "English", "Hindi"];
             const subjectProgress = {};
 
             subjects.forEach((subj) => {
@@ -274,6 +274,8 @@ const getTeacherDashboard = async (req, res) => {
                 name: student.name,
                 rollNumber: student.rollNumber || "-",
                 email: student.email,
+                class: student.class,
+                section: student.section,
                 subjectProgress,
                 totalCompletion: Math.round(totalCompletion),
             };

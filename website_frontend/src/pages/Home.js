@@ -175,32 +175,6 @@ function Home() {
                 </div>
             </section>
 
-            {/* ═══════════════════════════════════════════════════════════
-                STATS COUNTER BAR
-            ═══════════════════════════════════════════════════════════ */}
-            <section className="hp-stats-bar">
-                <div className="hp-stats-inner">
-                    <div className="hp-stat" ref={usersRef}>
-                        <div className="hp-stat-num">{usersCount.toLocaleString()}+</div>
-                        <div className="hp-stat-label">Active Students</div>
-                    </div>
-                    <div className="hp-stat-divider" />
-                    <div className="hp-stat" ref={quizzesRef}>
-                        <div className="hp-stat-num">{quizzesCount.toLocaleString()}+</div>
-                        <div className="hp-stat-label">Quizzes Taken</div>
-                    </div>
-                    <div className="hp-stat-divider" />
-                    <div className="hp-stat" ref={langRef}>
-                        <div className="hp-stat-num">{langCount}+</div>
-                        <div className="hp-stat-label">Languages</div>
-                    </div>
-                    <div className="hp-stat-divider" />
-                    <div className="hp-stat" ref={schoolsRef}>
-                        <div className="hp-stat-num">{schoolsCount}+</div>
-                        <div className="hp-stat-label">Schools</div>
-                    </div>
-                </div>
-            </section>
 
             {/* ═══════════════════════════════════════════════════════════
                 FEATURE SHOWCASE (TABS)
