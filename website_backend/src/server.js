@@ -41,6 +41,9 @@ const teacherRoutes = require("./routes/teacherRoutes");
 const quizRoutes = require("./routes/quizRoutes");
 const violationRoutes = require("./routes/violationRoutes");
 const awayTimeRoutes = require("./routes/awayTimeRoutes");
+const ttsRoutes = require("./routes/ttsRoutes");
+const translationRoutes = require("./routes/translationRoutes");
+const classMaterialRoutes = require("./routes/classMaterialRoutes");
 
 // API Routes
 app.use("/api/auth", authRoutes);
@@ -51,6 +54,13 @@ app.use("/api", teacherRoutes);
 app.use("/api/quiz", quizRoutes);
 app.use("/api", violationRoutes);
 app.use("/api", awayTimeRoutes);
+app.use("/api", ttsRoutes);
+app.use("/api", translationRoutes);
+app.use("/api/class-materials", classMaterialRoutes);
+
+// Static files
+const path = require("path");
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // Health check route
 app.get("/", (req, res) => {

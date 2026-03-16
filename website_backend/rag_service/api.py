@@ -101,6 +101,37 @@ SUMMARY:"""
             print(f"Summary generation error: {e}")
             return f"Error: {str(e)}"
 
+def build_system_prompt(language: str):
+    """Build the system prompt based on the selected language and loaded document"""
+    lang_name = LANGUAGE_NAMES.get(language, "English")
+    
+    # Determine strict language rule
+    if language == 'en':
+        prompt = "You are an expert AI tutor. Use a friendly and educational tone."
+    else:
+        prompt = (
+            f"### EDUCATIONAL TUTOR RULE ###\n"
+            f"YOU ARE AN EXPERT EDUCATIONAL TUTOR. YOUR TASK IS TO PROVIDE A DETAILED, STEP-BY-STEP EXPLANATION IN ENGLISH.\n\n"
+            f"IMPORTANT: Your response will be automatically translated into {lang_name.upper()} for the student. "
+            f"Focus on providing the MOST ACCURATE and DETAILED answer in English based on the documents. "
+            f"Do not write technical terms in anything other than English; the system handles the translation for you.\n\n"
+            f"Begin answering in English now:"
+        )
+
+    # Inject Document Summary if available
+    if document_data["summary"]:
+        prompt += f"\n\n[DOCUMENT LOADED: {document_data['filename']}]\n"
+        prompt += (
+            f"Use the following summary of the student's document to guide your teaching. "
+            f"Keep your explanation entirely in English as it will be translated after you finish.\n\n"
+        )
+        prompt += f"DOCUMENT SUMMARY:\n{document_data['summary']}"
+        
+        if document_data["full_text_snippet"]:
+            prompt += f"\n\nBEGINNING CONTENT SNIPPET:\n{document_data['full_text_snippet']}"
+            
+    return prompt
+
 @app.post("/upload")
 async def upload_document(file: UploadFile = File(...)):
     """Upload and summarize a document"""
@@ -149,34 +180,24 @@ async def upload_document(file: UploadFile = File(...)):
 
 @app.post("/chat/stream")
 async def stream_chat(request: ChatRequest):
-    """Chat using the generated summary as context"""
+    """Chat using the generated summary as context (streaming)"""
     try:
+        system_prompt = build_system_prompt(request.language)
         lang_name = LANGUAGE_NAMES.get(request.language, "English")
-        
-        # Base System Prompt
-        if request.language == 'en':
-            system_prompt = "You are an expert AI tutor. Use a friendly and educational tone."
-        else:
-            system_prompt = f"### 🚨 MANDATORY LANGUAGE RULE 🚨\nYOU ARE A {lang_name.upper()} TUTOR. EVERYTHING YOU WRITE MUST BE IN {lang_name.upper()}."
-
-        # Inject Document Summary if available
-        if document_data["summary"]:
-            system_prompt += f"\n\n[DOCUMENT LOADED: {document_data['filename']}]\n"
-            system_prompt += f"You have access to a comprehensive summary of the current document the student is studying. Use this summary to guide your teaching and answer their questions.\n\n"
-            system_prompt += f"DOCUMENT SUMMARY:\n{document_data['summary']}"
-            
-            # Add a small snippet of real text if they ask something specific
-            if document_data["full_text_snippet"]:
-                system_prompt += f"\n\nBEGINNING CONTENT SNIPPET:\n{document_data['full_text_snippet']}"
 
         messages = [{"role": "system", "content": system_prompt}]
         
         # Add conversation history
         if request.conversation_history:
-            for msg in request.conversation_history[-6:]: # Keep last 6 for focus
+            for msg in request.conversation_history[-6:]: 
                 messages.append(msg)
             
-        messages.append({"role": "user", "content": request.message})
+        # Reinforce language in the final user message
+        final_message = request.message
+        if request.language != 'en':
+            final_message = f"[INSTRUCTION: ANSWER ONLY IN {lang_name.upper()}] {request.message}"
+            
+        messages.append({"role": "user", "content": final_message})
 
         return StreamingResponse(
             generate_ollama_stream(messages),
@@ -184,6 +205,51 @@ async def stream_chat(request: ChatRequest):
         )
     except Exception as e:
         print(f"Chat stream error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/chat")
+async def chat(request: ChatRequest):
+    """Chat using the generated summary as context (non-streaming)"""
+    try:
+        system_prompt = build_system_prompt(request.language)
+        lang_name = LANGUAGE_NAMES.get(request.language, "English")
+
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        if request.conversation_history:
+            for msg in request.conversation_history[-6:]:
+                messages.append(msg)
+            
+        final_message = request.message
+        if request.language != 'en':
+            final_message = f"[INSTRUCTION: ANSWER ONLY IN {lang_name.upper()}] {request.message}"
+            
+        messages.append({"role": "user", "content": final_message})
+
+        async with httpx.AsyncClient(timeout=90.0) as client:
+            response = await client.post(
+                f"{OLLAMA_BASE_URL}/api/chat",
+                json={
+                    "model": LLM_MODEL,
+                    "messages": messages,
+                    "stream": False
+                }
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                content = data.get("message", {}).get("content", "")
+                return {
+                    "success": True,
+                    "response": content,
+                    "language": request.language,
+                    "context_used": bool(document_data["summary"])
+                }
+            else:
+                raise HTTPException(status_code=response.status_code, detail="Ollama error")
+                
+    except Exception as e:
+        print(f"Chat error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 async def generate_ollama_stream(messages):
@@ -212,6 +278,15 @@ async def generate_ollama_stream(messages):
                             continue
         except Exception as e:
             yield f"data: {json.dumps({'error': str(e), 'done': True})}\n\n"
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {
+        "status": "online",
+        "document_loaded": bool(document_data["summary"]),
+        "filename": document_data["filename"]
+    }
 
 @app.post("/clear")
 async def clear_store():

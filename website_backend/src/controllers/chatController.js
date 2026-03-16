@@ -55,24 +55,14 @@ Follow these guidelines:
 Always prioritize clarity and understanding over brevity. If a student asks a math question, show every step of the solution with clear explanations.`;
     }
 
-    // High-force language instruction for non-English responses
-    return `### 🚨 MANDATORY LANGUAGE RULE 🚨
-YOU ARE A ${languageName.toUpperCase()} TUTOR. 
+    // Simplified rule for higher quality: Generate expert English, translate later
+    return `### EDUCATIONAL TUTOR RULE ###
+YOU ARE AN EXPERT EDUCATIONAL TUTOR. 
+YOUR TASK IS TO PROVIDE A DETAILED, STEP-BY-STEP EXPLANATION IN ENGLISH.
 
-1. EVERYTHING YOU WRITE MUST BE IN ${languageName.toUpperCase()}.
-2. IF THE USER ASKS A QUESTION IN ENGLISH, YOU MUST ANSWER IN ${languageName.toUpperCase()}.
-3. IF YOU FIND INFORMATION IN AN ENGLISH DOCUMENT, YOU MUST TRANSLATE IT TO ${languageName.toUpperCase()} BEFORE SHARING.
-4. DO NOT USE ENGLISH SENTENCES. TRANSLATE ALL CONCEPTS TO ${languageName.toUpperCase()}.
-5. START YOUR RESPONSE DIRECTLY IN ${languageName.toUpperCase()}.
-
-You are an expert educational AI tutor helping students learn in ${languageName}.
-Follow these guidelines:
-- Translate all technical definitions into ${languageName}
-- Break down math steps in ${languageName}
-- Use analogies relevant to ${languageName} speakers
-- Be encouraging and patient
-
-### FINAL REMINDER: YOUR ENTIRE RESPONSE MUST BE IN ${languageName.toUpperCase()} ###`;
+IMPORTANT: Your response will be automatically translated into ${languageName.toUpperCase()} for the student. Focus on providing the MOST ACCURATE and DETAILED answer in English. 
+NEVER give short one-sentence answers. Always provide a full, structured educational response. 
+Do not attempt to write ${languageName} yourself, as the system handles the translation for you.`;
 };
 
 // @desc    Send message to AI avatar and get response
@@ -479,14 +469,8 @@ exports.streamMessage = async (req, res) => {
             const systemPrompt = getSystemPrompt(language);
             const languageName = LANGUAGE_NAMES[language] || 'English';
 
-            // Reinforce language in the last message
+            // Language is handled by systemPrompt and frontend translation
             const currentConversation = [...conversationHistory];
-            if (language !== 'en' && currentConversation.length > 0) {
-                const lastMsg = currentConversation[currentConversation.length - 1];
-                if (lastMsg.role === 'user') {
-                    lastMsg.content = `[INSTRUCTION: Answer ONLY in ${languageName}] ${lastMsg.content}`;
-                }
-            }
 
             if (RUNPOD_API_KEY && RUNPOD_ENDPOINT_ID) {
                 console.log('🚀 Using RunPod Serverless for streaming (as fake stream)');
@@ -565,7 +549,6 @@ exports.streamMessage = async (req, res) => {
                     res.write(`data: ${JSON.stringify({ chunk: fullResponse, done: false })} \n\n`);
                 }
             } else {
-                console.log('🤖 Using Local Ollama streaming');
                 try {
                     const ollamaResponse = await axios.post(
                         `${OLLAMA_BASE_URL}/api/chat`,
