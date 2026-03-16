@@ -6,7 +6,6 @@ import {
     ChevronRight, ArrowRight, Play, CheckCircle2,
     GraduationCap, BookOpen, Trophy, Users
 } from "lucide-react";
-import Footer from "../components/Footer";
 import "../styles/Home.css";
 
 /* ── Animated counter hook ─────────────────────────────────────────── */
@@ -408,8 +407,6 @@ function Home() {
                     </div>
                 </div>
             </section>
-
-            <Footer />
         </div>
     );
 }

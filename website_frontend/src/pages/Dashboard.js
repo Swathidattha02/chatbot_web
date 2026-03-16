@@ -9,7 +9,6 @@ import {
     Microscope, Dna, Globe, Languages, Atom, 
     Beaker, Monitor, Megaphone, Inbox, Download, AlertCircle, RefreshCw
 } from "lucide-react";
-import Footer from "../components/Footer";
 import dashboardService from "../services/dashboardService";
 import "../styles/Dashboard.css";
 
@@ -800,7 +799,6 @@ function Dashboard() {
                         </div>
                     </div>
                 </div>
-                <Footer />
             </div>
         );
     }

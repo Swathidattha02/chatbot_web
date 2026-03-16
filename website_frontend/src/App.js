@@ -20,6 +20,7 @@ import ResetPassword from "./pages/ResetPassword";
 
 // Components
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import SubjectLayout from "./components/SubjectLayout";
 
 // Protected Route Component
@@ -50,6 +51,7 @@ const RoleRoute = ({ children, role }) => {
 function AppContent() {
   const location = useLocation();
   const isChatPage = location.pathname === '/chat';
+  const isSubjectPage = location.pathname.startsWith('/subjects');
   const isTeacherPage = location.pathname.startsWith('/teacher');
   const isAdminPage = location.pathname.startsWith('/admin');
 
@@ -132,6 +134,7 @@ function AppContent() {
           }
         />
       </Routes>
+      {!isChatPage && !isSubjectPage && !isTeacherPage && !isAdminPage && <Footer />}
     </>
   );
 }
