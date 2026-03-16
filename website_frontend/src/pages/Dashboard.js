@@ -7,12 +7,13 @@ import {
     FileText, Clock, Flame, Trophy, Target, 
     Bot, Loader2, Play, ArrowRight, Calculator, 
     Microscope, Dna, Globe, Languages, Atom, 
-    Beaker, Monitor 
+    Beaker, Monitor, Megaphone, Inbox, Download
 } from "lucide-react";
 import Footer from "../components/Footer";
 import "../styles/Dashboard.css";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+const BASE_URL = API_BASE_URL.replace('/api', '');
 
 function Dashboard() {
     const { user } = useAuth();
@@ -33,6 +34,7 @@ function Dashboard() {
     const [alarmActive, setAlarmActive] = useState(false);
     const [countdown, setCountdown] = useState(0);
     const [violationReason, setViolationReason] = useState('');
+    const [materials, setMaterials] = useState([]);
 
     const VIOLATION_MESSAGES = {
         tab_switch: { icon: '🔄', title: 'Tab Switch Detected!', subtitle: 'You switched away from the learning tab.' },
@@ -59,6 +61,27 @@ function Dashboard() {
         localStorage.removeItem('currentStudySubject');
         console.log("Study session stopped.");
     };
+
+    const fetchMaterials = useCallback(async () => {
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`${API_BASE_URL}/class-materials/student`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (data.success) {
+                setMaterials(data.materials);
+            }
+        } catch (error) {
+            console.error('Error fetching class materials:', error);
+        }
+    }, [user]);
+
+    useEffect(() => {
+        if (user) {
+            fetchMaterials();
+        }
+    }, [user, fetchMaterials]);
 
     // Load subjects based on user's class and fetch progress
     useEffect(() => {
@@ -406,6 +429,106 @@ function Dashboard() {
                         <Link to="/analytics" className="card-button">
                             View Analytics <ArrowRight size={16} />
                         </Link>
+                    </div>
+                </div>
+
+                {/* Class Materials & Announcements */}
+                <div style={{ marginBottom: '40px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                        <Megaphone size={24} color="#f59e0b" />
+                        <h2 className="section-title" style={{ fontSize: '24px', margin: 0 }}>Class Board</h2>
+                        <span style={{ fontSize: '12px', background: '#fef3c7', color: '#92400e', padding: '4px 10px', borderRadius: '100px', fontWeight: 600 }}>
+                            From your teacher
+                        </span>
+                    </div>
+
+                    <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', 
+                        gap: '20px' 
+                    }}>
+                        {materials.length === 0 ? (
+                            <div style={{ 
+                                gridColumn: '1 / -1', 
+                                padding: '40px', 
+                                background: 'rgba(255, 255, 255, 0.05)', 
+                                borderRadius: '20px', 
+                                textAlign: 'center',
+                                border: '2px dashed rgba(255, 255, 255, 0.1)',
+                                backdropFilter: 'blur(10px)'
+                            }}>
+                                <Inbox size={48} color="rgba(255, 255, 255, 0.3)" style={{ marginBottom: '16px' }} />
+                                <h3 style={{ color: 'white', marginBottom: '8px', opacity: 0.9 }}>Nothing shared yet</h3>
+                                <p style={{ color: 'white', opacity: 0.6 }}>Your class teacher will share materials and announcements here.</p>
+                            </div>
+                        ) : (
+                            materials.map((m) => (
+                                <div key={m._id} style={{ 
+                                    background: '#fff', 
+                                    borderRadius: '16px', 
+                                    padding: '20px', 
+                                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+                                    border: '1px solid #f1f5f9',
+                                    position: 'relative',
+                                    overflow: 'hidden'
+                                }}>
+                                    <div style={{ 
+                                        position: 'absolute', 
+                                        top: 0, 
+                                        left: 0, 
+                                        width: '4px', 
+                                        height: '100%', 
+                                        background: m.type === 'document' ? '#3b82f6' : '#f59e0b'
+                                    }}></div>
+                                    
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                                        <div style={{ 
+                                            width: '40px', 
+                                            height: '40px', 
+                                            borderRadius: '10px', 
+                                            background: m.type === 'document' ? '#eff6ff' : '#fff7ed',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}>
+                                            {m.type === 'document' ? <FileText size={20} color="#3b82f6" /> : <Megaphone size={20} color="#f59e0b" />}
+                                        </div>
+                                        <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 500 }}>
+                                            {new Date(m.createdAt).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                    
+                                    <h4 style={{ fontSize: '17px', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>{m.title}</h4>
+                                    <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px', lineHeight: '1.5' }}>{m.description}</p>
+                                    
+                                    {m.type === 'document' && (
+                                        <a 
+                                            href={`${API_BASE_URL}/class-materials/download/${m._id}`} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            download={m.fileName}
+                                            style={{ 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                gap: '8px', 
+                                                background: '#f1f5f9', 
+                                                padding: '10px 14px', 
+                                                borderRadius: '10px',
+                                                textDecoration: 'none',
+                                                color: '#475569',
+                                                fontSize: '13px',
+                                                fontWeight: 600,
+                                                transition: 'all 0.2s'
+                                            }}
+                                            onMouseOver={(e) => e.currentTarget.style.background = '#e2e8f0'}
+                                            onMouseOut={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                                        >
+                                            <Download size={16} /> {m.fileName || 'Download Resource'}
+                                        </a>
+                                    )}
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
 

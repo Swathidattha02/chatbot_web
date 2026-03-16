@@ -5,7 +5,7 @@ import {
     BookOpen, FileText, Search, CheckCircle, XCircle, 
     Star, BarChart3, AlertTriangle, Calendar, Download,
     TrendingUp, TrendingDown, ChevronLeft, ChevronRight,
-    Inbox, LogOut, Eye
+    Inbox, LogOut, Eye, Upload, Megaphone, Trash2, Plus
 } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -30,6 +30,11 @@ function TeacherDashboard() {
     const [activeTab, setActiveTab] = useState("dashboard"); // dashboard | pending | quizzes
     const [actionMsg, setActionMsg] = useState("");
     const [showLogoutModal, setShowLogoutModal] = useState(false);
+    
+    // Class materials state
+    const [materials, setMaterials] = useState([]);
+    const [isUploadingMaterial, setIsUploadingMaterial] = useState(false);
+    const [materialForm, setMaterialForm] = useState({ title: "", description: "", type: "document", file: null });
 
     // View controls
     const [view, setView] = useState("Daily"); // Daily | Weekly | Monthly
@@ -105,6 +110,65 @@ function TeacherDashboard() {
             }
         } catch { }
     }, [token]);
+
+    const fetchMaterials = useCallback(async () => {
+        try {
+            const res = await axios.get(`${API_BASE}/class-materials/teacher`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.data.success) setMaterials(res.data.materials);
+        } catch { }
+    }, [token]);
+
+    const handleUploadMaterial = async (e) => {
+        e.preventDefault();
+        if (!materialForm.title) return alert("Please provide a title.");
+        
+        setIsUploadingMaterial(true);
+        try {
+            const formData = new FormData();
+            formData.append("title", materialForm.title);
+            formData.append("description", materialForm.description);
+            formData.append("type", materialForm.type);
+            if (materialForm.type === "document" && materialForm.file) {
+                formData.append("file", materialForm.file);
+            }
+
+            const res = await axios.post(`${API_BASE}/class-materials/upload`, formData, {
+                headers: { 
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "multipart/form-data" 
+                },
+            });
+
+            if (res.data.success) {
+                setActionMsg(
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                        <CheckCircle size={16} color="#10b981" /> {materialForm.type === 'document' ? 'Document uploaded!' : 'Announcement posted!'}
+                    </span>
+                );
+                setMaterialForm({ title: "", description: "", type: "document", file: null });
+                fetchMaterials();
+                setTimeout(() => setActionMsg(""), 4000);
+            }
+        } catch (err) {
+            alert(err.response?.data?.message || "Upload failed");
+        } finally {
+            setIsUploadingMaterial(false);
+        }
+    };
+
+    const handleDeleteMaterial = async (id) => {
+        if (!window.confirm("Delete this material?")) return;
+        try {
+            const res = await axios.delete(`${API_BASE}/class-materials/${id}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.data.success) {
+                fetchMaterials();
+            }
+        } catch { alert("Delete failed"); }
+    };
 
     const handleApproveStudent = async (studentId, studentName) => {
         try {
@@ -452,6 +516,13 @@ function TeacherDashboard() {
                             <span className="td-pending-badge" style={{ background: "#ef4444" }}>{violationStats.last24h}</span>
                         )}
                     </button>
+                    <button
+                        className={`td-nav-link ${activeTab === "materials" ? "active" : ""}`}
+                        onClick={() => { setActiveTab("materials"); fetchMaterials(); }}
+                        style={{ display: "flex", alignItems: "center", gap: "6px" }}
+                    >
+                        <Upload size={16} /> Materials
+                    </button>
                 </nav>
 
                 <div className="td-search-bar">
@@ -540,6 +611,185 @@ function TeacherDashboard() {
                                 </table>
                             </div>
                         )}
+                    </div>
+                )}
+
+                {/* ── Class Materials Tab ─────────────────────────── */}
+                {activeTab === "materials" && (
+                    <div className="td-materials-section">
+                        <div style={{ marginBottom: "16px", display: "flex", flexDirection: "column" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                                <div style={{ background: "#4f46e5", color: "white", padding: "8px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                    <Upload size={20} />
+                                </div>
+                                <h2 className="td-section-title" style={{ fontSize: '22px', fontWeight: 800, margin: 0 }}>
+                                    Class Materials & Announcements
+                                </h2>
+                            </div>
+                            <p className="td-section-subtitle" style={{ marginLeft: "44px", marginTop: "4px" }}>Share important documents and post announcements for Class {teacher?.assignedClass || "—"}-{teacher?.assignedSection || "—"}.</p>
+                        </div>
+
+                        {actionMsg && <div className="td-action-msg" style={{ marginBottom: "16px" }}>{actionMsg}</div>}
+
+                        <div style={{ display: "grid", gridTemplateColumns: "minmax(320px, 1fr) 1.5fr", gap: "20px", alignItems: "start" }}>
+                            {/* Upload Form */}
+                            <div className="td-materials-card" style={{ padding: "16px" }}>
+                                <h3 style={{ fontSize: "15px", fontWeight: 700, marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+                                    <Plus size={16} color="#4f46e5" /> New Upload / Post
+                                </h3>
+                                <form onSubmit={handleUploadMaterial}>
+                                    <div style={{ marginBottom: "12px" }}>
+                                        <label className="td-materials-label" style={{ marginBottom: "6px" }}>CONTENT TYPE</label>
+                                        <div className="td-type-toggle-group" style={{ marginBottom: "0px" }}>
+                                            <button 
+                                                type="button" 
+                                                className={`td-type-toggle-btn ${materialForm.type === 'document' ? 'active' : ''}`}
+                                                onClick={() => setMaterialForm({...materialForm, type: 'document'})}
+                                            >
+                                                <FileText size={16} /> Document
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                className={`td-type-toggle-btn ${materialForm.type === 'announcement' ? 'active' : ''}`}
+                                                onClick={() => setMaterialForm({...materialForm, type: 'announcement'})}
+                                            >
+                                                <Megaphone size={16} /> Announcement
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ marginBottom: "12px" }}>
+                                        <label className="td-materials-label" style={{ marginBottom: "6px" }}>TITLE</label>
+                                        <input 
+                                            type="text" 
+                                            className="td-materials-input" 
+                                            placeholder="e.g., Mathematics Notes"
+                                            value={materialForm.title}
+                                            onChange={(e) => setMaterialForm({...materialForm, title: e.target.value})}
+                                            required
+                                            style={{ padding: "10px 14px" }}
+                                        />
+                                    </div>
+
+                                    <div style={{ marginBottom: "12px" }}>
+                                        <label className="td-materials-label" style={{ marginBottom: "6px" }}>DESCRIPTION / MESSAGE</label>
+                                        <textarea 
+                                            className="td-materials-input" 
+                                            placeholder="Provide context..."
+                                            style={{ minHeight: "80px", resize: "none", padding: "10px 14px" }}
+                                            value={materialForm.description}
+                                            onChange={(e) => setMaterialForm({...materialForm, description: e.target.value})}
+                                        />
+                                    </div>
+
+                                    {materialForm.type === "document" && (
+                                        <div style={{ marginBottom: "16px" }}>
+                                            <label className="td-materials-label" style={{ marginBottom: "6px" }}>UPLOAD FILE</label>
+                                            <label className="td-materials-file-label" style={{ padding: "16px" }}>
+                                                <div style={{ background: "#eff6ff", width: "32px", height: "32px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                                    <Upload size={14} color="#3b82f6" />
+                                                </div>
+                                                <div style={{ fontSize: "12px", fontWeight: 600 }}>
+                                                    {materialForm.file ? materialForm.file.name : "Select file"}
+                                                </div>
+                                                <div style={{ fontSize: "11px", opacity: 0.7 }}>
+                                                    Maximum size: 20MB
+                                                </div>
+                                                <input 
+                                                    type="file" 
+                                                    onChange={(e) => setMaterialForm({...materialForm, file: e.target.files[0]})}
+                                                    accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                                                    style={{ display: "none" }}
+                                                />
+                                            </label>
+                                        </div>
+                                    )}
+
+                                    <button 
+                                        type="submit" 
+                                        disabled={isUploadingMaterial}
+                                        className="td-materials-submit-btn"
+                                        style={{ padding: "12px" }}
+                                    >
+                                        {isUploadingMaterial ? (
+                                            <>Uploading...</>
+                                        ) : materialForm.type === 'document' ? (
+                                            <><Upload size={16} /> Upload Document</>
+                                        ) : (
+                                            <><Megaphone size={16} /> Post Announcement</>
+                                        )}
+                                    </button>
+                                </form>
+                            </div>
+
+                            {/* Recent Materials List */}
+                            <div className="td-materials-card" style={{ padding: "0", display: "flex", flexDirection: "column" }}>
+                                <div style={{ padding: "16px 20px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                    <h3 style={{ fontSize: "15px", fontWeight: 700 }}>Recently Shared</h3>
+                                    <div style={{ fontSize: "11px", color: "#64748b", fontWeight: 700, background: "#f1f5f9", padding: "2px 8px", borderRadius: "4px" }}>
+                                        {materials?.length || 0} ITEMS
+                                    </div>
+                                </div>
+                                <div style={{ flex: 1, maxHeight: "550px", overflowY: "auto", padding: "16px" }}>
+                                    {!materials || materials.length === 0 ? (
+                                        <div style={{ textAlign: "center", padding: "60px 0", color: "#94a3b8" }}>
+                                            <div style={{ background: "#f8fafc", width: "64px", height: "64px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                                                <Inbox size={28} />
+                                            </div>
+                                            <p style={{ fontWeight: 600 }}>No materials shared yet.</p>
+                                            <p style={{ fontSize: "13px", opacity: 0.7 }}>Items you share will appear here.</p>
+                                        </div>
+                                    ) : (
+                                        materials.map((m) => (
+                                            <div key={m._id} className="td-material-item">
+                                                <div style={{ display: "flex", gap: "16px" }}>
+                                                    <div className="td-material-item-icon" style={{ 
+                                                        background: m.type === 'document' ? "#eff6ff" : "#fff7ed"
+                                                    }}>
+                                                        {m.type === 'document' ? <FileText size={20} color="#3b82f6" /> : <Megaphone size={20} color="#f59e0b" />}
+                                                    </div>
+                                                    <div>
+                                                        <div style={{ fontWeight: 700, fontSize: "14px", color: "#1e293b" }}>{m.title}</div>
+                                                        <div style={{ fontSize: "12px", color: "#64748b", margin: "4px 0 8px", lineHeight: "1.5" }}>{m.description}</div>
+                                                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                                                            <div className="td-material-badge" style={{ 
+                                                                background: m.type === 'document' ? "#dbeafe" : "#ffedd5",
+                                                                color: m.type === 'document' ? "#1e40af" : "#9a3412"
+                                                            }}>
+                                                                {m.type}
+                                                            </div>
+                                                            <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+                                                                {new Date(m.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div style={{ display: "flex", gap: "8px" }}>
+                                                    {m.type === 'document' && (
+                                                        <a 
+                                                            href={`${API_BASE}/class-materials/download/${m._id}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            style={{ background: "#eff6ff", padding: "8px", borderRadius: "8px", color: "#3b82f6", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}
+                                                            title="Download file"
+                                                        >
+                                                            <Download size={16} />
+                                                        </a>
+                                                    )}
+                                                    <button 
+                                                        onClick={() => handleDeleteMaterial(m._id)}
+                                                        style={{ background: "#fff1f2", border: "none", cursor: "pointer", padding: "8px", borderRadius: "8px", color: "#e11d48", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}
+                                                        title="Delete material"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 )}
 
