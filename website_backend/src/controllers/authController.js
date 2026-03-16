@@ -1,4 +1,6 @@
 const User = require("../models/User");
+const Teacher = require("../models/Teacher");
+const Admin = require("../models/Admin");
 const Violation = require("../models/Violation");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -164,9 +166,25 @@ exports.login = async (req, res) => {
 // @access  Private
 exports.getMe = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).select("-password");
+        const role = req.user.role;
+        let userData;
 
-        if (!user) {
+        if (role === "teacher") {
+            userData = await Teacher.findById(req.user.id).select("-password");
+        } else if (role === "admin") {
+            userData = await Admin.findById(req.user.id).select("-password");
+        } else {
+            userData = await User.findById(req.user.id).select("-password");
+        }
+
+        // Final fallback if role check didn't work as expected
+        if (!userData) {
+            userData = await User.findById(req.user.id).select("-password") ||
+                       await Teacher.findById(req.user.id).select("-password") ||
+                       await Admin.findById(req.user.id).select("-password");
+        }
+
+        if (!userData) {
             return res.status(404).json({
                 success: false,
                 message: "User not found",
@@ -175,7 +193,7 @@ exports.getMe = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            user,
+            user: userData,
         });
     } catch (error) {
         console.error("Get User Error:", error);

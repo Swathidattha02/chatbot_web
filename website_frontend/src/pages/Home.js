@@ -4,7 +4,8 @@ import { useAuth } from "../context/AuthContext";
 import { 
     FileText, BarChart3, Flame, Bot, 
     ChevronRight, ArrowRight, Play, CheckCircle2,
-    GraduationCap, BookOpen, Trophy, Users
+    GraduationCap, BookOpen, Trophy, Users,
+    Target, Globe, Languages, Star, Megaphone
 } from "lucide-react";
 import "../styles/Home.css";
 
@@ -207,7 +208,7 @@ function Home() {
                         <ul className="hp-showcase-list">
                             {tab.highlights.map((h, i) => (
                                 <li key={i}>
-                                    <span className="hp-check">✓</span> {h}
+                                    <CheckCircle2 size={16} className="hp-check-icon" /> {h}
                                 </li>
                             ))}
                         </ul>
@@ -238,7 +239,7 @@ function Home() {
                         )}
                         {tab.visual === "progress" && (
                             <div className="hp-mock hp-mock-progress">
-                                <div className="hp-mock-bar">📊 Progress Dashboard</div>
+                                    <div className="hp-mock-bar"><BarChart3 size={14} style={{marginRight: '6px'}} /> Progress Dashboard</div>
                                 <div className="hp-prog-row"><span>Mathematics</span><div className="hp-prog-track"><div className="hp-prog-fill" style={{ width: "85%" }}>85%</div></div></div>
                                 <div className="hp-prog-row"><span>Science</span><div className="hp-prog-track"><div className="hp-prog-fill hp-fill-green" style={{ width: "72%" }}>72%</div></div></div>
                                 <div className="hp-prog-row"><span>English</span><div className="hp-prog-track"><div className="hp-prog-fill hp-fill-amber" style={{ width: "60%" }}>60%</div></div></div>
@@ -247,16 +248,16 @@ function Home() {
                         )}
                         {tab.visual === "streak" && (
                             <div className="hp-mock hp-mock-streak">
-                                <div className="hp-mock-bar">🔥 Learning Streak</div>
+                                <div className="hp-mock-bar"><Flame size={14} style={{marginRight: '6px'}} /> Learning Streak</div>
                                 <div className="hp-streak-num">
-                                    <span className="hp-streak-fire">🔥</span>
+                                    <span className="hp-streak-fire"><Flame size={48} color="#f97316" fill="#f97316" /></span>
                                     <span className="hp-streak-val">14</span>
                                     <span className="hp-streak-label">Day Streak!</span>
                                 </div>
                                 <div className="hp-streak-week">
                                     {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
                                         <div key={i} className={`hp-streak-day ${i < 6 ? "active" : ""}`}>
-                                            {i < 6 ? "🔥" : "○"}<br /><small>{d}</small>
+                                            {i < 6 ? <Flame size={14} color="#f97316" fill="#f97316" /> : "○"}<br /><small>{d}</small>
                                         </div>
                                     ))}
                                 </div>
@@ -332,12 +333,13 @@ function Home() {
 
                 <div className="hp-feat-grid">
                     {[
-                        { icon: "🎯", title: "Interactive 3D Avatar", desc: "Lifelike 3D avatar with natural gestures and voice responses" },
-                        { icon: "🌍", title: "Multi-Language", desc: "Learn in English, Hindi, Telugu and more — switch anytime" },
-                        { icon: "📝", title: "AI Quizzes", desc: "Unique MCQs for every chapter, graded and tracked automatically" },
-                        { icon: "📊", title: "Progress Analytics", desc: "Subject & chapter dashboards with time-spent and completion %" },
-                        { icon: "🔥", title: "Daily Streaks", desc: "Build consistency with streak tracking and milestone rewards" },
-                        { icon: "📚", title: "Document Q&A", desc: "Upload PDFs and ask questions — AI answers from your own notes" },
+                        { icon: <Target className="hp-feat-icon-svg" size={32} />, title: "Interactive 3D Avatar", desc: "Lifelike 3D avatar with natural gestures and voice responses" },
+                        { icon: <Languages className="hp-feat-icon-svg" size={32} />, title: "Multi-Language", desc: "Learn in English, Hindi, Telugu and more — switch anytime" },
+                        { icon: <FileText className="hp-feat-icon-svg" size={32} />, title: "AI Quizzes", desc: "Unique MCQs for every chapter, graded and tracked automatically" },
+                        { icon: <BarChart3 className="hp-feat-icon-svg" size={32} />, title: "Progress Analytics", desc: "Subject & chapter dashboards with time-spent and completion %" },
+                        { icon: <Flame className="hp-feat-icon-svg" size={32} />, title: "Daily Streaks", desc: "Build consistency with streak tracking and milestone rewards" },
+                        { icon: <BookOpen className="hp-feat-icon-svg" size={32} />, title: "Document Q&A", desc: "Upload PDFs and ask questions — AI answers from your own notes" },
+                        { icon: <Megaphone className="hp-feat-icon-svg" size={32} />, title: "Class Announcements", desc: "Get instant updates and study materials shared by your class teacher" },
                     ].map((f, i) => (
                         <div className="hp-feat-card" key={i} style={{ animationDelay: `${i * 0.08}s` }}>
                             <div className="hp-feat-icon">{f.icon}</div>
@@ -360,7 +362,11 @@ function Home() {
                         { name: "Rohit K.", class: "Class 8, Chaitanya School", text: "My 45-day streak motivates me to study every day. Best study app ever!", stars: 5 },
                     ].map((t, i) => (
                         <div className="hp-test-card" key={i}>
-                            <div className="hp-test-stars">{"⭐".repeat(t.stars)}</div>
+                            <div className="hp-test-stars">
+                                {[...Array(t.stars)].map((_, i) => (
+                                    <Star key={i} size={16} fill="#f59e0b" color="#f59e0b" />
+                                ))}
+                            </div>
                             <p className="hp-test-text">"{t.text}"</p>
                             <div className="hp-test-author">
                                 <div className="hp-test-avatar">{t.name.charAt(0)}</div>

@@ -23,34 +23,16 @@ function Login() {
         setLoading(true);
 
         try {
-            if (activeRole === "student") {
-                const result = await login(email, password);
-                if (result.success) {
-                    navigate("/");
-                } else {
-                    setError(result.message || "Invalid credentials");
-                }
-            } else if (activeRole === "teacher") {
-                const res = await axios.post(`${API_BASE}/auth/teacher/login`, { email, password });
-                if (res.data.success) {
-                    localStorage.setItem("token", res.data.token);
-                    localStorage.setItem("user", JSON.stringify(res.data.user));
-                    navigate("/teacher/dashboard");
-                } else {
-                    setError(res.data.message || "Invalid credentials");
-                }
-            } else if (activeRole === "admin") {
-                const res = await axios.post(`${API_BASE}/auth/admin/login`, { email, password });
-                if (res.data.success) {
-                    localStorage.setItem("token", res.data.token);
-                    localStorage.setItem("user", JSON.stringify(res.data.user));
-                    navigate("/admin/dashboard");
-                } else {
-                    setError(res.data.message || "Invalid credentials");
-                }
+            const result = await login(email, password, activeRole);
+            if (result.success) {
+                if (activeRole === "student") navigate("/");
+                else if (activeRole === "teacher") navigate("/teacher/dashboard");
+                else if (activeRole === "admin") navigate("/admin/dashboard");
+            } else {
+                setError(result.message || "Invalid credentials");
             }
         } catch (err) {
-            setError(err.response?.data?.message || "Login failed. Please try again.");
+            setError(err.message || "Login failed. Please try again.");
         }
 
         setLoading(false);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { 
     BookOpen, FileText, Search, CheckCircle, XCircle, 
@@ -12,6 +13,8 @@ import "../styles/TeacherDashboard.css";
 import ViolationTable from "../components/ViolationTable";
 import { getSubjectsForClass } from "../config/syllabus";
 import dashboardService from "../services/dashboardService";
+
+const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
 function TeacherDashboard() {
     const navigate = useNavigate();

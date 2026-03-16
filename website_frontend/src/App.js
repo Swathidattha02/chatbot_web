@@ -40,11 +40,24 @@ const ProtectedRoute = ({ children }) => {
 
 // Role-based Route — only allows a specific role, otherwise → /login
 const RoleRoute = ({ children, role }) => {
-  const stored = localStorage.getItem("user");
-  const token = localStorage.getItem("token");
-  if (!stored || !token) return <Navigate to="/login" />;
-  const u = JSON.parse(stored);
-  if (u.role !== role) return <Navigate to="/login" />;
+  const { user, loading, isAuthenticated } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+        <h2>Loading...</h2>
+      </div>
+    );
+  }
+
+  // Fallback to localStorage if context not yet populated but authenticated
+  const storedUser = JSON.parse(localStorage.getItem("user") || "null");
+  const currentUser = user || storedUser;
+
+  if (!isAuthenticated || !currentUser || currentUser.role !== role) {
+    return <Navigate to="/login" />;
+  }
+
   return children;
 };
 

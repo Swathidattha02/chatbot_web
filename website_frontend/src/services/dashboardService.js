@@ -499,7 +499,7 @@ export const invalidateCache = (key = null) => {
     }
 };
 
-export default {
+const dashboardService = {
     fetchTeacherDashboard,
     fetchPendingStudents,
     approveStudent,
@@ -518,3 +518,5 @@ export default {
     fetchTeacherDashboardBatch,
     invalidateCache,
 };
+
+export default dashboardService;

@@ -56,9 +56,17 @@ export const AuthProvider = ({ children }) => {
         checkAuth();
     }, []);
 
-    const login = async (email, password) => {
+    const login = async (email, password, role = "student") => {
         try {
-            const response = await authAPI.login({ email, password });
+            let response;
+            if (role === "teacher") {
+                response = await authAPI.teacherLogin({ email, password });
+            } else if (role === "admin") {
+                response = await authAPI.adminLogin({ email, password });
+            } else {
+                response = await authAPI.login({ email, password });
+            }
+            
             const { token, user } = response.data;
 
             localStorage.setItem("token", token);
