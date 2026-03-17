@@ -118,14 +118,16 @@ const registerTeacher = async (req, res) => {
 const loginTeacher = async (req, res) => {
     try {
         const { email, password } = req.body;
-
+        console.log(`[loginTeacher] Attempt: ${email}`, req.body);
         const teacher = await Teacher.findOne({ email });
         if (!teacher) {
+            console.log(`[loginTeacher] Failed: User not found - ${email}`);
             return res.status(401).json({ success: false, message: "Invalid email or password" });
         }
 
         const isMatch = await bcrypt.compare(password, teacher.password);
         if (!isMatch) {
+            console.log(`[loginTeacher] Failed: Password mismatch - ${email}`);
             return res.status(401).json({ success: false, message: "Invalid email or password" });
         }
 
@@ -147,6 +149,7 @@ const loginTeacher = async (req, res) => {
         }
 
         const token = generateToken(teacher._id, "teacher");
+        console.log(`[loginTeacher] Success: ${email}`);
 
         res.json({
             success: true,
@@ -170,18 +173,22 @@ const loginTeacher = async (req, res) => {
 const loginAdmin = async (req, res) => {
     try {
         const { email, password } = req.body;
+        console.log(`[loginAdmin] Attempt: ${email}`, req.body);
 
         const admin = await Admin.findOne({ email });
         if (!admin) {
+            console.log(`[loginAdmin] Failed: Admin not found - ${email}`);
             return res.status(401).json({ success: false, message: "Invalid email or password" });
         }
 
         const isMatch = await bcrypt.compare(password, admin.password);
         if (!isMatch) {
+            console.log(`[loginAdmin] Failed: Password mismatch - ${email}`);
             return res.status(401).json({ success: false, message: "Invalid email or password" });
         }
 
         const token = generateToken(admin._id, "admin");
+        console.log(`[loginAdmin] Success: ${email}`);
 
         res.json({
             success: true,

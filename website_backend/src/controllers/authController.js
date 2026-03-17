@@ -82,6 +82,7 @@ exports.signup = async (req, res) => {
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
+        console.log(`[loginStudent] Attempt: ${email}`, req.body);
 
         // Validation
         if (!email || !password) {
@@ -92,8 +93,10 @@ exports.login = async (req, res) => {
         }
 
         // Check if user exists
+        console.log(`[loginStudent] Attempt: ${email}`);
         const user = await User.findOne({ email });
         if (!user) {
+            console.log(`[loginStudent] Failed: User not found - ${email}`);
             return res.status(401).json({
                 success: false,
                 message: "Invalid email or password",
@@ -103,6 +106,7 @@ exports.login = async (req, res) => {
         // Verify password
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
+            console.log(`[loginStudent] Failed: Password mismatch - ${email}`);
             return res.status(401).json({
                 success: false,
                 message: "Invalid email or password",
@@ -127,6 +131,7 @@ exports.login = async (req, res) => {
         }
 
         // Generate JWT token
+        console.log(`[loginStudent] Success: ${email}`);
         const token = jwt.sign(
             {
                 userId: user._id.toString(),
