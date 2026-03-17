@@ -5,7 +5,8 @@ import {
     FileText, BarChart3, Flame, Bot, 
     ChevronRight, ArrowRight, Play, CheckCircle2,
     GraduationCap, BookOpen, Trophy, Users,
-    Target, Globe, Languages, Star, Megaphone, Clock
+    Target, Globe, Languages, Star, Megaphone, Clock,
+    Quote, CheckCircle
 } from "lucide-react";
 import dashboardService from "../services/dashboardService";
 import "../styles/Home.css";
@@ -470,7 +471,10 @@ function Home() {
                 TESTIMONIALS / SOCIAL PROOF
             ═══════════════════════════════════════════════════════════ */}
             <section className="hp-testimonials">
-                <h2 className="hp-section-title hp-dark">What Students Say</h2>
+                <div className="hp-test-header">
+                    <h2 className="hp-section-title hp-dark">What Students Say</h2>
+                    <p className="hp-test-subtitle">Join thousands of learners transforming their education</p>
+                </div>
                 <div className="hp-test-grid">
                     {[
                         { name: "Aarav S.", class: "Class 10, Narayana School", text: "The AI quizzes helped me score 95% in maths. The instant feedback is amazing!", stars: 5 },
@@ -478,17 +482,25 @@ function Home() {
                         { name: "Rohit K.", class: "Class 8, Chaitanya School", text: "My 45-day streak motivates me to study every day. Best study app ever!", stars: 5 },
                     ].map((t, i) => (
                         <div className="hp-test-card" key={i}>
-                            <div className="hp-test-stars">
-                                {[...Array(t.stars)].map((_, i) => (
-                                    <Star key={i} size={16} fill="#f59e0b" color="#f59e0b" />
-                                ))}
-                            </div>
-                            <p className="hp-test-text">"{t.text}"</p>
-                            <div className="hp-test-author">
-                                <div className="hp-test-avatar">{t.name.charAt(0)}</div>
-                                <div>
-                                    <div className="hp-test-name">{t.name}</div>
-                                    <div className="hp-test-class">{t.class}</div>
+                            <div className="hp-test-card-inner">
+                                <div className="hp-test-quote-icon">
+                                    <Quote size={20} />
+                                </div>
+                                <div className="hp-test-stars">
+                                    {[...Array(t.stars)].map((_, i) => (
+                                        <Star key={i} size={16} fill="#f59e0b" color="#f59e0b" />
+                                    ))}
+                                </div>
+                                <p className="hp-test-text">{t.text}</p>
+                                <div className="hp-test-author">
+                                    <div className="hp-test-avatar">{t.name.charAt(0)}</div>
+                                    <div className="hp-test-info">
+                                        <div className="hp-test-name-verified">
+                                            <span>{t.name}</span>
+                                            <CheckCircle size={14} className="hp-test-verified-icon" />
+                                        </div>
+                                        <div className="hp-test-class">{t.class}</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
