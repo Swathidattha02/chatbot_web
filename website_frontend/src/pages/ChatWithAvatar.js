@@ -5,7 +5,7 @@ import { chatAPI } from "../services/api";
 import LanguageSelector from "../components/LanguageSelector";
 import LipSyncAvatar from "../components/LipSyncAvatar";
 import translationService from "../services/translationService";
-import { Bot, User, Zap, Square, Mic, Volume2, Clock, Send } from "lucide-react";
+import { Bot, User, Zap, Square, Mic, Volume2, Clock, Send, RefreshCw, Sparkles } from "lucide-react";
 import "../styles/Chat.css";
 
 function ChatWithAvatar() {
@@ -531,23 +531,32 @@ function ChatWithAvatar() {
                     <LanguageSelector currentLanguage={currentLanguage} onLanguageChange={handleLanguageChange} supportedLanguages={translationService.getSupportedLanguages()} />
 
                     <div className="chat-header">
-                        <h3>
-                            <span className="chat-header-icon"><Bot size={24} /></span>
-                            AI Educational Tutor
-                        </h3>
-                        {loading && (
-                            <div className="speaking-control">
-                                <span className="speaking-indicator"><Zap size={16} /> Generating...</span>
-                                <button onClick={handleStopResponse} className="btn-stop-speaking" title="Stop"><Square size={16} /> Stop</button>
+                        <div className="chat-header-left">
+                            <span className="chat-header-icon"><Bot size={28} /></span>
+                            <div className="chat-header-content">
+                                <h3>AI Educational Tutor</h3>
+                                <p className="chat-header-subtitle">Interactive Learning Assistant</p>
                             </div>
-                        )}
-                        {isAvatarSpeaking && (
-                            <div className="speaking-control">
-                                <span className="speaking-indicator"><Mic size={16} /> Speaking...</span>
-                                <button onClick={stopSpeaking} className="btn-stop-speaking" title="Stop"><Square size={16} /> Stop</button>
-                            </div>
-                        )}
-                        <button onClick={handleNewChat} className="btn-new-chat">New Chat</button>
+                        </div>
+                        <div className="chat-header-center">
+                            {loading && (
+                                <div className="speaking-control">
+                                    <span className="speaking-indicator"><Zap size={16} /> Generating...</span>
+                                    <button onClick={handleStopResponse} className="btn-stop-speaking" title="Stop"><Square size={16} /> Stop</button>
+                                </div>
+                            )}
+                            {isAvatarSpeaking && (
+                                <div className="speaking-control">
+                                    <span className="speaking-indicator"><Mic size={16} /> Speaking...</span>
+                                    <button onClick={stopSpeaking} className="btn-stop-speaking" title="Stop"><Square size={16} /> Stop</button>
+                                </div>
+                            )}
+                        </div>
+                        <button onClick={handleNewChat} className="btn-new-chat" title="Start a new conversation">
+                            <Sparkles size={16} />
+                            <span>New Chat</span>
+                            <RefreshCw size={14} className="btn-new-chat-icon" />
+                        </button>
                     </div>
 
                     <div className="chat-messages">
