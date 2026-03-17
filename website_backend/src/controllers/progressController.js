@@ -608,7 +608,7 @@ exports.getUserAchievements = async (req, res) => {
 
         // Fetch user progress
         const progress = await Progress.find({ userId });
-        console.log(`[getUserAchievements] userId: ${userId}, progress records found: ${progress.length}`);
+        // console.log(`[getUserAchievements] userId: ${userId}, progress records found: ${progress.length}`);
         
         // Calculate achievements based on user data
         const achievements = [];
@@ -700,7 +700,7 @@ exports.getUserAchievements = async (req, res) => {
             }
         }
 
-        console.log(`[getUserAchievements] Total achievements calculated: ${achievements.length}`, achievements);
+        // console.log(`[getUserAchievements] Total achievements calculated: ${achievements.length}`, achievements);
 
         res.status(200).json({
             success: true,
@@ -725,7 +725,7 @@ exports.getRecommendations = async (req, res) => {
 
         // Fetch user progress
         const progress = await Progress.find({ userId });
-        console.log(`[getRecommendations] userId: ${userId}, progress records found: ${progress.length}`);
+        // console.log(`[getRecommendations] userId: ${userId}, progress records found: ${progress.length}`);
 
         const recommendations = [];
 
@@ -830,7 +830,7 @@ exports.getRecommendations = async (req, res) => {
         // Sort by priority and return top 2
         recommendations.sort((a, b) => a.priority - b.priority);
 
-        console.log(`[getRecommendations] Total recommendations calculated: ${recommendations.length}`, recommendations);
+        // console.log(`[getRecommendations] Total recommendations calculated: ${recommendations.length}`, recommendations);
 
         res.status(200).json({
             success: true,
