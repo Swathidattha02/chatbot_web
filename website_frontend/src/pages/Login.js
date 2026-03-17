@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
-import { GraduationCap, Users, Building2, AlertTriangle, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { GraduationCap, Users, Building2, AlertTriangle, Mail, Lock, Eye, EyeOff, Shield, Lock as LockCheck, Zap } from "lucide-react";
 import "../styles/AuthNew.css";
 
 const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
@@ -68,8 +68,9 @@ function Login() {
                 </div>
 
                 {error && (
-                    <div className="auth-error">
-                        <AlertTriangle size={16} /> {error}
+                    <div className="auth-error auth-error-animated">
+                        <AlertTriangle size={16} /> 
+                        <span>{error}</span>
                     </div>
                 )}
 
@@ -115,13 +116,35 @@ function Login() {
                     </div>
 
                     <button type="submit" className="auth-submit-btn" disabled={loading}>
-                        {loading ? "Signing in..." : `Sign In →`}
+                        {loading ? (
+                            <>
+                                <span className="spinner"></span>
+                                Signing in...
+                            </>
+                        ) : (
+                            'Sign In →'
+                        )}
                     </button>
                 </form>
 
                 <div className="auth-new-footer">
                     Don't have an account?{" "}
                     <Link to="/signup">Sign up instead</Link>
+                </div>
+
+                <div className="trust-badges">
+                    <div className="trust-badge">
+                        <Shield size={14} />
+                        <span>Secure Login</span>
+                    </div>
+                    <div className="trust-badge">
+                        <LockCheck size={14} />
+                        <span>Privacy Protected</span>
+                    </div>
+                    <div className="trust-badge">
+                        <Zap size={14} />
+                        <span>24/7 Support</span>
+                    </div>
                 </div>
             </div>
         </div>
