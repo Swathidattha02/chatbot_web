@@ -46,6 +46,15 @@
 .chat-header-icon {
     font-size: 32px;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    display: inline-flex;
+    align-items: center;
+}
+
+.chat-header-icon svg {
+    width: 32px;
+    height: 32px;
+    stroke-width: 2;
+    color: white;
 }
 
 .speaking-control {
@@ -64,6 +73,13 @@
     font-weight: 600;
 }
 
+.speaking-indicator svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2;
+    color: white;
+}
+
 .btn-stop-speaking {
     padding: 8px 16px;
     background: linear-gradient(135deg, #ff4757 0%, #ff6b81 100%);
@@ -75,6 +91,16 @@
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 4px 12px rgba(255, 71, 87, 0.35);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-stop-speaking svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2;
+    color: white;
 }
 
 .btn-stop-speaking:hover {
@@ -205,6 +231,14 @@
     font-size: 24px;
     flex-shrink: 0;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    color: white;
+}
+
+.message-avatar svg {
+    width: 24px;
+    height: 24px;
+    stroke-width: 2;
+    color: white;
 }
 
 .user-message .message-avatar {
@@ -276,6 +310,12 @@
     align-items: center;
     justify-content: center;
     color: #64748b;
+}
+
+.read-again-button svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2;
 }
 
 .read-again-button:hover:not(:disabled) {
@@ -404,23 +444,23 @@
 .voice-input-button {
     width: 52px;
     height: 52px;
-
     border: none;
     border-radius: 12px;
-
     background: linear-gradient(135deg,#f093fb,#f5576c);
     color: white;
-
     font-size: 22px;
     cursor: pointer;
-
     display: flex;
     align-items: center;
     justify-content: center;
-
     transition: all .25s ease;
-
     box-shadow: 0 6px 16px rgba(245,87,108,.35);
+}
+
+.voice-input-button svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 2;
 }
 
 .voice-input-button:hover:not(:disabled) {
@@ -437,8 +477,6 @@
     cursor: not-allowed;
 }
 
-/* listening animation */
-
 .voice-input-button.listening {
     background: linear-gradient(135deg,#1e1b4b,#312e81);
     animation: pulse-voice 1.4s infinite;
@@ -451,24 +489,23 @@
 .send-button {
     width: 52px;
     height: 52px;
-
     border: none;
     border-radius: 12px;
-
     background: linear-gradient(135deg,#1e1b4b,#312e81);
     color: white;
-
     font-size: 22px;
-
     display: flex;
     align-items: center;
     justify-content: center;
-
     cursor: pointer;
-
     transition: all .25s ease;
-
     box-shadow: 0 6px 18px rgba(30,27,75,.35);
+}
+
+.send-button svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 2;
 }
 
 .send-button:hover:not(:disabled) {

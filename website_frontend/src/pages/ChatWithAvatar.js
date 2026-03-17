@@ -5,6 +5,7 @@ import { chatAPI } from "../services/api";
 import LanguageSelector from "../components/LanguageSelector";
 import LipSyncAvatar from "../components/LipSyncAvatar";
 import translationService from "../services/translationService";
+import { Bot, User, Zap, Square, Mic, Volume2, Clock, Send } from "lucide-react";
 import "../styles/Chat.css";
 
 function ChatWithAvatar() {
@@ -531,19 +532,19 @@ function ChatWithAvatar() {
 
                     <div className="chat-header">
                         <h3>
-                            <span className="chat-header-icon">🤖</span>
+                            <span className="chat-header-icon"><Bot size={24} /></span>
                             AI Educational Tutor
                         </h3>
                         {loading && (
                             <div className="speaking-control">
-                                <span className="speaking-indicator">⚡ Generating...</span>
-                                <button onClick={handleStopResponse} className="btn-stop-speaking" title="Stop">Stop ⏹</button>
+                                <span className="speaking-indicator"><Zap size={16} /> Generating...</span>
+                                <button onClick={handleStopResponse} className="btn-stop-speaking" title="Stop"><Square size={16} /> Stop</button>
                             </div>
                         )}
                         {isAvatarSpeaking && (
                             <div className="speaking-control">
-                                <span className="speaking-indicator">🎤 Speaking...</span>
-                                <button onClick={stopSpeaking} className="btn-stop-speaking" title="Stop">Stop ⏹</button>
+                                <span className="speaking-indicator"><Mic size={16} /> Speaking...</span>
+                                <button onClick={stopSpeaking} className="btn-stop-speaking" title="Stop"><Square size={16} /> Stop</button>
                             </div>
                         )}
                         <button onClick={handleNewChat} className="btn-new-chat">New Chat</button>
@@ -552,7 +553,7 @@ function ChatWithAvatar() {
                     <div className="chat-messages">
                         {messages.map((msg, index) => (
                             <div key={index} className={`message ${msg.role === 'user' ? 'user-message' : 'avatar-message'}`}>
-                                <div className="message-avatar">{msg.role === 'user' ? '👤' : '🤖'}</div>
+                                <div className="message-avatar">{msg.role === 'user' ? <User size={20} /> : <Bot size={20} />}</div>
                                 <div className="message-content">
                                     <div className="message-text">{msg.content}</div>
                                     <div className="message-footer">
@@ -564,7 +565,7 @@ function ChatWithAvatar() {
                                                 disabled={isAvatarSpeaking}
                                                 title="Read again"
                                             >
-                                                🔊
+                                                <Volume2 size={16} />
                                             </button>
                                         )}
                                     </div>
@@ -573,7 +574,7 @@ function ChatWithAvatar() {
                         ))}
                         {loading && (
                             <div className="message avatar-message">
-                                <div className="message-avatar">🤖</div>
+                                <div className="message-avatar"><Bot size={20} /></div>
                                 <div className="message-content">
                                     <div className="typing-indicator"><span></span><span></span><span></span></div>
                                 </div>
@@ -585,9 +586,9 @@ function ChatWithAvatar() {
                     <form className="chat-input-form" onSubmit={handleFormSubmit}>
                         <input type="text" className="chat-input" placeholder="Type your message..." value={inputMessage} onChange={(e) => setInputMessage(e.target.value)} disabled={loading} />
                         <button type="button" className={`voice-input-button ${isListening ? 'listening' : ''}`} onClick={toggleVoiceListening} disabled={loading || !isVoiceSupported} title={!isVoiceSupported ? 'Voice not supported' : isListening ? 'Stop listening' : 'Voice input'}>
-                            {isListening ? '🎤' : '🎙️'}
+                            <Mic size={18} />
                         </button>
-                        <button type="submit" className="send-button" disabled={loading || !inputMessage.trim()}>{loading ? '⏳' : '📤'}</button>
+                        <button type="submit" className="send-button" disabled={loading || !inputMessage.trim()}>{loading ? <Clock size={18} /> : <Send size={18} />}</button>
                     </form>
                 </div>
             </div>
