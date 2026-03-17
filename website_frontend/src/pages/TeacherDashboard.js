@@ -331,13 +331,6 @@ function TeacherDashboard() {
         return `${mins}m`;
     };
 
-    // Quiz helpers
-    const getPercentageColor = (pct) => {
-        if (pct >= 70) return { bg: "#dcfce7", text: "#15803d" };
-        if (pct >= 40) return { bg: "#fef9c3", text: "#854d0e" };
-        return { bg: "#fee2e2", text: "#b91c1c" };
-    };
-
     const computeQuizStats = useCallback(() => {
         if (!quizResults || quizResults.length === 0) {
             return {

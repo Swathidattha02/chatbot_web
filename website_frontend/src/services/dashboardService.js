@@ -109,11 +109,10 @@ export const fetchTeacherDashboard = async (forceRefresh = false) => {
         return data;
     } catch (error) {
         console.error("Error fetching teacher dashboard:", error);
-        throw {
-            success: false,
-            message: error.message || "Failed to load teacher dashboard",
-            error,
-        };
+        const err = new Error(error.message || "Failed to load teacher dashboard");
+        err.success = false;
+        err.error = error;
+        throw err;
     }
 };
 
@@ -128,11 +127,10 @@ export const fetchPendingStudents = async () => {
         return data;
     } catch (error) {
         console.error("Error fetching pending students:", error);
-        throw {
-            success: false,
-            message: error.message || "Failed to load pending students",
-            error,
-        };
+        const err = new Error(error.message || "Failed to load pending students");
+        err.success = false;
+        err.error = error;
+        throw err;
     }
 };
 
@@ -147,11 +145,10 @@ export const approveStudent = async (studentId) => {
         return data;
     } catch (error) {
         console.error("Error approving student:", error);
-        throw {
-            success: false,
-            message: error.message || "Failed to approve student",
-            error,
-        };
+        const err = new Error(error.message || "Failed to approve student");
+        err.success = false;
+        err.error = error;
+        throw err;
     }
 };
 
@@ -168,11 +165,10 @@ export const rejectStudent = async (studentId, reason = "") => {
         return data;
     } catch (error) {
         console.error("Error rejecting student:", error);
-        throw {
-            success: false,
-            message: error.message || "Failed to reject student",
-            error,
-        };
+        const err = new Error(error.message || "Failed to reject student");
+        err.success = false;
+        err.error = error;
+        throw err;
     }
 };
 
@@ -195,11 +191,10 @@ export const fetchUserProgress = async (forceRefresh = false) => {
         return data;
     } catch (error) {
         console.error("Error fetching user progress:", error);
-        throw {
-            success: false,
-            message: error.message || "Failed to load progress data",
-            error,
-        };
+        const err = new Error(error.message || "Failed to load progress data");
+        err.success = false;
+        err.error = error;
+        throw err;
     }
 };
 
@@ -225,11 +220,10 @@ export const fetchDailyAnalytics = async (date = null) => {
         return data;
     } catch (error) {
         console.error("Error fetching daily analytics:", error);
-        throw {
-            success: false,
-            message: error.message || "Failed to load daily analytics",
-            error,
-        };
+        const err = new Error(error.message || "Failed to load daily analytics");
+        err.success = false;
+        err.error = error;
+        throw err;
     }
 };
 
@@ -248,11 +242,10 @@ export const fetchWeeklyAnalytics = async () => {
         return data;
     } catch (error) {
         console.error("Error fetching weekly analytics:", error);
-        throw {
-            success: false,
-            message: error.message || "Failed to load weekly analytics",
-            error,
-        };
+        const err = new Error(error.message || "Failed to load weekly analytics");
+        err.success = false;
+        err.error = error;
+        throw err;
     }
 };
 
@@ -275,11 +268,10 @@ export const fetchMonthlyAnalytics = async (forceRefresh = false) => {
         return data;
     } catch (error) {
         console.error("Error fetching monthly analytics:", error);
-        throw {
-            success: false,
-            message: error.message || "Failed to load monthly analytics",
-            error,
-        };
+        const err = new Error(error.message || "Failed to load monthly analytics");
+        err.success = false;
+        err.error = error;
+        throw err;
     }
 };
 
@@ -293,11 +285,10 @@ export const fetchSubjectProgress = async (subjectId) => {
         return data;
     } catch (error) {
         console.error("Error fetching subject progress:", error);
-        throw {
-            success: false,
-            message: error.message || "Failed to load subject progress",
-            error,
-        };
+        const err = new Error(error.message || "Failed to load subject progress");
+        err.success = false;
+        err.error = error;
+        throw err;
     }
 };
 
@@ -311,11 +302,10 @@ export const fetchQuizResults = async () => {
         return data;
     } catch (error) {
         console.error("Error fetching quiz results:", error);
-        throw {
-            success: false,
-            message: error.message || "Failed to load quiz results",
-            error,
-        };
+        const err = new Error(error.message || "Failed to load quiz results");
+        err.success = false;
+        err.error = error;
+        throw err;
     }
 };
 
@@ -329,11 +319,10 @@ export const fetchViolations = async () => {
         return data;
     } catch (error) {
         console.error("Error fetching violations:", error);
-        throw {
-            success: false,
-            message: error.message || "Failed to load violations",
-            error,
-        };
+        const err = new Error(error.message || "Failed to load violations");
+        err.success = false;
+        err.error = error;
+        throw err;
     }
 };
 
@@ -347,11 +336,10 @@ export const fetchDocuments = async () => {
         return data;
     } catch (error) {
         console.error("Error fetching documents:", error);
-        throw {
-            success: false,
-            message: error.message || "Failed to load documents",
-            error,
-        };
+        const err = new Error(error.message || "Failed to load documents");
+        err.success = false;
+        err.error = error;
+        throw err;
     }
 };
 
@@ -365,11 +353,10 @@ export const fetchAchievements = async () => {
         return data;
     } catch (error) {
         console.error("Error fetching achievements:", error);
-        throw {
-            success: false,
-            message: error.message || "Failed to load achievements",
-            error,
-        };
+        const err = new Error(error.message || "Failed to load achievements");
+        err.success = false;
+        err.error = error;
+        throw err;
     }
 };
 
@@ -383,11 +370,10 @@ export const fetchRecommendations = async () => {
         return data;
     } catch (error) {
         console.error("Error fetching recommendations:", error);
-        throw {
-            success: false,
-            message: error.message || "Failed to load recommendations",
-            error,
-        };
+        const err = new Error(error.message || "Failed to load recommendations");
+        err.success = false;
+        err.error = error;
+        throw err;
     }
 };
 
@@ -430,11 +416,10 @@ export const fetchStudentDashboardBatch = async (date = null) => {
         };
     } catch (error) {
         console.error("Error in batch fetch:", error);
-        throw {
-            success: false,
-            message: "Failed to load dashboard data",
-            error,
-        };
+        const err = new Error("Failed to load dashboard data");
+        err.success = false;
+        err.error = error;
+        throw err;
     }
 };
 
@@ -475,11 +460,10 @@ export const fetchTeacherDashboardBatch = async () => {
         };
     } catch (error) {
         console.error("Error in teacher batch fetch:", error);
-        throw {
-            success: false,
-            message: "Failed to load dashboard data",
-            error,
-        };
+        const err = new Error("Failed to load dashboard data");
+        err.success = false;
+        err.error = error;
+        throw err;
     }
 };
 

@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getSubjectsForClass } from "../config/syllabus";
 import { 
     MessageSquare, Upload, BarChart3, BookOpen, 
     FileText, Clock, Flame, Trophy, Target, 
-    Bot, Loader2, Play, ArrowRight, Calculator, 
+    Bot, Loader2, ArrowRight, Calculator, 
     Microscope, Dna, Globe, Languages, Atom, 
     Beaker, Monitor, Megaphone, Inbox, Download, AlertCircle, RefreshCw
 } from "lucide-react";
@@ -13,7 +13,6 @@ import dashboardService from "../services/dashboardService";
 import "../styles/Dashboard.css";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
-const BASE_URL = API_BASE_URL.replace('/api', '');
 
 function Dashboard() {
     const { user } = useAuth();
