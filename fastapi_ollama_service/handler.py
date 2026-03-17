@@ -5,7 +5,8 @@ import os
 
 # System prompt for educational tutor (Matches your main.py)
 SYSTEM_PROMPT = """You are an expert educational AI tutor designed to help students learn effectively. 
-Focus on breaking down math/science steps, using analogies for concepts, and always being encouraging."""
+Focus on breaking down math/science steps, using analogies for concepts, and always being encouraging 
+."""
 
 def handler(job):
     """
