@@ -1,42 +1,200 @@
-.language-selector {
+.language-selector-wrapper {
+    position: relative;
+    z-index: 1001;
+}
+
+.language-selector-button {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 12px;
-    background: rgba(30, 27, 75, 0.08);
-    border-radius: 8px;
-    margin-bottom: 8px;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
 }
 
-.language-label {
+.language-selector-button:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.language-selector-button:active {
+    transform: translateY(0);
+}
+
+.language-selector-button svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 2;
+    color: #60a5fa;
+    flex-shrink: 0;
+}
+
+.language-name {
+    min-width: 80px;
+    text-align: center;
+}
+
+.chevron-icon {
+    transition: transform 0.3s ease;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.chevron-icon.open {
+    transform: rotate(180deg);
+}
+
+.language-dropdown {
+    position: fixed;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 0 30px rgba(0, 0, 0, 0.1);
+    min-width: 200px;
+    z-index: 9999;
+    overflow: hidden;
+    animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(20px);
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-12px);
+        filter: blur(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+        filter: blur(0);
+    }
+}
+
+.language-dropdown-header {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 13px;
+    gap: 8px;
+    padding: 14px 16px;
+    border-bottom: 2px solid #e5e7eb;
+    color: #374151;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: linear-gradient(90deg, #f9fafb 0%, white 100%);
+}
+
+.language-dropdown-header svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2;
+    color: #3b82f6;
+}
+
+.language-options {
+    display: flex;
+    flex-direction: column;
+    padding: 10px 8px;
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.language-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: transparent;
+    border: none;
+    color: #374151;
+    font-size: 14px;
     font-weight: 500;
-    color: #555;
-    margin: 0;
-}
-
-.language-icon {
-    font-size: 16px;
-}
-
-.language-select {
-    padding: 6px 10px;
-    border: 2px solid #e0e0e0;
-    border-radius: 6px;
-    font-size: 13px;
-    background: white;
+    text-align: left;
     cursor: pointer;
-    outline: none;
-    transition: border-color 0.3s;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 8px;
+    margin-bottom: 6px;
 }
 
-.language-select:hover {
-    border-color: #1e1b4b;
+.language-option:last-child {
+    margin-bottom: 0;
 }
 
-.language-select:focus {
-    border-color: #1e1b4b;
+.language-option:hover {
+    background: #eff6ff;
+    color: #1f2937;
+    border: 1px solid #bfdbfe;
+    transform: translateX(6px);
+    box-shadow: inset 0 0 12px rgba(191, 219, 254, 0.3);
 }
+
+.language-option.active {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    color: #1e40af;
+    font-weight: 700;
+    border: 1px solid #93c5fd;
+    box-shadow: 0 0 16px rgba(59, 130, 246, 0.15), inset 0 0 12px rgba(191, 219, 254, 0.3);
+}
+
+.language-option.active:hover {
+    background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.25), inset 0 0 16px rgba(191, 219, 254, 0.4);
+}
+
+.option-name {
+    flex: 1;
+}
+
+.checkmark {
+    color: #3b82f6;
+    font-weight: bold;
+    font-size: 18px;
+    margin-left: 8px;
+    animation: popIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes popIn {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Scrollbar styling */
+.language-options::-webkit-scrollbar {
+    width: 8px;
+}
+
+.language-options::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.language-options::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #93c5fd 0%, #bfdbfe 100%);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+.language-options::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #60a5fa 0%, #93c5fd 100%);
+    background-clip: padding-box;
+}
+
+/* Hide when clicked outside - handled by React state */

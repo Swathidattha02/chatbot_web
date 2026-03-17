@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import { Canvas } from "@react-three/fiber";
 import { chatAPI } from "../services/api";
-import LanguageSelector from "../components/LanguageSelector";
+import LanguageSelector from "../components/LanguageSelector.jsx";
 import LipSyncAvatar from "../components/LipSyncAvatar";
 import translationService from "../services/translationService";
 import { Bot, User, Zap, Square, Mic, Volume2, Clock, Send, RefreshCw, Sparkles } from "lucide-react";
@@ -528,8 +528,6 @@ function ChatWithAvatar() {
                 </div>
 
                 <div className="chat-content">
-                    <LanguageSelector currentLanguage={currentLanguage} onLanguageChange={handleLanguageChange} supportedLanguages={translationService.getSupportedLanguages()} />
-
                     <div className="chat-header">
                         <div className="chat-header-left">
                             <span className="chat-header-icon"><Bot size={28} /></span>
@@ -552,11 +550,14 @@ function ChatWithAvatar() {
                                 </div>
                             )}
                         </div>
-                        <button onClick={handleNewChat} className="btn-new-chat" title="Start a new conversation">
-                            <Sparkles size={16} />
-                            <span>New Chat</span>
-                            <RefreshCw size={14} className="btn-new-chat-icon" />
-                        </button>
+                        <div className="chat-header-right">
+                            <LanguageSelector currentLanguage={currentLanguage} onLanguageChange={handleLanguageChange} supportedLanguages={translationService.getSupportedLanguages()} />
+                            <button onClick={handleNewChat} className="btn-new-chat" title="Start a new conversation">
+                                <Sparkles size={16} />
+                                <span>New Chat</span>
+                                <RefreshCw size={14} className="btn-new-chat-icon" />
+                            </button>
+                        </div>
                     </div>
 
                     <div className="chat-messages">

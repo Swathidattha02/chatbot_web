@@ -32,7 +32,7 @@
     z-index: 100;
     border-bottom: 1px solid rgba(255, 255, 255, 0.15);
     position: relative;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .chat-header::before {
@@ -118,6 +118,15 @@
     justify-content: center;
     position: relative;
     z-index: 1;
+    min-height: 44px;
+}
+
+.chat-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    z-index: 2;
 }
 
 .speaking-control {
@@ -678,13 +687,7 @@
     cursor: not-allowed;
 }
 
-/* Language Selector */
-.language-selector {
-    position: absolute;
-    top: 20px;
-    right: 200px;
-    z-index: 101;
-}
+/* Language Selector - now integrated in header */
 
 /* Responsive Design */
 @media (max-width: 1024px) {
@@ -799,6 +802,13 @@
 
     .chat-header-center {
         width: 100%;
+        justify-content: center;
+    }
+
+    .chat-header-right {
+        width: 100%;
+        flex-direction: column;
+        gap: 8px;
     }
 
     .speaking-control {
@@ -811,6 +821,18 @@
         font-size: 12px;
         width: 100%;
         justify-content: center;
+    }
+
+    .language-selector-button {
+        padding: 9px 12px;
+        font-size: 12px;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .language-name {
+        min-width: 60px;
+        font-size: 12px;
     }
 
     .message {
