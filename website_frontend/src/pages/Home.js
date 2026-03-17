@@ -5,8 +5,9 @@ import {
     FileText, BarChart3, Flame, Bot, 
     ChevronRight, ArrowRight, Play, CheckCircle2,
     GraduationCap, BookOpen, Trophy, Users,
-    Target, Globe, Languages, Star, Megaphone
+    Target, Globe, Languages, Star, Megaphone, Clock
 } from "lucide-react";
+import dashboardService from "../services/dashboardService";
 import "../styles/Home.css";
 
 /* ── Animated counter hook ─────────────────────────────────────────── */
@@ -62,6 +63,43 @@ function Home() {
     const [quizzesCount, quizzesRef] = useCounter(50000);
     const [langCount, langRef] = useCounter(5);
     const [schoolsCount, schoolsRef] = useCounter(120);
+
+    // Personal student stats
+    const [personalStats, setPersonalStats] = useState({
+        quizzes: 0,
+        streak: 0,
+        hours: 0,
+        progress: 0
+    });
+
+    useEffect(() => {
+        const fetchPersonalData = async () => {
+            if (isAuthenticated && user?.role === "student") {
+                try {
+                    const result = await dashboardService.fetchStudentDashboardBatch();
+                    if (result.success) {
+                        const monthly = result.data.monthlyAnalytics?.analytics || {};
+                        const progress = result.data.progress?.progress || [];
+                        
+                        // Calculate a rough progress percentage
+                        const completedCount = progress.filter(p => p.completed).length;
+                        const totalEstimated = 50; // placeholder total
+                        const progressPercent = Math.min(Math.round((completedCount / totalEstimated) * 100), 100);
+
+                        setPersonalStats({
+                            quizzes: monthly.aiTutorQueries || 0,
+                            streak: monthly.streak || 0,
+                            hours: Math.round((monthly.totalTime || 0) / 60),
+                            progress: progressPercent || 0
+                        });
+                    }
+                } catch (err) {
+                    console.error("Home: Error fetching personal stats:", err);
+                }
+            }
+        };
+        fetchPersonalData();
+    }, [isAuthenticated, user]);
 
     /* Auto-cycle tabs every 2 seconds */
     useEffect(() => {
@@ -125,8 +163,14 @@ function Home() {
                     </div>
 
                     <h1 className="hp-hero-title">
-                        Learn Smarter with Your
-                        <span className="hp-gradient-text"> Personal AI Tutor</span>
+                        {isAuthenticated ? (
+                            <>
+                                {personalStats.quizzes === 0 && personalStats.hours === 0 && personalStats.streak === 0 ? "Welcome, " : "Welcome back, "}
+                                <span className="hp-gradient-text">{user?.name?.split(' ')[0]}!</span>
+                            </>
+                        ) : (
+                            <>Learn Smarter with Your <span className="hp-gradient-text">Personal AI Tutor</span></>
+                        )}
                     </h1>
 
                     <p className="hp-hero-sub">
@@ -175,6 +219,75 @@ function Home() {
                 </div>
             </section>
 
+            {/* ── Highlights Section ───────────────────────────────────── */}
+            <section className="hp-highlights-bar">
+                <div className="hp-h-grid">
+                    {isAuthenticated && user?.role === "student" ? (
+                        <>
+                            <div className="hp-h-item">
+                                <div className="hp-h-icon" style={{ background: 'rgba(79, 70, 229, 0.1)' }}><FileText size={24} /></div>
+                                <div className="hp-h-data">
+                                    <span className="hp-h-val">{personalStats.quizzes}</span>
+                                    <span className="hp-h-lab">Your Quizzes</span>
+                                </div>
+                            </div>
+                            <div className="hp-h-item">
+                                <div className="hp-h-icon" style={{ background: 'rgba(249, 115, 22, 0.1)', color: '#f97316' }}><Flame size={24} /></div>
+                                <div className="hp-h-data">
+                                    <span className="hp-h-val">{personalStats.streak} Days</span>
+                                    <span className="hp-h-lab">Study Streak</span>
+                                </div>
+                            </div>
+                            <div className="hp-h-item">
+                                <div className="hp-h-icon" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}><Clock size={24} /></div>
+                                <div className="hp-h-data">
+                                    <span className="hp-h-val">{personalStats.hours}h</span>
+                                    <span className="hp-h-lab">Hours Learned</span>
+                                </div>
+                            </div>
+                            <div className="hp-h-item">
+                                <div className="hp-h-icon" style={{ background: 'rgba(6, 182, 212, 0.1)', color: '#06b6d4' }}><BarChart3 size={24} /></div>
+                                <div className="hp-h-data">
+                                    <span className="hp-h-val">{personalStats.progress}%</span>
+                                    <span className="hp-h-lab">Course Progress</span>
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="hp-h-item" ref={quizzesRef}>
+                                <div className="hp-h-icon"><FileText size={24} /></div>
+                                <div className="hp-h-data">
+                                    <span className="hp-h-val">{quizzesCount.toLocaleString()}+</span>
+                                    <span className="hp-h-lab">AI Quizzes Taken</span>
+                                </div>
+                            </div>
+                            <div className="hp-h-item" ref={usersRef}>
+                                <div className="hp-h-icon"><Users size={24} /></div>
+                                <div className="hp-h-data">
+                                    <span className="hp-h-val">{usersCount.toLocaleString()}+</span>
+                                    <span className="hp-h-lab">Learning Students</span>
+                                </div>
+                            </div>
+                            <div className="hp-h-item" ref={schoolsRef}>
+                                <div className="hp-h-icon"><GraduationCap size={24} /></div>
+                                <div className="hp-h-data">
+                                    <span className="hp-h-val">{schoolsCount.toLocaleString()}+</span>
+                                    <span className="hp-h-lab">Partner Schools</span>
+                                </div>
+                            </div>
+                            <div className="hp-h-item" ref={langRef}>
+                                <div className="hp-h-icon"><Globe size={24} /></div>
+                                <div className="hp-h-data">
+                                    <span className="hp-h-val">{langCount}+</span>
+                                    <span className="hp-h-lab">Languages</span>
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </section>
+
 
             {/* ═══════════════════════════════════════════════════════════
                 FEATURE SHOWCASE (TABS)
@@ -183,8 +296,11 @@ function Home() {
                 <div className="hp-showcase-header">
                     <h2 className="hp-section-title">Everything You Need to Excel</h2>
                     <p className="hp-section-sub">
-                        Our platform combines AI quizzes, progress analytics, streaks, and a
-                        smart chatbot to give you the most complete learning experience.
+                        {isAuthenticated && user?.role === "student" ? (
+                            `You've successfully completed ${personalStats.progress}% of your syllabus. Here's a quick look at your tools.`
+                        ) : (
+                            "Our platform combines AI quizzes, progress analytics, streaks, and a smart chatbot to give you the most complete learning experience."
+                        )}
                     </p>
                 </div>
 
@@ -214,7 +330,7 @@ function Home() {
                         </ul>
                         {isAuthenticated ? (
                             <Link to={user?.role === "teacher" ? "/teacher/dashboard" : user?.role === "admin" ? "/admin/dashboard" : "/dashboard"} className="hp-btn hp-btn-primary hp-btn-sm">
-                                Try it Now →
+                                {user?.role === "student" ? "Continue Learning →" : "View Dashboard →"}
                             </Link>
                         ) : (
                             <Link to="/signup" className="hp-btn hp-btn-primary hp-btn-sm">
