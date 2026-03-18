@@ -147,19 +147,25 @@
     color: var(--primary);
 }
 
+/* ==================== AUTH BUTTONS GROUP ==================== */
+
+.nav-link.nav-item:last-of-type {
+    margin-right: 1rem;
+}
+
 /* ==================== SIGN UP BUTTON ==================== */
 
 .btn-signup {
     padding: 0.7rem 1.75rem;
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-    color: white;
-    border: none;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
     border-radius: 10px;
     font-weight: 600;
     font-size: 0.95rem;
     letter-spacing: 0.3px;
     cursor: pointer;
-    text-decoration: none;
+    text-decoration: none !important;
     transition: var(--transition);
     box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
     display: inline-flex;
@@ -168,6 +174,16 @@
     position: relative;
     overflow: hidden;
     white-space: nowrap;
+    font-family: inherit;
+    margin-left: 1rem;
+}
+
+.btn-signup:visited {
+    color: #ffffff !important;
+}
+
+.btn-signup:link {
+    color: #ffffff !important;
 }
 
 .btn-signup::before {
@@ -184,6 +200,7 @@
 .btn-signup:hover {
     transform: translateY(-3px);
     box-shadow: 0 8px 25px rgba(99, 102, 241, 0.45);
+    color: #ffffff !important;
 }
 
 .btn-signup:hover::before {
@@ -192,6 +209,13 @@
 
 .btn-signup:active {
     transform: translateY(-1px);
+    color: #ffffff !important;
+}
+
+.btn-signup:focus {
+    color: #ffffff !important;
+    outline: 2px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 2px;
 }
 
 /* ==================== USER MENU ==================== */
@@ -480,24 +504,34 @@
     align-items: center;
     justify-content: center;
     padding: 0.875rem 1.125rem;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    color: white;
-    border: none;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6) !important;
+    color: #ffffff !important;
+    border: none !important;
     border-radius: 10px;
     font-weight: 600;
     font-size: 0.95rem;
     letter-spacing: 0.3px;
     cursor: pointer;
-    text-decoration: none;
+    text-decoration: none !important;
     transition: var(--transition);
     margin-top: 0.75rem;
     box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
     width: 100%;
 }
 
+.mobile-btn-signup:visited,
+.mobile-btn-signup:link {
+    color: #ffffff !important;
+}
+
 .mobile-btn-signup:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+    color: #ffffff !important;
+}
+
+.mobile-btn-signup:active {
+    color: #ffffff !important;
 }
 
 /* ==================== RESPONSIVE DESIGN ==================== */
