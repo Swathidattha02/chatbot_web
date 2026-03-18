@@ -1133,3 +1133,40 @@ button:disabled {
         transition-duration: 0.01ms !important;
     }
 }
+/* ===== MODERN GLASS NAVBAR ===== */
+
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+
+    /* initial state (top) */
+    background: transparent;
+    border-bottom: 1px solid transparent;
+    box-shadow: none;
+
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+
+    transition: all 0.35s ease;
+}
+
+/* ===== SCROLLED STATE (GLASS EFFECT) ===== */
+
+.navbar.scrolled {
+    background: rgba(255, 255, 255, 0.6);   /* transparent white */
+    backdrop-filter: blur(16px);           /* strong blur */
+    -webkit-backdrop-filter: blur(16px);
+
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.08);
+}
+
+/* ===== BODY OFFSET (IMPORTANT) ===== */
+
+body {
+    padding-top: 80px; /* adjust if needed */
+}
