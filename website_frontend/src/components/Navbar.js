@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Menu, X, LogOut, LayoutDashboard, MessageCircle, Home, Mail } from "lucide-react";
@@ -9,6 +9,13 @@ function Navbar() {
     const navigate = useNavigate();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+
+    useEffect(() => {
+        window.addEventListener("scroll", () => {
+            const nav = document.querySelector(".navbar");
+            nav.classList.toggle("scrolled", window.scrollY > 20);
+        });
+    }, []);
 
     const handleLogout = () => {
         setIsMenuOpen(false);
