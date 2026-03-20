@@ -70,23 +70,28 @@ class TranslationService {
                 const decoder = new TextDecoder();
                 let fullResult = "";
 
+                let buffer = "";
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
 
-                    const chunk = decoder.decode(value);
-                    const lines = chunk.split('\n');
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop(); // Keep partial line for next chunk
 
                     for (const line of lines) {
-                        if (line.startsWith('data: ')) {
+                        const trimmedLine = line.trim();
+                        if (trimmedLine.startsWith('data: ')) {
                             try {
-                                const data = JSON.parse(line.slice(6));
+                                const data = JSON.parse(trimmedLine.slice(6));
                                 if (data.chunk) {
                                     fullResult += data.chunk;
                                     onChunk(data.chunk);
                                 }
                                 if (data.done) break;
-                            } catch (e) { }
+                            } catch (e) {
+                                // Silently skip partial/malformed JSON in buffer flow
+                            }
                         }
                     }
                 }

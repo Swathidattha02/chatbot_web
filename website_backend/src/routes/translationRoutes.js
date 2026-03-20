@@ -15,11 +15,21 @@ router.post("/translate", async (req, res) => {
         const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
         const model = "llama3.2:latest";
 
-        let prompt = `Translate the following text from English to ${targetName || targetLang}.`;
+        let prompt = `You are a professional translator. Translate the following text from English to ${targetName || targetLang} precisely and completely.
+Do NOT summarize, Do NOT skip any sentences, and Do NOT add any notes. 
+Keep the original structure, including any numbering or bullet points.
+If there are technical terms, you may include the English term in parentheses next to the translation if it helps clarity.
+
+Target Language: ${targetName || targetLang}`;
+
         if (targetLang === 'te') {
-            prompt += ` Use clear, simple Telugu words that are commonly spoken. Use native Telugu words for better pronunciation. Write in proper Telugu script.`;
+            prompt += `
+Role: Translate for an Indian student. Use formal, standard academic Telugu (గ్రాంథిక భాష కాదు, కానీ పాఠ్యపుస్తక భాష).
+IMPORTANT: Use standard Telugu biological and scientific terms where possible (e.g., use "ఏకదళబీజాలు" for Monocotyledons). 
+Ensure long explanations remain detailed and scientifically accurate.`;
         }
-        prompt += ` Provide ONLY the translation, without any explanations or additional text:\n\n${text}`;
+        
+        prompt += `\n\nTEXT TO TRANSLATE:\n${text}\n\nTRANSLATION:`;
 
         if (stream) {
             // Setup SSE
@@ -34,7 +44,11 @@ router.post("/translate", async (req, res) => {
                     model: model,
                     prompt: prompt,
                     stream: true,
-                    options: { temperature: 0.3 }
+                    options: { 
+                        temperature: 0.3,
+                        num_ctx: 4096,
+                        num_predict: 2048 
+                    }
                 })
             });
 
@@ -43,20 +57,26 @@ router.post("/translate", async (req, res) => {
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
 
+            let buffer = '';
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
 
-                const chunk = decoder.decode(value);
-                const lines = chunk.split('\n').filter(line => line.trim());
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop(); // Keep the last partial line in buffer
 
                 for (const line of lines) {
+                    if (!line.trim()) continue;
                     try {
                         const data = JSON.parse(line);
                         if (data.response) {
                             res.write(`data: ${JSON.stringify({ chunk: data.response })} \n\n`);
                         }
-                    } catch (e) { }
+                    } catch (e) {
+                        // If parsing fails, it might be a partial JSON, but pop() should handle most cases.
+                        // We'll keep it for the next chunk if it looks incomplete.
+                    }
                 }
             }
             res.write(`data: ${JSON.stringify({ done: true })} \n\n`);
@@ -70,7 +90,11 @@ router.post("/translate", async (req, res) => {
                     model: model,
                     prompt: prompt,
                     stream: false,
-                    options: { temperature: 0.3 }
+                    options: { 
+                        temperature: 0.3,
+                        num_ctx: 4096,
+                        num_predict: 2048 
+                    }
                 })
             });
 

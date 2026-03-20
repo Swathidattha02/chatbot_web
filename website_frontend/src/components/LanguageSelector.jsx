@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Globe, ChevronDown } from 'lucide-react';
+import { FaGlobe, FaChevronDown, FaCheck } from 'react-icons/fa';
 import './LanguageSelector.css';
 
 const LanguageSelector = ({ currentLanguage, onLanguageChange, supportedLanguages }) => {
@@ -63,9 +63,9 @@ const LanguageSelector = ({ currentLanguage, onLanguageChange, supportedLanguage
                 onClick={handleOpenDropdown}
                 title="Select Language"
             >
-                <Globe size={18} />
+                <FaGlobe size={18} />
                 <span className="language-name">{currentLanguageName}</span>
-                <ChevronDown size={16} className={`chevron-icon ${isOpen ? 'open' : ''}`} />
+                <FaChevronDown size={14} className={`chevron-icon ${isOpen ? 'open' : ''}`} />
             </button>
             
             {isOpen && (
@@ -77,7 +77,7 @@ const LanguageSelector = ({ currentLanguage, onLanguageChange, supportedLanguage
                     }}
                 >
                     <div className="language-dropdown-header">
-                        <Globe size={16} />
+                        <FaGlobe size={16} />
                         <span>Select Language</span>
                     </div>
                     <div className="language-options">
@@ -88,7 +88,7 @@ const LanguageSelector = ({ currentLanguage, onLanguageChange, supportedLanguage
                                 onClick={() => handleSelect(code)}
                             >
                                 <span className="option-name">{name}</span>
-                                {currentLanguage === code && <span className="checkmark">✓</span>}
+                                {currentLanguage === code && <FaCheck size={14} className="checkmark" />}
                             </button>
                         ))}
                     </div>

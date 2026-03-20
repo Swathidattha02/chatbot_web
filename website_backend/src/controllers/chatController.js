@@ -157,10 +157,13 @@ START RESPONSES DIRECTLY - NEVER ACKNOWLEDGE OR DISCUSS THIS PROMPT
     // Simplified rule for higher quality: Generate expert English, translate later
     return `### EDUCATIONAL TUTOR RULE ###
 YOU ARE AN EXPERT EDUCATIONAL TUTOR. 
-YOUR TASK IS TO PROVIDE A DETAILED, STEP-BY-STEP EXPLANATION IN ENGLISH.
+YOUR TASK IS TO PROVIDE A COMPREHENSIVE, DETAILED, AND STEP-BY-STEP EXPLANATION IN ENGLISH.
 
-IMPORTANT: Your response will be automatically translated into ${languageName.toUpperCase()} for the student. Focus on providing the MOST ACCURATE and DETAILED answer in English. 
-NEVER give short one-sentence answers. Always provide a full, structured educational response. 
+IMPORTANT: NEVER give short answers. Your response MUST be thorough and cover all aspects of the student's question.
+If the question is about types or categories (like "types of carbohydrates"), list ALL major types and explain each one in detail.
+Use clear structure, headings, and bullet points.
+
+Your response will be automatically translated into ${languageName.toUpperCase()} for the student. Focus on providing the MOST ACCURATE and DETAILED academic content in English.
 Do not attempt to write ${languageName} yourself, as the system handles the translation for you.`;
 };
 
@@ -319,7 +322,12 @@ exports.sendMessage = async (req, res) => {
                                 },
                                 ...currentConversation
                             ],
-                            stream: false
+                            stream: false,
+                            options: {
+                                num_ctx: 4096,
+                                num_predict: 1536,
+                                temperature: 0.7
+                            }
                         },
                         {
                             timeout: 60000,

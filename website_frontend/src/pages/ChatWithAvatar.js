@@ -95,21 +95,30 @@ function ChatWithAvatar() {
         const voices = window.speechSynthesis.getVoices();
         if (voices.length === 0) return null;
 
-        const SynthesisLangMap = {
+        const langMap = {
             'en': ['en-US', 'en-GB'], 'hi': ['hi-IN'], 'ta': ['ta-IN'], 'te': ['te-IN'],
             'kn': ['kn-IN'], 'ml': ['ml-IN'], 'bn': ['bn-IN'], 'mr': ['mr-IN'],
             'gu': ['gu-IN'], 'pa': ['pa-IN']
         };
-        const targetLocales = SynthesisLangMap[langCode] || ['en-US'];
+        const targetLocales = langMap[langCode] || ['en-US'];
         
-        let bestVoice = voices.find(v => 
-            targetLocales.some(loc => v.lang.replace('_', '-').includes(loc)) && 
-            (v.name.includes('Natural') || v.localService)
+        // 1. Precise match (locale + name)
+        let voice = voices.find(v => 
+            targetLocales.some(loc => v.lang.replace('_', '-').toLowerCase().includes(loc.toLowerCase())) && 
+            (v.name.includes('Natural') || v.name.includes('Online'))
         );
-        if (!bestVoice) {
-            bestVoice = voices.find(v => targetLocales.some(loc => v.lang.replace('_', '-').includes(loc)));
+        
+        // 2. Locale match only
+        if (!voice) {
+            voice = voices.find(v => targetLocales.some(loc => v.lang.replace('_', '-').toLowerCase().includes(loc.toLowerCase())));
         }
-        return bestVoice;
+
+        // 3. Language only match (e.g. just 'te')
+        if (!voice) {
+            voice = voices.find(v => v.lang.toLowerCase().startsWith(langCode.toLowerCase()));
+        }
+
+        return voice;
     }, []);
     
     const cleanTextForTTS = (text) => {
@@ -119,7 +128,7 @@ function ChatWithAvatar() {
             .replace(/\([^)]+\)/g, " ") 
             .replace(/\[[^\]]+\]/g, " ") 
             .replace(/[*_~`#/\\-]/g, " ") 
-            .replace(/(\d+)\.\s+/g, "$1 ")
+            .replace(/[|।॥]/g, ". ")
             .replace(/\n+/g, " ")
             .replace(/\s+/g, " ")
             .trim();
@@ -132,7 +141,7 @@ function ChatWithAvatar() {
             const response = await fetch(`${apiUrl}/tts`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: text, voiceId: "ErXwobaYiN019PkySvjV" })
+                body: JSON.stringify({ text: text, voiceId: "21m00Tcm4TlvDq8ikWAM" })
             });
 
             if (!response.ok) {
@@ -203,7 +212,10 @@ function ChatWithAvatar() {
                 processInternalQueue();
                 return;
             } catch (err) {
-                console.warn("⚠️ ElevenLabs failed, falling back to Web Speech:", err.message);
+                console.warn("⚠️ ElevenLabs failed, falling back to Web Speech:", err);
+                isTtsProcessingRef.current = false;
+                setIsAvatarSpeaking(false);
+                // Continue to web speech fallback
             }
         }
 
@@ -244,16 +256,31 @@ function ChatWithAvatar() {
         
         stopSpeaking();
         
+        // Wait a bit for state and UI to settle
         setTimeout(() => {
-            const chunks = text.match(/[^.!?|।\n?؟।]+([.!?|।\n?؟।]|$)/g) || [text];
+            const lang = currentLanguageRef.current;
+            
+            // For non-English languages, ElevenLabs works much better with larger blocks
+            // We only split if the text is exceptionally long (> 1000 chars)
+            if (lang !== 'en' && text.length < 1500) {
+                internalQueueRef.current = [text];
+                processInternalQueue();
+                return;
+            }
+
+            // Normal chunking for English or very long texts
+            const rawChunks = text.match(/[^.!?|।\n?？।]+([.!?|।\n?؟।]|$)/g) || [text];
             const refinedChunks = [];
-            for (let i = 0; i < chunks.length; i++) {
-                let chunk = chunks[i].trim();
-                // Join "1." or "Step 1" style bullets to the next chunk
-                if (chunk.match(/^\d+\.?$/) && i + 1 < chunks.length) {
-                    refinedChunks.push(chunk + " " + chunks[i+1].trim());
+            
+            for (let i = 0; i < rawChunks.length; i++) {
+                let chunk = rawChunks[i].trim();
+                
+                // CRITICAL FIX: Join numbers like "1." or "2." with the following text
+                // Check if chunk is just a number followed by a period or just a number
+                if (chunk.match(/^\d+[\.।]?$/) && i + 1 < rawChunks.length) {
+                    refinedChunks.push(chunk + " " + rawChunks[i+1].trim());
                     i++;
-                } else if (chunk.length > 0) {
+                } else if (chunk.length > 1) {
                     refinedChunks.push(chunk);
                 }
             }
@@ -262,7 +289,7 @@ function ChatWithAvatar() {
             if (internalQueueRef.current.length > 0) {
                 processInternalQueue();
             }
-        }, 400);
+        }, 300);
     }, [processInternalQueue, stopSpeaking]);
 
     useEffect(() => {

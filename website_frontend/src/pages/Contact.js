@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Phone, Mail, MapPin, Send, MessageSquare, Clock, Globe } from 'lucide-react';
+import { FaPhoneAlt, FaEnvelope, FaMapMarkerAlt, FaPaperPlane, FaRegClock, FaGlobeAmericas, FaCommentDots } from 'react-icons/fa';
 import '../styles/Contact.css';
 
 function Contact() {
@@ -44,7 +44,7 @@ function Contact() {
                             {/* Mobile Card */}
                             <div className="contact-card-v2">
                                 <div className="card-icon-v2 mobile">
-                                    <Phone size={24} />
+                                    <FaPhoneAlt size={22} />
                                 </div>
                                 <div className="card-text-v2">
                                     <h3>Mobile</h3>
@@ -56,7 +56,7 @@ function Contact() {
                             {/* Email Card */}
                             <div className="contact-card-v2">
                                 <div className="card-icon-v2 email">
-                                    <Mail size={24} />
+                                    <FaEnvelope size={22} />
                                 </div>
                                 <div className="card-text-v2">
                                     <h3>Email</h3>
@@ -68,7 +68,7 @@ function Contact() {
                             {/* Location Card */}
                             <div className="contact-card-v2">
                                 <div className="card-icon-v2 location">
-                                    <MapPin size={24} />
+                                    <FaMapMarkerAlt size={22} />
                                 </div>
                                 <div className="card-text-v2">
                                     <h3>Location</h3>
@@ -81,14 +81,14 @@ function Contact() {
                         {/* Additional Info */}
                         <div className="contact-extra-info">
                             <div className="info-item">
-                                <Clock className="info-icon" size={20} />
+                                <FaRegClock className="info-icon" size={20} />
                                 <div>
                                     <h4>Business Hours</h4>
                                     <p>Monday - Saturday: 9:00 AM - 7:00 PM</p>
                                 </div>
                             </div>
                             <div className="info-item">
-                                <Globe className="info-icon" size={20} />
+                                <FaGlobeAmericas className="info-icon" size={20} />
                                 <div>
                                     <h4>Global Support</h4>
                                     <p>Available in multiple languages</p>
@@ -101,7 +101,7 @@ function Contact() {
                     <div className="contact-form-column">
                         <div className="contact-form-card">
                             <div className="form-header">
-                                <MessageSquare size={24} />
+                                <FaCommentDots size={24} />
                                 <h2>Send us a Message</h2>
                             </div>
                             <form onSubmit={handleSubmit} className="contact-form">
@@ -153,7 +153,7 @@ function Contact() {
                                     {status === 'sending' ? 'Sending...' : status === 'success' ? 'Sent!' : (
                                         <>
                                             <span>Send Message</span>
-                                            <Send size={18} />
+                                            <FaPaperPlane size={16} />
                                         </>
                                     )}
                                 </button>
@@ -166,7 +166,7 @@ function Contact() {
             {/* Map Section */}
             <div className="contact-map-wrapper">
                 <div className="map-heading-v2">
-                    <MapPin className="map-pin-icon" size={24} />
+                    <FaMapMarkerAlt className="map-pin-icon" size={24} />
                     <h2>Visit Our Office</h2>
                 </div>
                 <div className="contact-map-section">

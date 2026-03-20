@@ -8,6 +8,7 @@ import {
     Target, Globe, Languages, Star, Megaphone, Clock,
     Quote, CheckCircle
 } from "lucide-react";
+import { FaTrophy } from "react-icons/fa";
 import dashboardService from "../services/dashboardService";
 import "../styles/Home.css";
 
@@ -378,7 +379,7 @@ function Home() {
                                         </div>
                                     ))}
                                 </div>
-                                <div className="hp-streak-milestone">🏆 Next milestone: 21 days</div>
+                                <div className="hp-streak-milestone"><FaTrophy size={14} style={{marginRight: '6px', color: '#f59e0b'}} /> Next milestone: 21 days</div>
                             </div>
                         )}
                         {tab.visual === "chatbot" && (

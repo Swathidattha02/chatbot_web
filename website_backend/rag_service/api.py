@@ -90,7 +90,11 @@ SUMMARY:"""
                 json={
                     "model": LLM_MODEL,
                     "prompt": prompt,
-                    "stream": False
+                    "stream": False,
+                    "options": {
+                        "num_ctx": 4096,
+                        "num_predict": 1024
+                    }
                 }
             )
             if response.status_code == 200:
@@ -107,14 +111,20 @@ def build_system_prompt(language: str):
     
     # Determine strict language rule
     if language == 'en':
-        prompt = "You are an expert AI tutor. Use a friendly and educational tone."
+        prompt = (
+            "YOU ARE AN EXPERT EDUCATIONAL TUTOR. "
+            "YOUR TASK IS TO PROVIDE A COMPREHENSIVE, DETAILED, AND STEP-BY-STEP EXPLANATION. "
+            "IMPORTANT: NEVER give short answers. Your response MUST be thorough and cover all aspects of the student's question. "
+            "If the question is about types or categories, list ALL major categories and explain each one in detail. "
+            "Use clear structure, headings, and bullet points. Focus on providing the MOST ACCURATE and DETAILED academic content."
+        )
     else:
         prompt = (
             f"### EDUCATIONAL TUTOR RULE ###\n"
-            f"YOU ARE AN EXPERT EDUCATIONAL TUTOR. YOUR TASK IS TO PROVIDE A DETAILED, STEP-BY-STEP EXPLANATION IN ENGLISH.\n\n"
+            f"YOU ARE AN EXPERT EDUCATIONAL TUTOR. YOUR TASK IS TO PROVIDE A COMPREHENSIVE, DETAILED, AND STEP-BY-STEP EXPLANATION IN ENGLISH.\n\n"
             f"IMPORTANT: Your response will be automatically translated into {lang_name.upper()} for the student. "
-            f"Focus on providing the MOST ACCURATE and DETAILED answer in English based on the documents. "
-            f"Do not write technical terms in anything other than English; the system handles the translation for you.\n\n"
+            f"Focus on providing the MOST ACCURATE and DETAILED academic explanation in English. "
+            f"NEVER give short one-sentence answers. Always provide a full, structured educational response.\n\n"
             f"Begin answering in English now:"
         )
 
@@ -122,8 +132,9 @@ def build_system_prompt(language: str):
     if document_data["summary"]:
         prompt += f"\n\n[DOCUMENT LOADED: {document_data['filename']}]\n"
         prompt += (
-            f"Use the following summary of the student's document to guide your teaching. "
-            f"Keep your explanation entirely in English as it will be translated after you finish.\n\n"
+            f"INSTRUCTION: You are a world-class academic tutor. Use BOTH the following document summary AND your own extensive general knowledge to answer the student's question in detail. "
+            f"If the question is not directly mentioned in the document, use your broad expert knowledge to provide a full explanation anyway. "
+            f"NEVER GIVE SHORT ANSWERS. Your response must be in English ONLY. Do not use {lang_name} at all; the system will translate your English response later.\n\n"
         )
         prompt += f"DOCUMENT SUMMARY:\n{document_data['summary']}"
         
@@ -194,8 +205,9 @@ async def stream_chat(request: ChatRequest):
             
         # Reinforce language in the final user message
         final_message = request.message
-        if request.language != 'en':
-            final_message = f"[INSTRUCTION: ANSWER ONLY IN {lang_name.upper()}] {request.message}"
+        # REMOVED: Contradictory instruction to answer in target language.
+        # We now always answer in English and let the dedicated translation step handle it.
+        # This prevents the LLM from outputting short/incomplete answers in regional scripts.
             
         messages.append({"role": "user", "content": final_message})
 
@@ -221,9 +233,7 @@ async def chat(request: ChatRequest):
                 messages.append(msg)
             
         final_message = request.message
-        if request.language != 'en':
-            final_message = f"[INSTRUCTION: ANSWER ONLY IN {lang_name.upper()}] {request.message}"
-            
+        # Always output in English for higher quality; translation handled by frontend
         messages.append({"role": "user", "content": final_message})
 
         async with httpx.AsyncClient(timeout=90.0) as client:
@@ -232,7 +242,12 @@ async def chat(request: ChatRequest):
                 json={
                     "model": LLM_MODEL,
                     "messages": messages,
-                    "stream": False
+                    "stream": False,
+                    "options": {
+                        "num_ctx": 4096,
+                        "num_predict": 1536,
+                        "temperature": 0.7
+                    }
                 }
             )
             
@@ -261,7 +276,12 @@ async def generate_ollama_stream(messages):
                 json={
                     "model": LLM_MODEL,
                     "messages": messages,
-                    "stream": True
+                    "stream": True,
+                    "options": {
+                        "num_ctx": 4096,
+                        "num_predict": 1536,
+                        "temperature": 0.7
+                    }
                 }
             ) as response:
                 async for line in response.aiter_lines():

@@ -15,7 +15,7 @@ router.post("/tts", async (req, res) => {
             return res.status(400).json({ error: "Text is required" });
         }
 
-        console.log(`🎙️ Proxying ElevenLabs request for: ${text.substring(0, 30)}...`);
+        console.log(`🎙️ Proxying ElevenLabs [${voiceId}] request for: ${text.substring(0, 30)}...`);
 
         const response = await axios({
             method: 'post',
@@ -25,8 +25,8 @@ router.post("/tts", async (req, res) => {
                 model_id: "eleven_multilingual_v2",
                 voice_settings: {
                     stability: 0.5,
-                    similarity_boost: 0.75,
-                    style: 0.0,
+                    similarity_boost: 0.8,
+                    style: 0.05,
                     use_speaker_boost: true
                 }
             },
@@ -46,10 +46,17 @@ router.post("/tts", async (req, res) => {
         res.send(Buffer.from(response.data));
 
     } catch (error) {
-        console.error("❌ ElevenLabs Proxy Error:", error.response ? error.response.data.toString() : error.message);
+        const errorMsg = error.response ? error.response.data.toString() : error.message;
+        console.error("❌ ElevenLabs Proxy Error:", errorMsg);
+        
+        // Log to file for debugging
+        const fs = require('fs');
+        const path = require('path');
+        fs.appendFileSync(path.join(__dirname, '../../tts_debug.log'), `[${new Date().toISOString()}] Error: ${errorMsg}\n`);
+
         res.status(error.response ? error.response.status : 500).json({
             error: "Failed to fetch audio from ElevenLabs",
-            details: error.message
+            details: errorMsg
         });
     }
 });
