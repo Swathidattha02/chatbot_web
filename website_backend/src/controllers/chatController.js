@@ -7,18 +7,11 @@ const mongoose = require("mongoose");
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
 const LLM_MODEL = process.env.LLM_MODEL || "llama3.2";
 
-// Language mapping
+// Language mapping - Only Telugu, Hindi, English supported
 const LANGUAGE_NAMES = {
     'en': 'English',
     'hi': 'Hindi',
-    'ta': 'Tamil',
-    'te': 'Telugu',
-    'kn': 'Kannada',
-    'ml': 'Malayalam',
-    'bn': 'Bengali',
-    'mr': 'Marathi',
-    'gu': 'Gujarati',
-    'pa': 'Punjabi'
+    'te': 'Telugu'
 };
 
 // Curriculum Database - Maps classes to allowed academic topics

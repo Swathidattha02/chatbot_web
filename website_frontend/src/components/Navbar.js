@@ -11,10 +11,15 @@ function Navbar() {
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
     useEffect(() => {
-        window.addEventListener("scroll", () => {
+        const handleScroll = () => {
             const nav = document.querySelector(".navbar");
-            nav.classList.toggle("scrolled", window.scrollY > 20);
-        });
+            if (nav) {
+                nav.classList.toggle("scrolled", window.scrollY > 20);
+            }
+        };
+
+        window.addEventListener("scroll", handleScroll);
+        return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
     const handleLogout = () => {
