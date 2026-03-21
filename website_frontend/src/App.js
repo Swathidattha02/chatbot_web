@@ -80,45 +80,45 @@ function AppContent() {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
+            <RoleRoute role="student">
               <Dashboard />
-            </ProtectedRoute>
+            </RoleRoute>
           }
         />
         <Route
           path="/chat"
           element={
-            <ProtectedRoute>
+            <RoleRoute role="student">
               <ChatWithAvatar />
-            </ProtectedRoute>
+            </RoleRoute>
           }
         />
         <Route
           path="/analytics"
           element={
-            <ProtectedRoute>
+            <RoleRoute role="student">
               <Analytics />
-            </ProtectedRoute>
+            </RoleRoute>
           }
         />
         <Route
           path="/subjects/:subjectId/chapters"
           element={
-            <ProtectedRoute>
+            <RoleRoute role="student">
               <SubjectLayout>
                 <SubjectChapters />
               </SubjectLayout>
-            </ProtectedRoute>
+            </RoleRoute>
           }
         />
         <Route
           path="/subjects/:subjectId/chapters/:chapterId/pdf"
           element={
-            <ProtectedRoute>
+            <RoleRoute role="student">
               <SubjectLayout>
                 <PDFViewer />
               </SubjectLayout>
-            </ProtectedRoute>
+            </RoleRoute>
           }
         />
         <Route path="/contact" element={<Contact />} />
