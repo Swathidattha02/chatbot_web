@@ -150,6 +150,7 @@ exports.login = async (req, res) => {
                 id: user._id,
                 name: user.name,
                 email: user.email,
+                role: "student",
                 avatar: user.avatar,
                 class: user.class,
                 phone: user.phone,
@@ -196,9 +197,13 @@ exports.getMe = async (req, res) => {
             });
         }
 
+        // Convert mongoose doc to object and ensure role is included
+        const userResponse = userData.toObject ? userData.toObject() : userData;
+        userResponse.role = role || "student";
+
         res.status(200).json({
             success: true,
-            user: userData,
+            user: userResponse,
         });
     } catch (error) {
         console.error("Get User Error:", error);

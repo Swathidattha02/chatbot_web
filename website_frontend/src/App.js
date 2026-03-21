@@ -22,6 +22,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import SubjectLayout from "./components/SubjectLayout";
+import ScrollToTop from "./components/ScrollToTop";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -54,7 +55,10 @@ const RoleRoute = ({ children, role }) => {
   const storedUser = JSON.parse(localStorage.getItem("user") || "null");
   const currentUser = user || storedUser;
 
-  if (!isAuthenticated || !currentUser || currentUser.role !== role) {
+  // Default to "student" if role is missing (backward compatibility)
+  const userRole = currentUser?.role || "student";
+
+  if (!isAuthenticated || !currentUser || userRole !== role) {
     return <Navigate to="/login" />;
   }
 
@@ -155,6 +159,7 @@ function AppContent() {
 function AppRoutes() {
   return (
     <Router>
+      <ScrollToTop />
       <AppContent />
     </Router>
   );
