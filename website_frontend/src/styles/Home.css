@@ -891,8 +891,15 @@
 }
 
 @keyframes starBounce {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); }
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.15);
+  }
 }
 
 .hp-test-text {
@@ -1095,6 +1102,7 @@
     font-size: 1.6rem;
   }
 }
+
 /* Highlights Bar */
 .hp-highlights-bar {
   background: #fff;
@@ -1161,10 +1169,12 @@
   .hp-highlights-bar {
     padding: 2rem 5%;
   }
+
   .hp-h-grid {
     grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
   }
+
   .hp-h-val {
     font-size: 1.5rem;
   }

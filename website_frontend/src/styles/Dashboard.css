@@ -853,6 +853,7 @@
         transform: scale(1);
         opacity: 1;
     }
+
     to {
         transform: scale(1.12);
         opacity: 0.8;
@@ -913,8 +914,13 @@
 }
 
 @keyframes indeterminate-shimmer {
-    from { left: -100%; }
-    to { left: 100%; }
+    from {
+        left: -100%;
+    }
+
+    to {
+        left: 100%;
+    }
 }
 
 .card-button.uploading.disabled {
@@ -929,6 +935,11 @@
 }
 
 @keyframes spin-loader {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
