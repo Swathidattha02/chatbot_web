@@ -53,6 +53,11 @@ function TeacherDashboard() {
     const [quizCurrentPage, setQuizCurrentPage] = useState(1);
     const quizzesPerPage = 10;
 
+    // Violation filters and pagination
+    const [violationFilter, setViolationFilter] = useState({ class: "", section: "", name: "" });
+    const [violationPage, setViolationPage] = useState(1);
+    const violationItemsPerPage = 10;
+
     // Get stored teacher from localStorage
     const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
     const token = localStorage.getItem("token");
@@ -1293,12 +1298,121 @@ function TeacherDashboard() {
                             </div>
                         ) : (
                             <div>
-                                <div style={{ marginBottom: '20px', padding: '12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px' }}>
+                                <div style={{ marginBottom: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '12px' }}>
+                                    <input
+                                        type="text"
+                                        placeholder="Search student name..."
+                                        value={violationFilter.name}
+                                        onChange={(e) => {
+                                            setViolationFilter({ ...violationFilter, name: e.target.value });
+                                            setViolationPage(1);
+                                        }}
+                                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px' }}
+                                    />
+                                    <select
+                                        value={violationFilter.class}
+                                        onChange={(e) => {
+                                            setViolationFilter({ ...violationFilter, class: e.target.value });
+                                            setViolationPage(1);
+                                        }}
+                                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', cursor: 'pointer' }}
+                                    >
+                                        <option value="">All Classes</option>
+                                        {Array.from(new Set(students.map(s => s.class))).map(cls => (
+                                            <option key={cls} value={cls}>{cls}</option>
+                                        ))}
+                                    </select>
+                                    <select
+                                        value={violationFilter.section}
+                                        onChange={(e) => {
+                                            setViolationFilter({ ...violationFilter, section: e.target.value });
+                                            setViolationPage(1);
+                                        }}
+                                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', cursor: 'pointer' }}
+                                    >
+                                        <option value="">All Sections</option>
+                                        {Array.from(new Set(students.map(s => s.section))).map(sec => (
+                                            <option key={sec} value={sec}>{sec}</option>
+                                        ))}
+                                    </select>
+                                    <button
+                                        onClick={() => {
+                                            setViolationFilter({ class: "", section: "", name: "" });
+                                            setViolationPage(1);
+                                        }}
+                                        style={{ padding: '8px 16px', borderRadius: '6px', background: '#f1f5f9', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: '#475569' }}
+                                    >
+                                        Clear
+                                    </button>
+                                </div>
+
+                                <div style={{ marginBottom: '12px', padding: '12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px' }}>
                                     <p style={{ margin: 0, color: '#166534', fontSize: '12px' }}>
                                         ℹ️ <strong>Focus Activity Log:</strong> Shows when students left the study page, when they returned, and how long they were away.
                                     </p>
                                 </div>
-                                <ViolationTable violations={violations} showUser={true} activityLogView={true} />
+
+                                <ViolationTable 
+                                    violations={(() => {
+                                        const filtered = violations.map(v => {
+                                            const student = students.find(s => 
+                                                (s._id && v.userId && s._id.toString() === v.userId.toString()) || 
+                                                (s.name && v.username && s.name.toLowerCase().trim() === v.username.toLowerCase().trim())
+                                            );
+                                            return { ...v, class: student?.class, section: student?.section };
+                                        }).filter(v => {
+                                            const matchesClass = !violationFilter.class || v.class === violationFilter.class;
+                                            const matchesSection = !violationFilter.section || v.section === violationFilter.section;
+                                            const matchesName = !violationFilter.name || 
+                                                (v.username && v.username.toLowerCase().includes(violationFilter.name.toLowerCase()));
+                                            return matchesClass && matchesSection && matchesName;
+                                        });
+                                        return filtered.slice((violationPage - 1) * violationItemsPerPage, violationPage * violationItemsPerPage);
+                                    })()} 
+                                    showUser={true} 
+                                    activityLogView={true} 
+                                />
+
+                                {(() => {
+                                    const totalItems = violations.map(v => {
+                                        const student = students.find(s => 
+                                            (s._id && v.userId && s._id.toString() === v.userId.toString()) || 
+                                            (s.name && v.username && s.name.toLowerCase().trim() === v.username.toLowerCase().trim())
+                                        );
+                                        return { ...v, class: student?.class, section: student?.section };
+                                    }).filter(v => {
+                                        const matchesClass = !violationFilter.class || v.class === violationFilter.class;
+                                        const matchesSection = !violationFilter.section || v.section === violationFilter.section;
+                                        const matchesName = !violationFilter.name || 
+                                            (v.username && v.username.toLowerCase().includes(violationFilter.name.toLowerCase()));
+                                        return matchesClass && matchesSection && matchesName;
+                                    }).length;
+
+                                    if (totalItems > violationItemsPerPage) {
+                                        return (
+                                            <div className="admin-pagination" style={{ padding: '15px 24px', borderTop: '1px solid #f1f5f9', marginTop: '12px' }}>
+                                                <button 
+                                                    disabled={violationPage === 1}
+                                                    onClick={() => setViolationPage(violationPage - 1)}
+                                                    className="admin-page-btn"
+                                                >
+                                                    <ChevronLeft size={18} /> Prev
+                                                </button>
+                                                <span className="admin-page-info">
+                                                    Page {violationPage} of {Math.ceil(totalItems / violationItemsPerPage)}
+                                                </span>
+                                                <button 
+                                                    disabled={violationPage === Math.ceil(totalItems / violationItemsPerPage)}
+                                                    onClick={() => setViolationPage(violationPage + 1)}
+                                                    className="admin-page-btn"
+                                                >
+                                                    Next <ChevronRight size={18} />
+                                                </button>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })()}
                             </div>
                         )}
                     </div>
