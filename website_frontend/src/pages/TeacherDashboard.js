@@ -6,7 +6,8 @@ import {
     BookOpen, FileText, Search, CheckCircle, XCircle, 
     Star, BarChart3, AlertTriangle, Calendar, Download,
     TrendingUp, TrendingDown, ChevronLeft, ChevronRight,
-    Inbox, LogOut, Eye, Upload, Megaphone, Trash2, Plus, AlertCircle, Loader, RefreshCw
+    Inbox, LogOut, Eye, Upload, Megaphone, Trash2, Plus, AlertCircle, Loader, RefreshCw,
+    Filter, X, Info
 } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -1298,58 +1299,78 @@ function TeacherDashboard() {
                             </div>
                         ) : (
                             <div>
-                                <div style={{ marginBottom: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '12px' }}>
-                                    <input
-                                        type="text"
-                                        placeholder="Search student name..."
-                                        value={violationFilter.name}
-                                        onChange={(e) => {
-                                            setViolationFilter({ ...violationFilter, name: e.target.value });
-                                            setViolationPage(1);
-                                        }}
-                                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px' }}
-                                    />
-                                    <select
-                                        value={violationFilter.class}
-                                        onChange={(e) => {
-                                            setViolationFilter({ ...violationFilter, class: e.target.value });
-                                            setViolationPage(1);
-                                        }}
-                                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', cursor: 'pointer' }}
-                                    >
-                                        <option value="">All Classes</option>
-                                        {Array.from(new Set(students.map(s => s.class))).map(cls => (
-                                            <option key={cls} value={cls}>{cls}</option>
-                                        ))}
-                                    </select>
-                                    <select
-                                        value={violationFilter.section}
-                                        onChange={(e) => {
-                                            setViolationFilter({ ...violationFilter, section: e.target.value });
-                                            setViolationPage(1);
-                                        }}
-                                        style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '13px', cursor: 'pointer' }}
-                                    >
-                                        <option value="">All Sections</option>
-                                        {Array.from(new Set(students.map(s => s.section))).map(sec => (
-                                            <option key={sec} value={sec}>{sec}</option>
-                                        ))}
-                                    </select>
-                                    <button
-                                        onClick={() => {
-                                            setViolationFilter({ class: "", section: "", name: "" });
-                                            setViolationPage(1);
-                                        }}
-                                        style={{ padding: '8px 16px', borderRadius: '6px', background: '#f1f5f9', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: '#475569' }}
-                                    >
-                                        Clear
-                                    </button>
-                                </div>
+                                <div className="violation-filter-section">
+                                    <div className="violation-filter-header">
+                                        <h3 className="violation-filter-title">
+                                            <Filter size={16} />
+                                            Filter Activity Log
+                                        </h3>
+                                    </div>
 
-                                <div style={{ marginBottom: '12px', padding: '12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px' }}>
-                                    <p style={{ margin: 0, color: '#166534', fontSize: '12px' }}>
-                                        ℹ️ <strong>Focus Activity Log:</strong> Shows when students left the study page, when they returned, and how long they were away.
-                                    </p>
+                                    <div className="violation-filter-container">
+                                        <div className="violation-filter-input">
+                                            <input
+                                                type="text"
+                                                placeholder="Search student name..."
+                                                value={violationFilter.name}
+                                                onChange={(e) => {
+                                                    setViolationFilter({ ...violationFilter, name: e.target.value });
+                                                    setViolationPage(1);
+                                                }}
+                                            />
+                                            <Search size={16} />
+                                        </div>
+
+                                        <div className="violation-filter-input">
+                                            <select
+                                                value={violationFilter.class}
+                                                onChange={(e) => {
+                                                    setViolationFilter({ ...violationFilter, class: e.target.value });
+                                                    setViolationPage(1);
+                                                }}
+                                            >
+                                                <option value="">All Classes</option>
+                                                {Array.from(new Set(students.map(s => s.class))).map(cls => (
+                                                    <option key={cls} value={cls}>{cls}</option>
+                                                ))}
+                                            </select>
+                                            <Filter size={16} />
+                                        </div>
+
+                                        <div className="violation-filter-input">
+                                            <select
+                                                value={violationFilter.section}
+                                                onChange={(e) => {
+                                                    setViolationFilter({ ...violationFilter, section: e.target.value });
+                                                    setViolationPage(1);
+                                                }}
+                                            >
+                                                <option value="">All Sections</option>
+                                                {Array.from(new Set(students.map(s => s.section))).map(sec => (
+                                                    <option key={sec} value={sec}>{sec}</option>
+                                                ))}
+                                            </select>
+                                            <Filter size={16} />
+                                        </div>
+
+                                        {(violationFilter.class || violationFilter.section || violationFilter.name) && (
+                                            <button
+                                                className="violation-filter-clear"
+                                                onClick={() => {
+                                                    setViolationFilter({ class: "", section: "", name: "" });
+                                                    setViolationPage(1);
+                                                }}
+                                            >
+                                                <X size={14} />
+                                                Clear
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div className="violation-filter-info">
+                                        <Info size={16} />
+                                        <span><strong>Focus Activity Log:</strong> Shows when students left the study page, when they returned, and how long they were away.</span>
+                                    </div>
                                 </div>
 
                                 <ViolationTable 
@@ -1390,23 +1411,25 @@ function TeacherDashboard() {
 
                                     if (totalItems > violationItemsPerPage) {
                                         return (
-                                            <div className="admin-pagination" style={{ padding: '15px 24px', borderTop: '1px solid #f1f5f9', marginTop: '12px' }}>
+                                            <div className="violation-pagination">
                                                 <button 
                                                     disabled={violationPage === 1}
                                                     onClick={() => setViolationPage(violationPage - 1)}
-                                                    className="admin-page-btn"
+                                                    className="violation-page-btn"
                                                 >
-                                                    <ChevronLeft size={18} /> Prev
+                                                    <ChevronLeft size={16} />
+                                                    Prev
                                                 </button>
-                                                <span className="admin-page-info">
+                                                <span className="violation-page-info">
                                                     Page {violationPage} of {Math.ceil(totalItems / violationItemsPerPage)}
                                                 </span>
                                                 <button 
                                                     disabled={violationPage === Math.ceil(totalItems / violationItemsPerPage)}
                                                     onClick={() => setViolationPage(violationPage + 1)}
-                                                    className="admin-page-btn"
+                                                    className="violation-page-btn"
                                                 >
-                                                    Next <ChevronRight size={18} />
+                                                    Next
+                                                    <ChevronRight size={16} />
                                                 </button>
                                             </div>
                                         );

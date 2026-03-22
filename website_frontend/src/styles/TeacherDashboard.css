@@ -1607,3 +1607,260 @@ body {
     margin-top: 4px;
     display: inline-block;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   VIOLATIONS FILTER STYLING
+   ═══════════════════════════════════════════════════════════════ */
+
+.violation-filter-section {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafb 100%);
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.violation-filter-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #f0f4f8;
+}
+
+.violation-filter-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e1b4b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+
+.violation-filter-title svg {
+    width: 16px;
+    height: 16px;
+    color: #3b82f6;
+    flex-shrink: 0;
+}
+
+.violation-filter-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 12px;
+    align-items: end;
+}
+
+/* ── Filter Input ──────────────────────────────────────────────── */
+.violation-filter-input {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.violation-filter-input input,
+.violation-filter-input select {
+    width: 100%;
+    padding: 10px 12px;
+    padding-left: 36px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    background-color: #ffffff;
+    color: #1a202c;
+    transition: all 0.2s ease;
+}
+
+.violation-filter-input input:focus,
+.violation-filter-input select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    background-color: #f0f9ff;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.violation-filter-input input::placeholder {
+    color: #94a3b8;
+}
+
+.violation-filter-input svg {
+    position: absolute;
+    left: 12px;
+    width: 16px;
+    height: 16px;
+    color: #94a3b8;
+    pointer-events: none;
+    flex-shrink: 0;
+}
+
+.violation-filter-input input:focus ~ svg,
+.violation-filter-input input:not(:placeholder-shown) ~ svg {
+    color: #3b82f6;
+}
+
+/* ── Select Dropdown ───────────────────────────────────────────── */
+.violation-filter-input select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+    cursor: pointer;
+}
+
+.violation-filter-input select:focus {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+.violation-filter-input select option {
+    color: #1a202c;
+    background: white;
+    padding: 8px;
+}
+
+/* ── Filter Buttons ────────────────────────────────────────────– */
+.violation-filter-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border: none;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.violation-filter-button:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    transform: translateY(-1px);
+}
+
+.violation-filter-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.violation-filter-button svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+/* ── Clear Button ──────────────────────────────────────────────– */
+.violation-filter-clear {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 12px;
+    background: #fee2e2;
+    border: 1px solid #fca5a5;
+    border-radius: 8px;
+    color: #dc2626;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.violation-filter-clear:hover {
+    background: #fecaca;
+    border-color: #f87171;
+}
+
+.violation-filter-clear:active {
+    transform: scale(0.98);
+}
+
+.violation-filter-clear svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+/* ── Info Banner ───────────────────────────────────────────────── */
+.violation-filter-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+    padding: 12px 14px;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #065f46;
+}
+
+.violation-filter-info svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    color: #10b981;
+}
+
+/* ── Pagination ────────────────────────────────────────────────– */
+.violation-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #f0f4f8;
+}
+
+.violation-page-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 6px;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.violation-page-btn:hover:not(:disabled) {
+    border-color: #3b82f6;
+    color: #3b82f6;
+    background: #f0f9ff;
+}
+
+.violation-page-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.violation-page-btn svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.violation-page-info {
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 500;
+    padding: 0 8px;
+}

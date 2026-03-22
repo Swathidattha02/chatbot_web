@@ -1299,6 +1299,227 @@
     justify-content: center;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   ADMIN MONITORING FILTER STYLING
+   ═══════════════════════════════════════════════════════════════ */
+
+.admin-monitoring-filter-section {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafb 100%);
+    border: 1px solid #e2e8ff;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.08);
+}
+
+.admin-monitoring-filter-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #eef2ff;
+}
+
+.admin-monitoring-filter-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e1b4b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+
+.admin-monitoring-filter-title svg {
+    width: 16px;
+    height: 16px;
+    color: #667eea;
+    flex-shrink: 0;
+}
+
+.admin-monitoring-filter-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 12px;
+    align-items: end;
+}
+
+/* ── Filter Input ──────────────────────────────────────────────── */
+.admin-monitoring-filter-input {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.admin-monitoring-filter-input input,
+.admin-monitoring-filter-input select {
+    width: 100%;
+    padding: 10px 12px;
+    padding-left: 36px;
+    border: 1.5px solid #e2e8ff;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    background-color: #ffffff;
+    color: #1a202c;
+    transition: all 0.2s ease;
+}
+
+.admin-monitoring-filter-input input:focus,
+.admin-monitoring-filter-input select:focus {
+    outline: none;
+    border-color: #667eea;
+    background-color: #f5f3ff;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.admin-monitoring-filter-input input::placeholder {
+    color: #94a3b8;
+}
+
+.admin-monitoring-filter-input svg {
+    position: absolute;
+    left: 12px;
+    width: 16px;
+    height: 16px;
+    color: #94a3b8;
+    pointer-events: none;
+    flex-shrink: 0;
+}
+
+.admin-monitoring-filter-input input:focus ~ svg,
+.admin-monitoring-filter-input input:not(:placeholder-shown) ~ svg {
+    color: #667eea;
+}
+
+/* ── Select Dropdown ───────────────────────────────────────────── */
+.admin-monitoring-filter-input select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+    cursor: pointer;
+}
+
+.admin-monitoring-filter-input select:focus {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23667eea' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+.admin-monitoring-filter-input select option {
+    color: #1a202c;
+    background: white;
+    padding: 8px;
+}
+
+/* ── Filter Clear Button ───────────────────────────────────────– */
+.admin-monitoring-filter-clear {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 12px;
+    background: #fee2e2;
+    border: 1px solid #fca5a5;
+    border-radius: 8px;
+    color: #dc2626;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.admin-monitoring-filter-clear:hover {
+    background: #fecaca;
+    border-color: #f87171;
+}
+
+.admin-monitoring-filter-clear:active {
+    transform: scale(0.98);
+}
+
+.admin-monitoring-filter-clear svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+/* ── Info Banner ───────────────────────────────────────────────── */
+.admin-monitoring-filter-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+    padding: 12px 14px;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #065f46;
+}
+
+.admin-monitoring-filter-info svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    color: #10b981;
+}
+
+/* ── Pagination ────────────────────────────────────────────────– */
+.admin-monitoring-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #f0f4f8;
+}
+
+.admin-monitoring-page-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: #ffffff;
+    border: 1.5px solid #e2e8ff;
+    border-radius: 6px;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.admin-monitoring-page-btn:hover:not(:disabled) {
+    border-color: #667eea;
+    color: #667eea;
+    background: #f5f3ff;
+}
+
+.admin-monitoring-page-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.admin-monitoring-page-btn svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.admin-monitoring-page-info {
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 500;
+    padding: 0 8px;
+}
+
 .admin-popup-icon-wrapper .admin-modal-icon {
     margin-bottom: 0;
     z-index: 2;

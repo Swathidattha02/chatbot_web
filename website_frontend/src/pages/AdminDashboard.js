@@ -5,7 +5,8 @@ import {
     Eye, EyeOff, LayoutDashboard, Bell, Users, GraduationCap, 
     Building2, Settings, LogOut, BookOpen, CheckCircle, 
     XCircle, Trash2, MapPin, Hand, Lock, Key, ShieldAlert,
-    ArrowRight, Activity, ChevronLeft, ChevronRight, Search
+    ArrowRight, Activity, ChevronLeft, ChevronRight, Search,
+    Filter, X, Info
 } from "lucide-react";
 import ViolationTable from "../components/ViolationTable";
 import "../styles/AdminDashboard.css";
@@ -934,67 +935,82 @@ function AdminDashboard() {
 
                 {activeTab === "monitoring" && (
                     <div className="admin-monitoring-view">
-                        <div className="admin-controls-row" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
-                            <div className="admin-controls" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                <div style={{ position: 'relative' }}>
+                        <div className="admin-monitoring-filter-section">
+                            <div className="admin-monitoring-filter-header">
+                                <h3 className="admin-monitoring-filter-title">
+                                    <Filter size={16} />
+                                    Filter Activity Log
+                                </h3>
+                            </div>
+
+                            <div className="admin-monitoring-filter-container">
+                                <div className="admin-monitoring-filter-input">
                                     <input 
                                         type="text" 
                                         placeholder="Search student..."
-                                        className="admin-clear-btn"
-                                        style={{ padding: '8px 12px 8px 32px', height: 'auto', width: '180px', background: '#fff' }}
                                         value={monitoringFilter.name}
                                         onChange={(e) => {
                                             setMonitoringFilter({ ...monitoringFilter, name: e.target.value });
                                             setMonitoringPage(1);
                                         }}
                                     />
-                                    <Search size={16} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                                    <Search size={16} />
                                 </div>
-                                <select 
-                                    className="admin-clear-btn" 
-                                    style={{ padding: '8px 12px', height: 'auto' }}
-                                    value={monitoringFilter.class}
-                                    onChange={(e) => {
-                                        setMonitoringFilter({ ...monitoringFilter, class: e.target.value });
-                                        setMonitoringPage(1);
-                                    }}
-                                >
-                                    <option value="">All Classes</option>
-                                    {(admin?.classes || [6, 7, 8, 9, 10]).map(c => (
-                                        <option key={c} value={c.toString().includes("Class") ? c : `Class ${c}`}>
-                                            {c.toString().includes("Class") ? c : `Class ${c}`}
-                                        </option>
-                                    ))}
-                                </select>
-                                <select 
-                                    className="admin-clear-btn" 
-                                    style={{ padding: '8px 12px', height: 'auto' }}
-                                    value={monitoringFilter.section}
-                                    onChange={(e) => {
-                                        setMonitoringFilter({ ...monitoringFilter, section: e.target.value });
-                                        setMonitoringPage(1);
-                                    }}
-                                >
-                                    <option value="">All Sections</option>
-                                    {Array.from(new Set([
-                                        ...students.map(s => s.section),
-                                        "A", "B", "C", "D"
-                                    ])).filter(Boolean).sort().map(s => (
-                                        <option key={s} value={s}>{s}</option>
-                                    ))}
-                                </select>
+
+                                <div className="admin-monitoring-filter-input">
+                                    <select 
+                                        value={monitoringFilter.class}
+                                        onChange={(e) => {
+                                            setMonitoringFilter({ ...monitoringFilter, class: e.target.value });
+                                            setMonitoringPage(1);
+                                        }}
+                                    >
+                                        <option value="">All Classes</option>
+                                        {(admin?.classes || [6, 7, 8, 9, 10]).map(c => (
+                                            <option key={c} value={c.toString().includes("Class") ? c : `Class ${c}`}>
+                                                {c.toString().includes("Class") ? c : `Class ${c}`}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <Filter size={16} />
+                                </div>
+
+                                <div className="admin-monitoring-filter-input">
+                                    <select 
+                                        value={monitoringFilter.section}
+                                        onChange={(e) => {
+                                            setMonitoringFilter({ ...monitoringFilter, section: e.target.value });
+                                            setMonitoringPage(1);
+                                        }}
+                                    >
+                                        <option value="">All Sections</option>
+                                        {Array.from(new Set([
+                                            ...students.map(s => s.section),
+                                            "A", "B", "C", "D"
+                                        ])).filter(Boolean).sort().map(s => (
+                                            <option key={s} value={s}>{s}</option>
+                                        ))}
+                                    </select>
+                                    <Filter size={16} />
+                                </div>
+
                                 {(monitoringFilter.class || monitoringFilter.section || monitoringFilter.name) && (
                                     <button 
-                                        className="admin-clear-btn" 
+                                        className="admin-monitoring-filter-clear"
                                         onClick={() => {
                                             setMonitoringFilter({ class: "", section: "", name: "" });
                                             setMonitoringPage(1);
                                         }}
-                                        style={{ background: '#fee2e2', color: '#dc2626', borderColor: '#fca5a5' }}
                                     >
+                                        <X size={14} />
                                         Clear
                                     </button>
                                 )}
+                            </div>
+
+                            <div className="admin-monitoring-filter-info">
+                                <Info size={16} />
+                                <span><strong>Focus Activity Log:</strong> Shows when students left the study page, when they returned, and how long they were away.</span>
                             </div>
                         </div>
 
@@ -1070,23 +1086,25 @@ function AdminDashboard() {
 
                                     if (totalItems > itemsPerPage) {
                                         return (
-                                            <div className="admin-pagination" style={{ padding: '15px 24px', borderTop: '1px solid #f1f5f9' }}>
+                                            <div className="admin-monitoring-pagination">
                                                 <button 
                                                     disabled={monitoringPage === 1}
                                                     onClick={() => setMonitoringPage(monitoringPage - 1)}
-                                                    className="admin-page-btn"
+                                                    className="admin-monitoring-page-btn"
                                                 >
-                                                    <ChevronLeft size={18} /> Prev
+                                                    <ChevronLeft size={16} />
+                                                    Prev
                                                 </button>
-                                                <span className="admin-page-info">
+                                                <span className="admin-monitoring-page-info">
                                                     Page {monitoringPage} of {Math.ceil(totalItems / itemsPerPage)}
                                                 </span>
                                                 <button 
                                                     disabled={monitoringPage === Math.ceil(totalItems / itemsPerPage)}
                                                     onClick={() => setMonitoringPage(monitoringPage + 1)}
-                                                    className="admin-page-btn"
+                                                    className="admin-monitoring-page-btn"
                                                 >
-                                                    Next <ChevronRight size={18} />
+                                                    Next
+                                                    <ChevronRight size={16} />
                                                 </button>
                                             </div>
                                         );
