@@ -96,6 +96,19 @@
     box-shadow: 0 4px 15px rgba(229, 62, 62, 0.1);
 }
 
+.btn-confirm-logout:disabled,
+.btn-stay:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-confirm-logout:disabled:hover,
+.btn-stay:disabled:hover {
+    transform: none;
+    box-shadow: none;
+}
+
 /* Dark mode support if applicable */
 @media (prefers-color-scheme: dark) {
     .logout-container {

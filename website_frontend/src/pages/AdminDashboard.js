@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import { 
     Eye, EyeOff, LayoutDashboard, Bell, Users, GraduationCap, 
     Building2, Settings, LogOut, BookOpen, CheckCircle, 
@@ -13,6 +14,7 @@ const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
 function AdminDashboard() {
     const navigate = useNavigate();
+    const { logout } = useAuth();
     const [admin, setAdmin] = useState(null);
     const [teachers, setTeachers] = useState([]);
     const [pendingTeachers, setPendingTeachers] = useState([]);
@@ -263,10 +265,13 @@ function AdminDashboard() {
         setShowLogoutModal(true);
     };
 
-    const confirmLogout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        navigate("/login");
+    const confirmLogout = async () => {
+        console.log("🔓 [Admin] Logout initiated");
+        await logout(); // Uses flushSync from AuthContext
+        setTimeout(() => {
+            console.log("✅ [Admin] Navigating to /login");
+            navigate("/login");
+        }, 300);
     };
 
     const handleViewStudents = (cls, sec) => {

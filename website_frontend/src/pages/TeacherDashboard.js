@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import { 
     BookOpen, FileText, Search, CheckCircle, XCircle, 
     Star, BarChart3, AlertTriangle, Calendar, Download,
@@ -18,6 +19,7 @@ const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
 function TeacherDashboard() {
     const navigate = useNavigate();
+    const { logout } = useAuth();
     const [teacher, setTeacher] = useState(null);
     const [stats, setStats] = useState(null);
     const [students, setStudents] = useState([]);
@@ -255,10 +257,13 @@ function TeacherDashboard() {
         setShowLogoutModal(true);
     };
 
-    const confirmLogout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        navigate("/login");
+    const confirmLogout = async () => {
+        console.log("🔓 [Teacher] Logout initiated");
+        await logout(); // Uses flushSync from AuthContext
+        setTimeout(() => {
+            console.log("✅ [Teacher] Navigating to /login");
+            navigate("/login");
+        }, 300);
     };
 
     const handleExportData = () => {

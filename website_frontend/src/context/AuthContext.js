@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
+import { flushSync } from "react-dom";
 import { authAPI } from "../services/api";
 
 const AuthContext = createContext();
@@ -113,11 +114,16 @@ export const AuthProvider = ({ children }) => {
         console.log("🔓 [AuthContext] Logout initiated...");
         const token = localStorage.getItem("token");
 
-        // 1. Immediately clear local storage and set state to null for responsive UI
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        setToken(null);
-        setUser(null);
+        // 1. Force React to immediately render state changes with flushSync
+        // This ensures Navbar updates synchronously before navigation
+        flushSync(() => {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            setToken(null);
+            setUser(null);
+        });
+
+        console.log("✅ [AuthContext] State flushed and Navbar should update immediately");
 
         // 2. Stop any ongoing speech synthesis
         if ('speechSynthesis' in window) {
