@@ -243,10 +243,18 @@ function QuizModal({ chapter, subject, onClose, onPassed }) {
                         <h2 className={`quiz-result-title ${result.passed ? "passed" : "failed"}`}>
                             {result.passed ? "🎉 Quiz Passed!" : "😟 Quiz Failed"}
                         </h2>
+                        
+                        {/* Attempts Badge */}
+                        <div className={`quiz-attempts-badge ${result.attemptsLeft === 0 ? 'out' : ''}`}>
+                            {result.message || `${result.attemptsLeft} attempts remaining`}
+                        </div>
+
                         <p className="quiz-result-sub">
                             {result.passed
                                 ? "Great job! This chapter is now complete."
-                                : `You need ${result.passPercent}% to pass. Try again!`}
+                                : result.attemptsLeft > 0 
+                                    ? `You need ${result.passPercent}% to pass. Don't give up!`
+                                    : `You have used all available attempts for this chapter.`}
                         </p>
 
                         {/* Answer review */}
@@ -271,7 +279,7 @@ function QuizModal({ chapter, subject, onClose, onPassed }) {
                         </div>
 
                         <div className="quiz-result-actions">
-                            {!result.passed && (
+                            {!result.passed && result.attemptsLeft > 0 && (
                                 <button className="quiz-btn-primary" onClick={generateQuiz}>
                                     🔄 Retake Quiz
                                 </button>

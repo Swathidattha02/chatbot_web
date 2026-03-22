@@ -76,7 +76,12 @@ function SubjectChapters() {
             if (data.success) {
                 const map = {};
                 data.quizzes.forEach((q) => {
-                    map[q.chapterId] = { passed: q.passed, bestScore: q.score, bestPercentage: q.percentage };
+                    map[q.chapterId] = { 
+                        passed: q.passed, 
+                        bestScore: q.score, 
+                        bestPercentage: q.percentage,
+                        attempts: q.attempts?.length || 0 
+                    };
                 });
                 setQuizStatuses(map);
             }
@@ -268,7 +273,11 @@ function SubjectChapters() {
     const handleQuizPassed = (chapterId) => {
         setQuizStatuses((prev) => ({
             ...prev,
-            [chapterId]: { ...prev[chapterId], passed: true },
+            [chapterId]: { 
+                ...prev[chapterId], 
+                passed: true,
+                attempts: (prev[chapterId]?.attempts || 0) + 1
+            },
         }));
         // Re-fetch chapters to get updated progress/completion
         setChapters((prev) =>
@@ -548,16 +557,31 @@ function SubjectChapters() {
                                                     <span className="quiz-todo-badge"><FileText size={14} /> Quiz Required for 100%</span>
                                                 )}
                                             </div>
-                                            <button
-                                                className={`chapter-quiz-btn ${quizPassed ? "quiz-passed" : ""}`}
-                                                style={!quizPassed ? { background: subject?.color } : {}}
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setActiveQuiz(chapter);
-                                                }}
-                                            >
-                                                {quizPassed ? <><RotateCcw size={16} /> Retake Quiz</> : <><Target size={16} /> Take Quiz</>}
-                                            </button>
+
+                                            <div className="chapter-quiz-actions">
+                                                {/* Attempts Remaining Display — Moved here */}
+                                                <div className={`quiz-attempts-info ${((qStatus?.attempts || 0) >= 3) ? 'out' : ''}`}>
+                                                    <Target size={12} />
+                                                    <span>{Math.max(0, 3 - (qStatus?.attempts || 0))} attempts left</span>
+                                                </div>
+
+                                                {((qStatus?.attempts || 0) < 3 || (quizPassed && (qStatus?.attempts || 0) < 3)) ? (
+                                                    <button
+                                                        className={`chapter-quiz-btn ${quizPassed ? "quiz-passed" : ""}`}
+                                                        style={!quizPassed ? { background: subject?.color } : {}}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setActiveQuiz(chapter);
+                                                        }}
+                                                    >
+                                                        {quizPassed ? <><RotateCcw size={16} /> Retake Quiz</> : <><Target size={16} /> Take Quiz</>}
+                                                    </button>
+                                                ) : (
+                                                    <div className="quiz-maxed-badge">
+                                                        <Lock size={14} /> Maxed
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     )}
                                 </div>

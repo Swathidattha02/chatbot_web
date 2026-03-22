@@ -298,28 +298,60 @@
     margin-top: -4px;
 }
 
-.chapter-quiz-label {
+.chapter-quiz-actions {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 12px;
 }
 
 .quiz-done-badge {
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 700;
     color: #059669;
     background: rgba(16, 185, 129, 0.1);
-    padding: 4px 10px;
+    padding: 3px 10px;
     border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
 }
 
 .quiz-todo-badge {
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 600;
     color: #4f46e5;
     background: rgba(79, 70, 229, 0.08);
-    padding: 4px 10px;
+    padding: 3px 10px;
     border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.quiz-attempts-info {
+    font-size: 11px;
+    color: #d97706;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding-left: 4px;
+}
+
+.quiz-attempts-info.out {
+    color: #ef4444;
+}
+
+.quiz-maxed-badge {
+    font-size: 12px;
+    font-weight: 700;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 6px 14px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .chapter-quiz-btn {

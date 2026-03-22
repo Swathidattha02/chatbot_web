@@ -482,6 +482,27 @@
     margin: 0;
 }
 
+/* Attempts Badge */
+.quiz-attempts-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    color: #b45309;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: 100px;
+    margin-top: -4px;
+    box-shadow: 0 2px 4px rgba(180, 83, 9, 0.05);
+}
+
+.quiz-attempts-badge.out {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #b91c1c;
+}
+
 /* Review */
 .quiz-review {
     width: 100%;

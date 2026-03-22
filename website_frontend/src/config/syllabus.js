@@ -131,7 +131,14 @@ export const syllabusData = {
                 name: "Telugu",
                 icon: "📖",
                 color: "#fa8231",
-                chapters: []
+                chapters: [
+                    {
+                        id: 1,
+                        name: "Telugu Full Syllabus",
+                        pdfUrl: "/pdfs/class6/telugu/6th telugu fl 2020-21.pdf",
+                        description: "Complete Telugu first language syllabus for Class 6"
+                    }
+                ]
             }
         ]
     },
@@ -277,7 +284,14 @@ export const syllabusData = {
                 name: "Telugu",
                 icon: "📖",
                 color: "#fa8231",
-                chapters: []
+                chapters: [
+                    {
+                        id: 1,
+                        name: "Telugu Full Syllabus",
+                        pdfUrl: "/pdfs/class7/telugu/7th class telugu fl.pdf",
+                        description: "Complete Telugu first language syllabus for Class 7"
+                    }
+                ]
             }
         ]
     },
@@ -417,7 +431,14 @@ export const syllabusData = {
                 name: "Telugu",
                 icon: "📖",
                 color: "#fa8231",
-                chapters: []
+                chapters: [
+                    {
+                        id: 1,
+                        name: "Telugu Full Syllabus",
+                        pdfUrl: "/pdfs/class8/telugu/TS-Board-Class-8-Telugu-First-Language-Textbook-2021-22.pdf",
+                        description: "Complete Telugu first language syllabus for Class 8"
+                    }
+                ]
             }
         ]
     },
@@ -571,7 +592,14 @@ export const syllabusData = {
                 name: "Telugu",
                 icon: "📖",
                 color: "#fa8231",
-                chapters: []
+                chapters: [
+                    {
+                        id: 1,
+                        name: "Telugu Full Syllabus",
+                        pdfUrl: "/pdfs/class9/telugu/9th telugu fl 2020-21.pdf",
+                        description: "Complete Telugu first language syllabus for Class 9"
+                    }
+                ]
             }
         ]
     },
@@ -701,7 +729,14 @@ export const syllabusData = {
                 name: "Telugu",
                 icon: "📖",
                 color: "#fa8231",
-                chapters: []
+                chapters: [
+                    {
+                        id: 1,
+                        name: "Telugu Full Syllabus",
+                        pdfUrl: "/pdfs/class10/telugu/10 telugu fl 2023-24.pdf",
+                        description: "Complete Telugu first language syllabus for Class 10"
+                    }
+                ]
             },
             {
                 id: 10,

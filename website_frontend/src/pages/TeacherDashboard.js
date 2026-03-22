@@ -5,7 +5,7 @@ import {
     BookOpen, FileText, Search, CheckCircle, XCircle, 
     Star, BarChart3, AlertTriangle, Calendar, Download,
     TrendingUp, TrendingDown, ChevronLeft, ChevronRight,
-    Inbox, LogOut, Eye, Upload, Megaphone, Trash2, Plus, AlertCircle, Loader
+    Inbox, LogOut, Eye, Upload, Megaphone, Trash2, Plus, AlertCircle, Loader, RefreshCw
 } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -1106,6 +1106,19 @@ function TeacherDashboard() {
                                             <option value="Passed">Passed</option>
                                             <option value="Failed">Failed</option>
                                         </select>
+
+                                        <button 
+                                            className="td-quiz-clear-btn"
+                                            onClick={() => {
+                                                setQuizSearchQuery("");
+                                                setQuizFilterSubject("All");
+                                                setQuizFilterStatus("All");
+                                                setQuizCurrentPage(1);
+                                            }}
+                                            title="Clear ALL filters"
+                                        >
+                                            <RefreshCw size={14} /> <span>Clear</span>
+                                        </button>
                                     </div>
                                 </div>
 
@@ -1118,7 +1131,10 @@ function TeacherDashboard() {
                                                 <th className="td-quiz-th-student">Student</th>
                                                 <th className="td-quiz-th-subject">Subject</th>
                                                 <th className="td-quiz-th-chapter">Chapter</th>
-                                                <th className="td-quiz-th-score">Score</th>
+                                                <th className="td-quiz-th-score">Att 1</th>
+                                                <th className="td-quiz-th-score">Att 2</th>
+                                                <th className="td-quiz-th-score">Att 3</th>
+                                                <th className="td-quiz-th-score">Best Score</th>
                                                 <th className="td-quiz-th-percentage">Performance</th>
                                                 <th className="td-quiz-th-status">Status</th>
                                                 <th className="td-quiz-th-date">Date</th>
@@ -1141,7 +1157,10 @@ function TeacherDashboard() {
                                                         <td className="td-quiz-chapter" title={q.chapterName}>
                                                             {q.chapterName}
                                                         </td>
-                                                        <td className="td-quiz-score">{q.score}/{q.totalQ}</td>
+                                                        <td className="td-quiz-score-at">{q.attempts?.[0] ? `${q.attempts[0].score}/${q.totalQ || 5}` : "—"}</td>
+                                                        <td className="td-quiz-score-at">{q.attempts?.[1] ? `${q.attempts[1].score}/${q.totalQ || 5}` : "—"}</td>
+                                                        <td className="td-quiz-score-at">{q.attempts?.[2] ? `${q.attempts[2].score}/${q.totalQ || 5}` : "—"}</td>
+                                                        <td className="td-quiz-score">{q.score}/{q.totalQ || 5}</td>
                                                         <td className="td-quiz-percentage">
                                                             <div className="td-quiz-progress-wrap">
                                                                 <div className="td-quiz-progress-bar">
