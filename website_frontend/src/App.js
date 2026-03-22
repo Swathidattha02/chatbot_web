@@ -75,7 +75,7 @@ function AppContent() {
 
   return (
     <>
-      {!isChatPage && !isTeacherPage && !isAdminPage && <Navbar />}
+      {!isChatPage && !isSubjectPage && !isTeacherPage && !isAdminPage && <Navbar />}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
