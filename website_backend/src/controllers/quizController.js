@@ -41,15 +41,32 @@ function repairAndParseJSON(raw) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// @desc  Generate 10 MCQ questions for a chapter using Llama
+const MAX_ATTEMPTS = 3;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// @desc  Generate questions for a chapter, ONLY if student hasn't reached attempt limit
 // @route POST /api/quiz/generate
 // @access Private
 // ─────────────────────────────────────────────────────────────────────────────
 exports.generateQuiz = async (req, res) => {
-    const { chapterName, subjectName } = req.body;
+    const { chapterName, subjectName, chapterId, subjectId } = req.body;
+    const userId = req.user.id;
 
     if (!chapterName || !subjectName) {
         return res.status(400).json({ success: false, message: "chapterName and subjectName are required" });
+    }
+
+    // ── Check Attempt Limit before generating ─────────────────────────────
+    try {
+        const existingQuiz = await Quiz.findOne({ userId, subjectId, chapterId });
+        if (existingQuiz && existingQuiz.attempts.length >= MAX_ATTEMPTS) {
+            return res.status(403).json({
+                success: false,
+                message: `You have reached the maximum of ${MAX_ATTEMPTS} attempts for this quiz.`
+            });
+        }
+    } catch (err) {
+        console.error("Attempt check error:", err);
     }
 
     console.log(`🧠 Generating quiz: ${subjectName} — ${chapterName}`);
@@ -193,8 +210,14 @@ exports.submitQuiz = async (req, res) => {
 
         const attempt = { score: correct, percentage, passed, takenAt: new Date() };
 
-        // Upsert quiz record
+        // ── Check Attempt Limit ──
         let quizRecord = await Quiz.findOne({ userId, subjectId, chapterId });
+        if (quizRecord && quizRecord.attempts.length >= MAX_ATTEMPTS) {
+            return res.status(403).json({
+                success: false,
+                message: `You have already completed ${MAX_ATTEMPTS} attempts for this quiz.`
+            });
+        }
 
         if (quizRecord) {
             quizRecord.attempts.push(attempt);
@@ -227,6 +250,9 @@ exports.submitQuiz = async (req, res) => {
         }
         await quizRecord.save();
 
+        const attemptsUsed = quizRecord.attempts.length;
+        const attemptsLeft = Math.max(0, MAX_ATTEMPTS - attemptsUsed);
+
         // If quiz passed → update Progress
         if (passed) {
             let progress = await Progress.findOne({ userId, subjectId, chapterId });
@@ -242,7 +268,21 @@ exports.submitQuiz = async (req, res) => {
             }
         }
 
-        return res.json({ success: true, score: correct, total, percentage, passed, passPercent: PASS_PERCENT, results });
+        return res.json({ 
+            success: true, 
+            score: correct, 
+            total, 
+            percentage, 
+            passed, 
+            passPercent: PASS_PERCENT, 
+            results,
+            attemptsUsed,
+            attemptsLeft,
+            maxAttempts: MAX_ATTEMPTS,
+            message: attemptsLeft > 0 
+                ? `You have ${attemptsLeft} attempt${attemptsLeft === 1 ? '' : 's'} remaining.` 
+                : "You have used all 3 attempts for this chapter."
+        });
 
     } catch (error) {
         console.error("❌ Quiz submit error:", error.message);

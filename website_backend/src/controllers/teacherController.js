@@ -217,11 +217,13 @@ const getTeacherDashboard = async (req, res) => {
             return res.status(404).json({ success: false, message: "Teacher not found" });
         }
 
-        // Get all students of this teacher's school, class, section
+        // Get only approved students of this teacher's school, class, section
         const students = await User.find({
             school: teacher.school,
             class: `Class ${teacher.assignedClass}`,
             section: teacher.assignedSection,
+            role: "student",
+            status: "approved"
         }).select("name email phone rollNumber class section avatar");
 
         // Get progress for these students
