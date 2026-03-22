@@ -1,9 +1,9 @@
-    import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import PropTypes from "prop-types";
-import { 
-    TrendingUp, Flame, MapPin, BookOpen, 
-    Calculator, Atom, Clock, CheckCircle2, 
-    ChevronLeft, ChevronRight, Calendar, Download, 
+import {
+    TrendingUp, Flame, MapPin, BookOpen,
+    Calculator, Atom, Clock, CheckCircle2,
+    ChevronLeft, ChevronRight, Calendar, Download,
     X, MessageSquare
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -118,9 +118,9 @@ function Analytics() {
         newDate.setDate(newDate.getDate() + 1);
         // Prevent going into the future
         const today = new Date();
-        today.setHours(0,0,0,0);
+        today.setHours(0, 0, 0, 0);
         const compareDate = new Date(newDate);
-        compareDate.setHours(0,0,0,0);
+        compareDate.setHours(0, 0, 0, 0);
         if (compareDate <= today) {
             setSelectedDate(newDate);
         }
@@ -140,7 +140,7 @@ function Analytics() {
         // Weekly Data
         (monthlyData.weeklyData || []).forEach((val, i) => {
             rows.push([
-                `Week ${i+1}`,
+                `Week ${i + 1}`,
                 Math.round(val),
                 600,
                 monthlyData.streak,
@@ -223,8 +223,6 @@ function Analytics() {
                                     "Great job, {user?.name || 'Explorer'}! You've stayed consistent with your targets today."
                                 </p>
                             </div>
-
-                            <button className="share-btn">Share Progress</button>
                         </div>
                     </div>
                 </div>
@@ -508,7 +506,7 @@ function Analytics() {
                             <button className="date-nav-btn" onClick={handlePreviousDay}><ChevronLeft size={20} /></button>
                             <div className="current-date-display">
                                 <span className="calendar-icon"><Calendar size={16} /></span>
-                                <DatePicker 
+                                <DatePicker
                                     selected={selectedDate}
                                     onChange={(date) => setSelectedDate(date)}
                                     dateFormat="dd-MM-yyyy"
@@ -516,13 +514,13 @@ function Analytics() {
                                     maxDate={new Date()}
                                 />
                             </div>
-                            <button 
-                                className="date-nav-btn" 
+                            <button
+                                className="date-nav-btn"
                                 onClick={handleNextDay}
-                                disabled={new Date(selectedDate).setHours(0,0,0,0) >= new Date().setHours(0,0,0,0)}
+                                disabled={new Date(selectedDate).setHours(0, 0, 0, 0) >= new Date().setHours(0, 0, 0, 0)}
                                 style={{
-                                    opacity: new Date(selectedDate).setHours(0,0,0,0) >= new Date().setHours(0,0,0,0) ? 0.3 : 1,
-                                    cursor: new Date(selectedDate).setHours(0,0,0,0) >= new Date().setHours(0,0,0,0) ? 'default' : 'pointer'
+                                    opacity: new Date(selectedDate).setHours(0, 0, 0, 0) >= new Date().setHours(0, 0, 0, 0) ? 0.3 : 1,
+                                    cursor: new Date(selectedDate).setHours(0, 0, 0, 0) >= new Date().setHours(0, 0, 0, 0) ? 'default' : 'pointer'
                                 }}
                             ><ChevronRight size={20} /></button>
                         </div>
