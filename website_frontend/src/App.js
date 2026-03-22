@@ -72,89 +72,92 @@ function AppContent() {
   const isSubjectPage = location.pathname.startsWith('/subjects');
   const isTeacherPage = location.pathname.startsWith('/teacher');
   const isAdminPage = location.pathname.startsWith('/admin');
+  const isPDFPage = location.pathname.endsWith('/pdf');
 
   return (
     <>
-      {!isChatPage && !isSubjectPage && !isTeacherPage && !isAdminPage && <Navbar />}
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password/:role/:token" element={<ResetPassword />} />
-        <Route
-          path="/dashboard"
-          element={
-            <RoleRoute role="student">
-              <Dashboard />
-            </RoleRoute>
-          }
-        />
-        <Route
-          path="/chat"
-          element={
-            <RoleRoute role="student">
-              <ChatWithAvatar />
-            </RoleRoute>
-          }
-        />
-        <Route
-          path="/analytics"
-          element={
-            <RoleRoute role="student">
-              <Analytics />
-            </RoleRoute>
-          }
-        />
-        <Route
-          path="/subjects/:subjectId/chapters"
-          element={
-            <RoleRoute role="student">
-              <SubjectLayout>
-                <SubjectChapters />
-              </SubjectLayout>
-            </RoleRoute>
-          }
-        />
-        <Route
-          path="/subjects/:subjectId/chapters/:chapterId/pdf"
-          element={
-            <RoleRoute role="student">
-              <SubjectLayout>
-                <PDFViewer />
-              </SubjectLayout>
-            </RoleRoute>
-          }
-        />
-        <Route path="/contact" element={<Contact />} />
-        <Route
-          path="/teacher/dashboard"
-          element={
-            <RoleRoute role="teacher">
-              <TeacherDashboard />
-            </RoleRoute>
-          }
-        />
-        <Route
-          path="/admin/dashboard"
-          element={
-            <RoleRoute role="admin">
-              <AdminDashboard />
-            </RoleRoute>
-          }
-        />
-        <Route
-          path="/logout-confirm"
-          element={
-            <ProtectedRoute>
-              <LogoutConfirmation />
-            </ProtectedRoute>
-          }
-        />
-        {/* Catch-all route for 404 - must be last */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      {!isChatPage && !isSubjectPage && !isTeacherPage && !isAdminPage && <Footer />}
+      {!isChatPage && !isTeacherPage && !isAdminPage && <Navbar />}
+      <div className={(!isChatPage && !isTeacherPage && !isAdminPage) ? "content-with-navbar" : ""}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password/:role/:token" element={<ResetPassword />} />
+          <Route
+            path="/dashboard"
+            element={
+              <RoleRoute role="student">
+                <Dashboard />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/chat"
+            element={
+              <RoleRoute role="student">
+                <ChatWithAvatar />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/analytics"
+            element={
+              <RoleRoute role="student">
+                <Analytics />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/subjects/:subjectId/chapters"
+            element={
+              <RoleRoute role="student">
+                <SubjectLayout>
+                  <SubjectChapters />
+                </SubjectLayout>
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/subjects/:subjectId/chapters/:chapterId/pdf"
+            element={
+              <RoleRoute role="student">
+                <SubjectLayout>
+                  <PDFViewer />
+                </SubjectLayout>
+              </RoleRoute>
+            }
+          />
+          <Route path="/contact" element={<Contact />} />
+          <Route
+            path="/teacher/dashboard"
+            element={
+              <RoleRoute role="teacher">
+                <TeacherDashboard />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/admin/dashboard"
+            element={
+              <RoleRoute role="admin">
+                <AdminDashboard />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/logout-confirm"
+            element={
+              <ProtectedRoute>
+                <LogoutConfirmation />
+              </ProtectedRoute>
+            }
+          />
+          {/* Catch-all route for 404 - must be last */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </div>
+      {!isChatPage && !isTeacherPage && !isAdminPage && !isPDFPage && <Footer />}
     </>
   );
 }

@@ -1,8 +1,9 @@
 .pdf-viewer-container {
-    min-height: 100vh;
-    /* Account for Navbar height */
+    height: calc(100vh - 72px);
     background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
-    padding: 20px 30px;
+    padding: 16px 24px;
+    display: flex;
+    flex-direction: column;
 }
 
 .pdf-viewer-header {
@@ -90,9 +91,11 @@
 .pdf-viewer-content {
     display: grid;
     grid-template-columns: 1fr 400px;
-    gap: 10px;
-    height: calc(100vh - 120px);
+    gap: 16px;
+    flex: 1;
+    min-height: 0;
     overflow: hidden;
+    padding-bottom: 4px;
 }
 
 /* PDF Section - Left Side */

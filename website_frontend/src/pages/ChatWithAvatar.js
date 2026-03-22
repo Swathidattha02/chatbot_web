@@ -38,6 +38,7 @@ function ChatWithAvatar() {
     const elevenLabsTimerRef = useRef(null);
     const handleSendMessageRef = useRef(null);
     const currentLanguageRef = useRef(currentLanguage);
+    const sentenceBufferRef = useRef("");
 
     useEffect(() => {
         currentLanguageRef.current = currentLanguage;
@@ -101,13 +102,13 @@ function ChatWithAvatar() {
             'gu': ['gu-IN'], 'pa': ['pa-IN']
         };
         const targetLocales = langMap[langCode] || ['en-US'];
-        
+
         // 1. Precise match (locale + name)
-        let voice = voices.find(v => 
-            targetLocales.some(loc => v.lang.replace('_', '-').toLowerCase().includes(loc.toLowerCase())) && 
+        let voice = voices.find(v =>
+            targetLocales.some(loc => v.lang.replace('_', '-').toLowerCase().includes(loc.toLowerCase())) &&
             (v.name.includes('Natural') || v.name.includes('Online'))
         );
-        
+
         // 2. Locale match only
         if (!voice) {
             voice = voices.find(v => targetLocales.some(loc => v.lang.replace('_', '-').toLowerCase().includes(loc.toLowerCase())));
@@ -120,14 +121,14 @@ function ChatWithAvatar() {
 
         return voice;
     }, []);
-    
+
     const cleanTextForTTS = (text) => {
         if (!text) return "";
         let cleaned = text
-            .replace(/```[\s\S]*?```/g, " ") 
-            .replace(/\([^)]+\)/g, " ") 
-            .replace(/\[[^\]]+\]/g, " ") 
-            .replace(/[*_~`#/\\-]/g, " ") 
+            .replace(/```[\s\S]*?```/g, " ")
+            .replace(/\([^)]+\)/g, " ")
+            .replace(/\[[^\]]+\]/g, " ")
+            .replace(/[*_~`#/\\-]/g, " ")
             .replace(/[|।॥]/g, ". ")
             .replace(/\n+/g, " ")
             .replace(/\s+/g, " ")
@@ -152,7 +153,7 @@ function ChatWithAvatar() {
 
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
-            
+
             return new Promise((resolve, reject) => {
                 const audio = new Audio(url);
                 audioRef.current = audio;
@@ -197,7 +198,7 @@ function ChatWithAvatar() {
         const nextMessage = internalQueueRef.current.shift();
         const cleanedText = cleanTextForTTS(nextMessage);
         const lang = currentLanguageRef.current;
-        
+
         console.log(`🎤 TTS Processing [${lang}] - Text: "${cleanedText.substring(0, 50)}..."`);
 
         if (!cleanedText || cleanedText.trim().length <= 1) {
@@ -251,15 +252,26 @@ function ChatWithAvatar() {
         window.speechSynthesis.speak(utterance);
     }, [getBestVoiceForLang, speakWithElevenLabs, animateMouth]);
 
+    const speakSegment = useCallback((text) => {
+        if (!text) return;
+        const rawChunks = text.match(/[^.!?|।\n?？।]+([.!?|।\n?？所在地]|$)/g) || [text];
+        const refinedChunks = rawChunks.map(c => c.trim()).filter(c => c.length > 1);
+
+        internalQueueRef.current.push(...refinedChunks);
+        if (!isAvatarSpeaking && !isTtsProcessingRef.current) {
+            processInternalQueue();
+        }
+    }, [isAvatarSpeaking, processInternalQueue]);
+
     const speakMessage = useCallback((text) => {
         if (!text) return;
-        
+
         stopSpeaking();
-        
+
         // Wait a bit for state and UI to settle
         setTimeout(() => {
             const lang = currentLanguageRef.current;
-            
+
             // For non-English languages, ElevenLabs works much better with larger blocks
             // We only split if the text is exceptionally long (> 1000 chars)
             if (lang !== 'en' && text.length < 1500) {
@@ -271,14 +283,14 @@ function ChatWithAvatar() {
             // Normal chunking for English or very long texts
             const rawChunks = text.match(/[^.!?|।\n?？।]+([.!?|।\n?؟।]|$)/g) || [text];
             const refinedChunks = [];
-            
+
             for (let i = 0; i < rawChunks.length; i++) {
                 let chunk = rawChunks[i].trim();
-                
+
                 // CRITICAL FIX: Join numbers like "1." or "2." with the following text
                 // Check if chunk is just a number followed by a period or just a number
                 if (chunk.match(/^\d+[\.।]?$/) && i + 1 < rawChunks.length) {
-                    refinedChunks.push(chunk + " " + rawChunks[i+1].trim());
+                    refinedChunks.push(chunk + " " + rawChunks[i + 1].trim());
                     i++;
                 } else if (chunk.length > 1) {
                     refinedChunks.push(chunk);
@@ -314,7 +326,7 @@ function ChatWithAvatar() {
 
         handleStopResponse();
         stopSpeaking();
-        
+
         const userMessage = { role: "user", content: messageText, timestamp: new Date() };
         setMessages((prev) => [...prev, userMessage]);
         setInputMessage("");
@@ -331,9 +343,27 @@ function ChatWithAvatar() {
                 { message: messageText, sessionId, language: currentLanguage, use_rag: !!loadedDocument },
                 (chunk) => {
                     fullContent += chunk;
-                    // Only show stream in real-time if it's English
-                    // For other languages, we wait and show the translated version all at once
+
+                    // Streaming speech for English
                     if (currentLanguage === 'en') {
+                        sentenceBufferRef.current += chunk;
+                        if (/[.!?\n]/.test(chunk)) {
+                            const bufferContent = sentenceBufferRef.current;
+                            const sentences = bufferContent.match(/[^.!?\n]+[.!?\n]?/g) || [];
+                            if (sentences.length > 0) {
+                                const lastChar = bufferContent.slice(-1);
+                                if (/[.!?\n]/.test(lastChar)) {
+                                    sentences.forEach(s => speakSegment(cleanTextForTTS(s)));
+                                    sentenceBufferRef.current = "";
+                                } else {
+                                    for (let i = 0; i < sentences.length - 1; i++) {
+                                        speakSegment(cleanTextForTTS(sentences[i]));
+                                    }
+                                    sentenceBufferRef.current = sentences[sentences.length - 1];
+                                }
+                            }
+                        }
+
                         setMessages((prevMessages) => {
                             const newMessages = [...prevMessages];
                             const index = newMessages.findLastIndex(msg => msg.isStreaming);
@@ -357,22 +387,23 @@ function ChatWithAvatar() {
                 async (data) => {
                     console.log("🏁 AI Stream Complete. Content length:", fullContent.length);
                     let finalResponse = fullContent || data.fullResponse;
-                    
+
                     if (currentLanguage !== 'en' && finalResponse) {
                         try {
                             console.log(`🌍 Initiating streaming translation to ${currentLanguage}...`);
-                            
+
                             // 1. Prepare to stream translation
                             let translatedSoFar = "";
-                            
+                            sentenceBufferRef.current = ""; // Reset for translation
+
                             // 2. Clear placeholder and start showing translated chunks
                             setMessages((prev) => {
                                 const newMessages = [...prev];
                                 const index = newMessages.findLastIndex(msg => msg.role === "assistant");
                                 if (index !== -1) {
-                                    newMessages[index] = { 
-                                        ...newMessages[index], 
-                                        content: "⏳ *భాష మారుతోంది... Translating...*" 
+                                    newMessages[index] = {
+                                        ...newMessages[index],
+                                        content: "⏳ *భాష మారుతోంది... Translating...*"
                                     };
                                 }
                                 return newMessages;
@@ -381,35 +412,60 @@ function ChatWithAvatar() {
                             // 3. Call streaming translation
                             const translated = await translationService.translate(finalResponse, currentLanguage, (chunk) => {
                                 translatedSoFar += chunk;
+                                sentenceBufferRef.current += chunk;
+
+                                // Streaming speech for translated text
+                                if (/[.!?|।\n?？।所在地]/.test(chunk)) {
+                                    const bufferContent = sentenceBufferRef.current;
+                                    const sentences = bufferContent.match(/[^.!?|।\n?？।所在地]+([.!?|।\n?？所在地]|$)/g) || [];
+                                    if (sentences.length > 0) {
+                                        const lastChar = bufferContent.slice(-1);
+                                        if (/[.!?|।\n?？।所在地]/.test(lastChar)) {
+                                            sentences.forEach(s => speakSegment(cleanTextForTTS(s)));
+                                            sentenceBufferRef.current = "";
+                                        } else {
+                                            for (let i = 0; i < sentences.length - 1; i++) {
+                                                speakSegment(cleanTextForTTS(sentences[i]));
+                                            }
+                                            sentenceBufferRef.current = sentences[sentences.length - 1];
+                                        }
+                                    }
+                                }
+
                                 setMessages((prev) => {
                                     const newMessages = [...prev];
                                     const index = newMessages.findLastIndex(msg => msg.role === "assistant");
                                     if (index !== -1) {
-                                        newMessages[index] = { 
-                                            ...newMessages[index], 
-                                            content: translatedSoFar 
+                                        newMessages[index] = {
+                                            ...newMessages[index],
+                                            content: translatedSoFar
                                         };
                                     }
                                     return newMessages;
                                 });
                             });
-                            
+
                             if (translated) finalResponse = translated;
-                        } catch (err) { 
-                            console.error("❌ Translation sequence failed:", err); 
+                        } catch (err) {
+                            console.error("❌ Translation sequence failed:", err);
                         }
                     }
 
                     // 4. Final update to ensure state is synchronized and streaming stops
+                    if (sentenceBufferRef.current.trim()) {
+                        speakSegment(cleanTextForTTS(sentenceBufferRef.current));
+                        sentenceBufferRef.current = "";
+                    }
+
                     setMessages((prevMessages) => {
                         const newMessages = [...prevMessages];
                         const index = newMessages.findLastIndex(msg => msg.role === "assistant");
                         if (index !== -1) {
-                            newMessages[index] = { 
-                                ...newMessages[index], 
-                                content: finalResponse, 
-                                isStreaming: false, 
-                                timestamp: new Date() 
+                            newMessages[index] = {
+                                ...newMessages[index],
+                                content: finalResponse,
+                                isStreaming: false,
+                                timestamp: new Date()
                             };
                         }
                         return newMessages;
@@ -437,7 +493,7 @@ function ChatWithAvatar() {
             console.error("Chat error:", error);
             setLoading(false);
         }
-    }, [loading, sessionId, currentLanguage, loadedDocument, handleStopResponse, stopSpeaking, speakMessage]);
+    }, [loading, sessionId, currentLanguage, loadedDocument, handleStopResponse, stopSpeaking, speakSegment]);
 
     useEffect(() => {
         handleSendMessageRef.current = handleSendMessage;
@@ -450,13 +506,13 @@ function ChatWithAvatar() {
             recognitionRef.current = new SpeechRecognition();
             recognitionRef.current.continuous = false;
             recognitionRef.current.interimResults = false;
-            
+
             const recognitionLangMap = {
                 'en': 'en-US', 'hi': 'hi-IN', 'ta': 'ta-IN', 'te': 'te-IN',
                 'kn': 'kn-IN', 'ml': 'ml-IN', 'bn': 'bn-IN', 'mr': 'mr-IN',
                 'gu': 'gu-IN', 'pa': 'pa-IN'
             };
-            
+
             recognitionRef.current.lang = recognitionLangMap[currentLanguage] || 'en-US';
 
             recognitionRef.current.onresult = (event) => {

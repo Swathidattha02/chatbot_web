@@ -10,17 +10,6 @@ function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
-    useEffect(() => {
-        const handleScroll = () => {
-            const nav = document.querySelector(".navbar");
-            if (nav) {
-                nav.classList.toggle("scrolled", window.scrollY > 20);
-            }
-        };
-
-        window.addEventListener("scroll", handleScroll);
-        return () => window.removeEventListener("scroll", handleScroll);
-    }, []);
 
     const handleLogout = () => {
         setIsMenuOpen(false);
@@ -64,8 +53,8 @@ function Navbar() {
 
                     {isAuthenticated ? (
                         <>
-                            <Link 
-                                to={user?.role === "teacher" ? "/teacher/dashboard" : user?.role === "admin" ? "/admin/dashboard" : "/dashboard"} 
+                            <Link
+                                to={user?.role === "teacher" ? "/teacher/dashboard" : user?.role === "admin" ? "/admin/dashboard" : "/dashboard"}
                                 className="nav-link nav-item"
                             >
                                 <LayoutDashboard size={18} />
@@ -78,17 +67,17 @@ function Navbar() {
 
                             {/* User Menu */}
                             <div className="user-menu-wrapper">
-                                <button 
+                                <button
                                     className="user-menu-trigger"
                                     onClick={toggleUserMenu}
                                 >
                                     <span className="user-avatar">{user?.name?.charAt(0) || "U"}</span>
                                     <span className="user-name">{user?.name}</span>
                                     <svg className={`arrow ${isUserMenuOpen ? 'open' : ''}`} width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                        <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                        <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                     </svg>
                                 </button>
-                                
+
                                 {isUserMenuOpen && (
                                     <div className="user-menu-dropdown">
                                         <div className="menu-header">
@@ -99,7 +88,7 @@ function Navbar() {
                                             </div>
                                         </div>
                                         <hr className="menu-divider" />
-                                        <button 
+                                        <button
                                             onClick={handleLogout}
                                             className="menu-logout"
                                         >
@@ -142,16 +131,16 @@ function Navbar() {
 
                     {isAuthenticated ? (
                         <>
-                            <Link 
-                                to={user?.role === "teacher" ? "/teacher/dashboard" : user?.role === "admin" ? "/admin/dashboard" : "/dashboard"} 
+                            <Link
+                                to={user?.role === "teacher" ? "/teacher/dashboard" : user?.role === "admin" ? "/admin/dashboard" : "/dashboard"}
                                 className="mobile-nav-link"
                                 onClick={() => setIsMenuOpen(false)}
                             >
                                 <LayoutDashboard size={18} />
                                 Dashboard
                             </Link>
-                            <Link 
-                                to="/chat" 
+                            <Link
+                                to="/chat"
                                 className="mobile-nav-link"
                                 onClick={() => setIsMenuOpen(false)}
                             >
@@ -166,7 +155,7 @@ function Navbar() {
                                     <p className="mobile-user-role">{user?.role || "User"}</p>
                                 </div>
                             </div>
-                            <button 
+                            <button
                                 onClick={handleLogout}
                                 className="mobile-logout"
                             >
@@ -176,15 +165,15 @@ function Navbar() {
                         </>
                     ) : (
                         <>
-                            <Link 
-                                to="/login" 
+                            <Link
+                                to="/login"
                                 className="mobile-nav-link"
                                 onClick={() => setIsMenuOpen(false)}
                             >
                                 Login
                             </Link>
-                            <Link 
-                                to="/signup" 
+                            <Link
+                                to="/signup"
                                 className="mobile-btn-signup"
                                 onClick={() => setIsMenuOpen(false)}
                             >

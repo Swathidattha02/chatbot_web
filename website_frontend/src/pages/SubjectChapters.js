@@ -8,10 +8,10 @@ import LanguageSelector from "../components/LanguageSelector";
 import LipSyncAvatar from "../components/LipSyncAvatar";
 import translationService from "../services/translationService";
 import QuizModal from "../components/QuizModal";
-import { 
-    BookOpen, Clock, CheckCircle2, 
-    Lock, Timer, Lightbulb, Square, 
-    User, Bot, Volume2, Mic, StopCircle, 
+import {
+    BookOpen, Clock, CheckCircle2,
+    Lock, Timer, Lightbulb, Square,
+    User, Bot, Volume2, Mic, StopCircle,
     Send, RotateCcw, Target,
     Languages as LanguagesIcon,
     Calculator, Microscope, Dna, Globe, FileText,
@@ -76,11 +76,11 @@ function SubjectChapters() {
             if (data.success) {
                 const map = {};
                 data.quizzes.forEach((q) => {
-                    map[q.chapterId] = { 
-                        passed: q.passed, 
-                        bestScore: q.score, 
+                    map[q.chapterId] = {
+                        passed: q.passed,
+                        bestScore: q.score,
                         bestPercentage: q.percentage,
-                        attempts: q.attempts?.length || 0 
+                        attempts: q.attempts?.length || 0
                     };
                 });
                 setQuizStatuses(map);
@@ -154,7 +154,7 @@ function SubjectChapters() {
         const utterance = new SpeechSynthesisUtterance(text);
         utteranceRef.current = utterance;
         utterance.lang = currentLanguage === 'en' ? 'en-US' : 'hi-IN';
-        
+
         const resumeInterval = setInterval(() => {
             if (window.speechSynthesis.speaking) {
                 window.speechSynthesis.pause();
@@ -184,6 +184,17 @@ function SubjectChapters() {
 
         window.speechSynthesis.speak(utterance);
     }, [currentLanguage, animateMouth]);
+
+    const speakSegment = useCallback((text) => {
+        if (!text || !('speechSynthesis' in window)) return;
+        const chunks = text.match(/[^.!?\n]+[.!?\n]?/g) || [text];
+        const cleaned = chunks.map(c => c.trim()).filter(c => c.length > 0);
+        internalQueueRef.current.push(...cleaned);
+
+        if (!isAvatarSpeakingRef.current) {
+            processInternalQueue();
+        }
+    }, [processInternalQueue]);
 
     const speakMessage = useCallback((text) => {
         if (!text || !('speechSynthesis' in window)) return;
@@ -273,8 +284,8 @@ function SubjectChapters() {
     const handleQuizPassed = (chapterId) => {
         setQuizStatuses((prev) => ({
             ...prev,
-            [chapterId]: { 
-                ...prev[chapterId], 
+            [chapterId]: {
+                ...prev[chapterId],
                 passed: true,
                 attempts: (prev[chapterId]?.attempts || 0) + 1
             },
@@ -321,6 +332,30 @@ function SubjectChapters() {
                     },
                     (chunk) => {
                         fullContent += chunk;
+                        sentenceBufferRef.current += chunk;
+
+                        // If we have a sentence-ending character, speak it
+                        if (/[.!?\n]/.test(chunk)) {
+                            const bufferContent = sentenceBufferRef.current;
+                            const sentences = bufferContent.match(/[^.!?\n]+[.!?\n]?/g) || [];
+
+                            if (sentences.length > 0) {
+                                // Check if the last sentence is complete
+                                const lastChar = bufferContent.slice(-1);
+                                if (/[.!?\n]/.test(lastChar)) {
+                                    // All sentences are complete
+                                    sentences.forEach(s => speakSegment(cleanTextForTTS(s)));
+                                    sentenceBufferRef.current = "";
+                                } else {
+                                    // Last one is incomplete, speak the others
+                                    for (let i = 0; i < sentences.length - 1; i++) {
+                                        speakSegment(cleanTextForTTS(sentences[i]));
+                                    }
+                                    sentenceBufferRef.current = sentences[sentences.length - 1];
+                                }
+                            }
+                        }
+
                         setMessages((prev) => {
                             const next = [...prev];
                             const last = next[next.length - 1];
@@ -332,14 +367,20 @@ function SubjectChapters() {
                         setChatLoading(false);
                         abortControllerRef.current = null;
                         if (data.sessionId && !sessionId) setSessionId(data.sessionId);
-                        
+
+                        // Final cleanup: speak any remaining text in buffer
+                        if (sentenceBufferRef.current.trim()) {
+                            speakSegment(cleanTextForTTS(sentenceBufferRef.current));
+                            sentenceBufferRef.current = "";
+                        }
+
                         setMessages((prev) => {
                             const next = [...prev];
                             const last = next[next.length - 1];
                             if (last?.role === "assistant") last.isStreaming = false;
                             return next;
                         });
-                        
+
                         if (fullContent.includes("[EXPRESSION:")) {
                             const match = fullContent.match(/\[EXPRESSION:\s*(\w+)\]/);
                             if (match?.[1]) setCurrentExpression(match[1].toLowerCase());
@@ -366,7 +407,7 @@ function SubjectChapters() {
                 setChatLoading(false);
             }
         },
-        [chatLoading, sessionId, currentLanguage, subject, stopSpeaking, unlockTTS, handleStopResponse]
+        [chatLoading, sessionId, currentLanguage, subject, stopSpeaking, unlockTTS, handleStopResponse, speakSegment]
     );
 
     useEffect(() => {
@@ -461,16 +502,16 @@ function SubjectChapters() {
                 {subject && (
                     <div className="subject-header-chapters">
                         <div className="subject-header-icon-chapters" style={{ background: subject.color }}>
-                            {subject.icon === "📐" ? <Calculator size={32} /> : 
-                             subject.icon === "🔬" ? <Microscope size={32} /> :
-                             subject.icon === "🧬" ? <Dna size={32} /> :
-                             subject.icon === "📚" ? <BookOpen size={32} /> :
-                             subject.icon === "🌍" ? <Globe size={32} /> :
-                             subject.icon === "🇮🇳" ? <LanguagesIcon size={32} /> :
-                             subject.icon === "⚛️" ? <Atom size={32} /> :
-                             subject.icon === "🧪" ? <Beaker size={32} /> :
-                             subject.icon === "💻" ? <Monitor size={32} /> :
-                             <BookOpen size={32} />}
+                            {subject.icon === "📐" ? <Calculator size={32} /> :
+                                subject.icon === "🔬" ? <Microscope size={32} /> :
+                                    subject.icon === "🧬" ? <Dna size={32} /> :
+                                        subject.icon === "📚" ? <BookOpen size={32} /> :
+                                            subject.icon === "🌍" ? <Globe size={32} /> :
+                                                subject.icon === "🇮🇳" ? <LanguagesIcon size={32} /> :
+                                                    subject.icon === "⚛️" ? <Atom size={32} /> :
+                                                        subject.icon === "🧪" ? <Beaker size={32} /> :
+                                                            subject.icon === "💻" ? <Monitor size={32} /> :
+                                                                <BookOpen size={32} />}
                         </div>
                         <div className="subject-header-info-chapters">
                             <h1>{subject.name}</h1>

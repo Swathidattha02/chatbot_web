@@ -7,9 +7,9 @@ import { chatAPI } from "../services/api";
 import LanguageSelector from "../components/LanguageSelector";
 import LipSyncAvatar from "../components/LipSyncAvatar";
 import translationService from "../services/translationService";
-import { 
-    FileText, Mic, StopCircle, User, Bot, 
-    Volume2, Square, Send 
+import {
+    FileText, Mic, StopCircle, User, Bot,
+    Volume2, Square, Send
 } from "lucide-react";
 import "../styles/PDFViewer.css";
 
@@ -145,6 +145,17 @@ function PDFViewer() {
         }
         setLoading(false);
     }, []);
+
+    const speakSegment = useCallback((text) => {
+        if (!text || !('speechSynthesis' in window)) return;
+        const chunks = text.match(/[^.!?\n]+[.!?\n]?/g) || [text];
+        const cleaned = chunks.map(c => c.trim()).filter(c => c.length > 0);
+        internalQueueRef.current.push(...cleaned);
+
+        if (!isAvatarSpeakingRef.current) {
+            processInternalQueue();
+        }
+    }, [processInternalQueue]);
 
     const speakMessage = useCallback((text) => {
         if (!text || !('speechSynthesis' in window)) return;
@@ -350,6 +361,30 @@ function PDFViewer() {
                 (chunk) => {
                     // onChunk callback
                     fullContent += chunk;
+                    sentenceBufferRef.current += chunk;
+
+                    // If we have a sentence-ending character, speak it
+                    if (/[.!?\n]/.test(chunk)) {
+                        const bufferContent = sentenceBufferRef.current;
+                        const sentences = bufferContent.match(/[^.!?\n]+[.!?\n]?/g) || [];
+
+                        if (sentences.length > 0) {
+                            // Check if the last sentence is complete
+                            const lastChar = bufferContent.slice(-1);
+                            if (/[.!?\n]/.test(lastChar)) {
+                                // All sentences are complete
+                                sentences.forEach(s => speakSegment(cleanTextForTTS(s)));
+                                sentenceBufferRef.current = "";
+                            } else {
+                                // Last one is incomplete, speak the others
+                                for (let i = 0; i < sentences.length - 1; i++) {
+                                    speakSegment(cleanTextForTTS(sentences[i]));
+                                }
+                                sentenceBufferRef.current = sentences[sentences.length - 1];
+                            }
+                        }
+                    }
+
                     setMessages(prev => {
                         const next = [...prev];
                         const last = next[next.length - 1];
@@ -376,6 +411,12 @@ function PDFViewer() {
                         }
                         return next;
                     });
+
+                    // Final cleanup: speak any remaining text in buffer
+                    if (sentenceBufferRef.current.trim()) {
+                        speakSegment(cleanTextForTTS(sentenceBufferRef.current));
+                        sentenceBufferRef.current = "";
+                    }
 
                     if (fullContent.includes("[EXPRESSION:")) {
                         const match = fullContent.match(/\[EXPRESSION:\s*(\w+)\]/);
@@ -405,7 +446,7 @@ function PDFViewer() {
             abortControllerRef.current = null;
             setLoading(false);
         }
-    }, [loading, sessionId, currentLanguage, currentSubject, currentChapter, stopSpeaking, unlockTTS, handleStopResponse]);
+    }, [loading, sessionId, currentLanguage, currentSubject, currentChapter, stopSpeaking, unlockTTS, handleStopResponse, speakSegment]);
 
     useEffect(() => {
         handleSendMessageRef.current = handleSendMessage;
@@ -452,7 +493,7 @@ function PDFViewer() {
                 cancelAnimationFrame(mouthAnimationFrameRef.current);
             }
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentLanguage]);
 
 

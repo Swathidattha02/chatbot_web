@@ -10,8 +10,13 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import DatePicker from "react-datepicker";
+import { getSubjectsForClass } from "../config/syllabus";
 import "react-datepicker/dist/react-datepicker.css";
 import "../styles/Analytics.css";
+import {
+    Microscope, Dna, Globe, FileText,
+    Beaker, Monitor, Languages as LanguagesIcon
+} from "lucide-react";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
@@ -177,6 +182,50 @@ function Analytics() {
         URL.revokeObjectURL(url);
     };
 
+    const getSubjectInfo = (subjectName, subjectId) => {
+        const subjects = getSubjectsForClass(user?.class || "Class 10");
+        const found = subjects.find(s => s.id === subjectId || s.name === subjectName);
+
+        // Return matching icon or fallback
+        const iconMap = {
+            "Calculator": <Calculator size={20} />,
+            "Microscope": <Microscope size={20} />,
+            "Dna": <Dna size={20} />,
+            "BookOpen": <BookOpen size={20} />,
+            "Globe": <Globe size={20} />,
+            "LanguagesIcon": <LanguagesIcon size={20} />,
+            "Atom": <Atom size={20} />,
+            "Beaker": <Beaker size={20} />,
+            "Monitor": <Monitor size={20} />,
+            "FileText": <FileText size={20} />
+        };
+
+        const defaultColor = "#E8F0FE";
+        const defaultIcon = <BookOpen size={20} />;
+
+        if (!found) return { color: defaultColor, icon: defaultIcon, name: subjectName };
+
+        // Handle emoji icons from syllabusData.js by mapping them to Lucide equivalents
+        const emojiToLucide = {
+            "📐": "Calculator",
+            "🔬": "Microscope",
+            "🧬": "Dna",
+            "📚": "BookOpen",
+            "🌍": "Globe",
+            "🇮🇳": "LanguagesIcon",
+            "⚛️": "Atom",
+            "🧪": "Beaker",
+            "💻": "Monitor"
+        };
+
+        const lucideKey = emojiToLucide[found.icon] || "BookOpen";
+        return {
+            color: found.color || defaultColor,
+            icon: iconMap[lucideKey] || defaultIcon,
+            name: found.name
+        };
+    };
+
     const renderDayView = () => {
         if (!dailyData) return null;
 
@@ -234,50 +283,53 @@ function Analytics() {
 
                     <div className="subjects-list">
                         {console.log("Daily Subjects Data:", dailyData.subjects)}
-                        {dailyData.subjects.length > 0 ? dailyData.subjects.map((sub, i) => (
-                            <div
-                                key={i}
-                                className="subject-row-item"
-                                title={sub.sessions && sub.sessions.length > 0
-                                    ? `Study Sessions:\n${sub.sessions.map(s => `• ${s.startTime}${s.endTime ? ` to ${s.endTime}` : ''} (${Math.round(s.duration)} min)`).join('\n')}`
-                                    : 'No session details'}
-                            >
-                                <div className="subject-icon-box" style={{ backgroundColor: i % 2 === 0 ? '#E8F0FE' : '#F3E8FF' }}>
-                                    {i % 2 === 0 ? <Calculator size={20} /> : <Atom size={20} />}
-                                </div>
-                                <div className="subject-info-main">
-                                    <h4 className="sub-name">{sub.name}</h4>
-                                    <p className="sub-detail">{sub.chapterName}</p>
-                                </div>
-                                <div className="subject-stats">
-                                    {sub.sessions && sub.sessions.length > 0 && (() => {
-                                        // Get the earliest start time and latest end time
-                                        const firstSession = sub.sessions[0];
-                                        const lastSession = sub.sessions[sub.sessions.length - 1];
+                        {dailyData.subjects.length > 0 ? dailyData.subjects.map((sub, i) => {
+                            const info = getSubjectInfo(sub.name, sub.icon); // backend sends subjectId in icon field
+                            return (
+                                <div
+                                    key={i}
+                                    className="subject-row-item"
+                                    title={sub.sessions && sub.sessions.length > 0
+                                        ? `Study Sessions:\n${sub.sessions.map(s => `• ${s.startTime}${s.endTime ? ` to ${s.endTime}` : ''} (${Math.round(s.duration)} min)`).join('\n')}`
+                                        : 'No session details'}
+                                >
+                                    <div className="subject-icon-box" style={{ backgroundColor: `${info.color}15`, color: info.color }}>
+                                        {info.icon}
+                                    </div>
+                                    <div className="subject-info-main">
+                                        <h4 className="sub-name">{sub.name}</h4>
+                                        <p className="sub-detail">{sub.chapterName}</p>
+                                    </div>
+                                    <div className="subject-stats">
+                                        {sub.sessions && sub.sessions.length > 0 && (() => {
+                                            // Get the earliest start time and latest end time
+                                            const firstSession = sub.sessions[0];
+                                            const lastSession = sub.sessions[sub.sessions.length - 1];
 
-                                        // If endTime is not available, calculate it from startTime + duration
-                                        let endTimeDisplay = lastSession.endTime;
-                                        if (!endTimeDisplay && lastSession.startTime) {
-                                            // This is a fallback - ideally all sessions should have endTime
-                                            endTimeDisplay = lastSession.startTime;
-                                        }
+                                            // If endTime is not available, calculate it from startTime + duration
+                                            let endTimeDisplay = lastSession.endTime;
+                                            if (!endTimeDisplay && lastSession.startTime) {
+                                                // This is a fallback - ideally all sessions should have endTime
+                                                endTimeDisplay = lastSession.startTime;
+                                            }
 
-                                        return (
-                                            <div className="session-time-display">
-                                                <span className="time-label"><Clock size={12} /> Session:</span>
-                                                <span className="time-value">
-                                                    {firstSession.startTime} - {endTimeDisplay || 'Unknown'}
-                                                </span>
-                                            </div>
-                                        );
-                                    })()}
-                                    <div className="time-stat">{Math.floor(sub.timeSpent / 60)}h {Math.round(sub.timeSpent % 60)}m</div>
-                                    <div className={`status-stat ${sub.status === 'Completed' ? 'status-done' : 'status-ongoing'}`}>
-                                        {sub.status === 'Completed' ? <><CheckCircle2 size={14} /> Completed</> : <><Clock size={14} /> In Progress</>}
+                                            return (
+                                                <div className="session-time-display">
+                                                    <span className="time-label"><Clock size={12} /> Session:</span>
+                                                    <span className="time-value">
+                                                        {firstSession.startTime} - {endTimeDisplay || 'Unknown'}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })()}
+                                        <div className="time-stat">{Math.floor(sub.timeSpent / 60)}h {Math.round(sub.timeSpent % 60)}m</div>
+                                        <div className={`status-stat ${sub.status === 'Completed' ? 'status-done' : 'status-ongoing'}`}>
+                                            {sub.status === 'Completed' ? <><CheckCircle2 size={14} /> Completed</> : <><Clock size={14} /> In Progress</>}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )) : (
+                            );
+                        }) : (
                             <div className="no-data-placeholder">No subjects studied yet today. Start learning!</div>
                         )}
                     </div>
@@ -383,21 +435,26 @@ function Analytics() {
                 <div className="subject-distribution-section">
                     <h3 className="section-title">Weekly Growth</h3>
                     <div className="subject-cards-grid">
-                        {subjects.map((s, i) => (
-                            <div key={i} className="mini-subject-card">
-                                <div className="mini-header">
-                                    <div className="mini-icon" style={{ backgroundColor: '#eef2ff', color: '#1e1b4b' }}><BookOpen size={16} /></div>
-                                    <span className="mini-trend pos">
-                                        {Math.round((s.topicsCompleted / s.totalTopics) * 100) || 0}% Mastery
-                                    </span>
+                        {subjects.map((s, i) => {
+                            const info = getSubjectInfo(s.name);
+                            return (
+                                <div key={i} className="mini-subject-card">
+                                    <div className="mini-header">
+                                        <div className="mini-icon" style={{ backgroundColor: `${info.color}15`, color: info.color }}>
+                                            {info.icon}
+                                        </div>
+                                        <span className="mini-trend pos">
+                                            {Math.round((s.topicsCompleted / s.totalTopics) * 100) || 0}% Mastery
+                                        </span>
+                                    </div>
+                                    <h4 className="mini-name">{s.name}</h4>
+                                    <div className="mini-value">{Math.floor(s.timeSpent / 60)}h {Math.round(s.timeSpent % 60)}m active</div>
+                                    <div className="mini-progress-track">
+                                        <div className="mini-progress-fill" style={{ width: `${(s.topicsCompleted / s.totalTopics) * 100}%`, backgroundColor: info.color }}></div>
+                                    </div>
                                 </div>
-                                <h4 className="mini-name">{s.name}</h4>
-                                <div className="mini-value">{Math.floor(s.timeSpent / 60)}h {Math.round(s.timeSpent % 60)}m active</div>
-                                <div className="mini-progress-track">
-                                    <div className="mini-progress-fill" style={{ width: `${(s.topicsCompleted / s.totalTopics) * 100}%`, backgroundColor: '#1e1b4b' }}></div>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             </div>
@@ -463,13 +520,16 @@ function Analytics() {
                         <div className="stat-info full-width">
                             <span className="label">TOP SUBJECTS</span>
                             <div className="mini-subject-row">
-                                {monthlyData.subjectGrowth?.sort((a, b) => b.proficiency - a.proficiency).slice(0, 2).map((sub, i) => (
-                                    <div key={i} className="sub-line-item">
-                                        <span className="name">{sub.name}</span>
-                                        <div className="line-track"><div className={`line-fill ${i === 0 ? 'navy' : 'indigo'}`} style={{ width: `${sub.proficiency}%`, backgroundColor: i === 0 ? '#1e1b4b' : '#4f46e5' }}></div></div>
-                                        <span className="val">{sub.proficiency}%</span>
-                                    </div>
-                                ))}
+                                {monthlyData.subjectGrowth?.sort((a, b) => b.proficiency - a.proficiency).slice(0, 2).map((sub, i) => {
+                                    const info = getSubjectInfo(sub.name);
+                                    return (
+                                        <div key={i} className="sub-line-item">
+                                            <span className="name">{sub.name}</span>
+                                            <div className="line-track"><div className="line-fill" style={{ width: `${sub.proficiency}%`, backgroundColor: info.color }}></div></div>
+                                            <span className="val">{sub.proficiency}%</span>
+                                        </div>
+                                    );
+                                })}
                                 {(!monthlyData.subjectGrowth || monthlyData.subjectGrowth.length === 0) && <p className="subtext">No data yet</p>}
                             </div>
                         </div>

@@ -11,7 +11,7 @@ const NotFound = () => {
       flexDirection: "column",
       justifyContent: "center",
       alignItems: "center",
-      height: "100vh",
+      minHeight: "calc(100vh - 72px)",
       background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
       color: "white",
       textAlign: "center",
@@ -26,7 +26,7 @@ const NotFound = () => {
       <p style={{ fontSize: "1.1rem", opacity: 0.9, margin: "0 0 2rem 0", maxWidth: "400px" }}>
         Sorry! The page you're looking for doesn't exist. It might have been moved or deleted.
       </p>
-      
+
       <div style={{ display: "flex", gap: "1rem" }}>
         <button
           onClick={() => navigate("/")}
@@ -46,7 +46,7 @@ const NotFound = () => {
         >
           <Home size={20} /> Go Home
         </button>
-        
+
         <button
           onClick={() => navigate(-1)}
           style={{

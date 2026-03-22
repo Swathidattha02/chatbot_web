@@ -7,8 +7,7 @@
 /* ── SIGNUP: Full-page two-column layout ──────────────────────── */
 .signup-page {
     display: flex;
-    min-height: calc(100vh - 70px);
-    margin-top: 70px;
+    min-height: calc(100vh - 72px);
     font-family: 'Inter', sans-serif;
     align-items: stretch;
 }
@@ -25,7 +24,7 @@
     padding: 3rem 2.5rem;
     border-right: 1px solid #e2e8f0;
     position: relative;
-    height: calc(100vh - 70px);
+    height: calc(100vh - 72px);
     overflow: hidden;
 }
 
@@ -124,14 +123,12 @@
    RIGHT PANEL
    ════════════════════════════════════════════ */
 .signup-right {
-    width: 55%;
-    background: #ffffff;
     display: flex;
     align-items: flex-start;
     justify-content: center;
     padding: 2.5rem 2rem;
     overflow-y: auto;
-    height: calc(100vh - 70px);
+    height: calc(100vh - 72px);
     padding-top: 3rem;
 }
 
@@ -387,8 +384,7 @@
    LOGIN PAGE — centered card
    ════════════════════════════════════════════ */
 .auth-new-container {
-    min-height: calc(100vh - 70px);
-    margin-top: 70px;
+    min-height: calc(100vh - 72px);
     background: #f0f4f8;
     display: flex;
     align-items: flex-start;
