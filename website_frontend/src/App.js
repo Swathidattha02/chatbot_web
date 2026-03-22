@@ -17,6 +17,7 @@ import TeacherDashboard from "./pages/TeacherDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import NotFound from "./pages/NotFound";
 
 // Components
 import Navbar from "./components/Navbar";
@@ -150,6 +151,8 @@ function AppContent() {
             </ProtectedRoute>
           }
         />
+        {/* Catch-all route for 404 - must be last */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
       {!isChatPage && !isSubjectPage && !isTeacherPage && !isAdminPage && <Footer />}
     </>
