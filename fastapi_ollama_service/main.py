@@ -6,9 +6,7 @@ from typing import Optional, List
 import httpx
 import json
 import asyncio
-
 app = FastAPI(title="Ollama AI Service")
-
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
@@ -17,27 +15,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 # Ollama configuration
 OLLAMA_BASE_URL = "http://localhost:11434"
 DEFAULT_MODEL = "llama3.2"
-
 # Request models
-class ChatMessage(BaseModel):
-    role: str
-    content: str
-
 class ChatRequest(BaseModel):
     message: str
-    conversation_history: Optional[List[ChatMessage]] = []
     stream: bool = True
     model: Optional[str] = DEFAULT_MODEL
-
 class HealthResponse(BaseModel):
     status: str
     ollama_available: bool
     model: str
-
 # System prompt for educational tutor
 SYSTEM_PROMPT = """You are EduBot, an expert AI tutor for students. Your #1 rule is TOKEN EFFICIENCY — match response length to question complexity.
 
@@ -145,19 +134,12 @@ async def health_check():
 @app.post("/chat/stream")
 @app.post("/chat")
 async def chat(request: ChatRequest):
-    """Chat endpoint with streaming support"""
+    """Stateless chat endpoint (no history)"""
     try:
         # Build conversation history
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT}
         ]
-        
-        # Add conversation history
-        for msg in request.conversation_history[-10:]:  # Last 10 messages
-            messages.append({
-                "role": msg.role,
-                "content": msg.content
-            })
         
         # Add current message
         messages.append({
