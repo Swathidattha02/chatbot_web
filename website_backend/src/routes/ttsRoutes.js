@@ -19,7 +19,7 @@ const callOpenAiTts = async (text) => {
         url: 'https://api.openai.com/v1/audio/speech',
         data: {
             model: "tts-1",
-            voice: "alloy",
+            voice: "onyx",
             input: text,
             response_format: "mp3"
         },
@@ -83,7 +83,7 @@ const getTtsAudio = async (text, language, voiceId) => {
 // ─ ROUTE: POST /api/tts ─
 router.post("/tts", async (req, res) => {
     try {
-        const { text, lang, language, voiceId = "21m00Tcm4TlvDq8ikWAM" } = req.body;
+        const { text, lang, language, voiceId = "pNInz6ovhh93LU4LcVNo" } = req.body;
         const detectedLanguage = lang || language || 'en';
 
         // Validation

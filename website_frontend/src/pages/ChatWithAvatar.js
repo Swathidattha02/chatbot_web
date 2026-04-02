@@ -142,7 +142,7 @@ function ChatWithAvatar() {
             const response = await fetch(`${apiUrl}/tts`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: text, voiceId: "21m00Tcm4TlvDq8ikWAM" })
+                body: JSON.stringify({ text: text, voiceId: "pNInz6ovhh93LU4LcVNo" })
             });
 
             if (!response.ok) {
