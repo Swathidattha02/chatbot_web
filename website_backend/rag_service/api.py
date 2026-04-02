@@ -17,8 +17,10 @@ from typing import Optional, List
 import shutil
 import json
 import httpx
+import os
 from langchain_community.document_loaders import PyPDFLoader, UnstructuredWordDocumentLoader
 from dotenv import load_dotenv
+import google.generativeai as genai
 
 # Language mapping
 LANGUAGE_NAMES = {
@@ -41,6 +43,14 @@ app.add_middleware(
 )
 
 # Configuration from .env
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_LLM_API_KEY")
+
+# Configure Gemini
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+
+# Deprecated: Ollama configuration (kept for reference)
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 LLM_MODEL = os.getenv("LLM_MODEL", "llama3.2")
 
@@ -69,8 +79,11 @@ async def health_check():
     }
 
 async def generate_summary(text: str):
-    """Generate a high-quality summary of the document using LLM"""
-    print("🤖 Generating document summary...")
+    """Generate a high-quality summary of the document using Gemini API"""
+    print("🤖 Generating document summary using Gemini...")
+    
+    if not GEMINI_API_KEY:
+        raise Exception("Gemini API key not configured (GEMINI_API_KEY)")
     
     # Take first 8000 characters to avoid context overflow while getting a good overview
     text_to_summarize = text[:8000]
@@ -83,21 +96,25 @@ CONTENT:
 
 SUMMARY:"""
 
-    async with httpx.AsyncClient(timeout=120.0) as client:
-        try:
-            response = await client.post(
-                f"{OLLAMA_BASE_URL}/api/generate",
-                json={
-                    "model": LLM_MODEL,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {
-                        "num_ctx": 4096,
-                        "num_predict": 1024
-                    }
-                }
+    try:
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(
+                max_output_tokens=1024,
+                temperature=0.7
             )
-            if response.status_code == 200:
+        )
+        
+        if response.text:
+            print(f"✅ Summary generated ({len(response.text)} characters)")
+            return response.text
+        else:
+            raise Exception("No response from Gemini")
+            
+    except Exception as e:
+        print(f"❌ Error generating summary: {e}")
+        raise
                 data = response.json()
                 return data.get("response", "Could not generate summary.")
             return "Error: Summary service unavailable."
@@ -221,91 +238,152 @@ async def stream_chat(request: ChatRequest):
 
 @app.post("/chat")
 async def chat(request: ChatRequest):
-    """Chat using the generated summary as context (non-streaming)"""
+    """Chat using the generated summary as context (non-streaming via Gemini)"""
     try:
+        if not GEMINI_API_KEY:
+            raise HTTPException(status_code=500, detail="Gemini API key not configured")
+        
         system_prompt = build_system_prompt(request.language)
         lang_name = LANGUAGE_NAMES.get(request.language, "English")
 
-        messages = [{"role": "system", "content": system_prompt}]
+        messages = [{"role": "user", "content": system_prompt}]
         
         if request.conversation_history:
             for msg in request.conversation_history[-6:]:
-                messages.append(msg)
+                messages.append({"role": msg.get("role", "user"), "content": msg.get("content", "")})
             
         final_message = request.message
         # Always output in English for higher quality; translation handled by frontend
         messages.append({"role": "user", "content": final_message})
 
-        async with httpx.AsyncClient(timeout=90.0) as client:
-            response = await client.post(
-                f"{OLLAMA_BASE_URL}/api/chat",
-                json={
-                    "model": LLM_MODEL,
-                    "messages": messages,
-                    "stream": False,
-                    "options": {
-                        "num_ctx": 4096,
-                        "num_predict": 1536,
-                        "temperature": 0.7
-                    }
-                }
+        try:
+            model = genai.GenerativeModel('gemini-2.0-flash')
+            response = model.generate_content(
+                [msg["content"] for msg in messages],
+                generation_config=genai.types.GenerationConfig(
+                    max_output_tokens=1536,
+                    temperature=0.7
+                )
             )
             
-            if response.status_code == 200:
-                data = response.json()
-                content = data.get("message", {}).get("content", "")
-                return {
-                    "success": True,
-                    "response": content,
-                    "language": request.language,
-                    "context_used": bool(document_data["summary"])
-                }
-            else:
-                raise HTTPException(status_code=response.status_code, detail="Ollama error")
+            content = response.text if response.text else ""
+            return {
+                "success": True,
+                "response": content,
+                "language": request.language,
+                "context_used": bool(document_data["summary"])
+            }
+        except Exception as e:
+            # Fallback to OpenAI if Gemini fails
+            if not OPENAI_API_KEY:
+                raise HTTPException(status_code=500, detail=f"Gemini failed and OpenAI not configured: {str(e)}")
+            
+            print(f"⚠️ Gemini failed, trying OpenAI...")
+            async with httpx.AsyncClient(timeout=90.0) as client:
+                response = await client.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    json={
+                        "model": "gpt-4o-mini",
+                        "messages": messages,
+                        "max_tokens": 1536,
+                        "temperature": 0.7
+                    },
+                    headers={
+                        "Authorization": f"Bearer {OPENAI_API_KEY}",
+                        "Content-Type": "application/json"
+                    }
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                    return {
+                        "success": True,
+                        "response": content,
+                        "language": request.language,
+                        "context_used": bool(document_data["summary"])
+                    }
+                else:
+                    raise HTTPException(status_code=response.status_code, detail="OpenAI error")
                 
     except Exception as e:
         print(f"Chat error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-async def generate_ollama_stream(messages):
-    async with httpx.AsyncClient(timeout=90.0) as client:
-        try:
+async def generate_gemini_stream(messages):
+    """Stream response from Gemini API"""
+    try:
+        if not GEMINI_API_KEY:
+            yield f"data: {json.dumps({'error': 'Gemini API key not configured', 'done': True})}\n\n"
+            return
+        
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        response = model.generate_content(
+            [msg["content"] for msg in messages],
+            generation_config=genai.types.GenerationConfig(
+                max_output_tokens=1536,
+                temperature=0.7
+            ),
+            stream=True
+        )
+        
+        for chunk in response:
+            if chunk.text:
+                yield f"data: {json.dumps({'content': chunk.text, 'done': False})}\n\n"
+        
+        yield f"data: {json.dumps({'content': '', 'done': True})}\n\n"
+        
+    except Exception as e:
+        print(f"❌ Gemini streaming error: {e}")
+        yield f"data: {json.dumps({'error': str(e), 'done': True})}\n\n"
+
+async def generate_openai_stream(messages):
+    """Stream response from OpenAI API (fallback)"""
+    try:
+        if not OPENAI_API_KEY:
+            yield f"data: {json.dumps({'error': 'OpenAI API key not configured', 'done': True})}\n\n"
+            return
+        
+        async with httpx.AsyncClient(timeout=90.0) as client:
             async with client.stream(
                 "POST",
-                f"{OLLAMA_BASE_URL}/api/chat",
+                "https://api.openai.com/v1/chat/completions",
                 json={
-                    "model": LLM_MODEL,
+                    "model": "gpt-4o-mini",
                     "messages": messages,
-                    "stream": True,
-                    "options": {
-                        "num_ctx": 4096,
-                        "num_predict": 1536,
-                        "temperature": 0.7
-                    }
+                    "max_tokens": 1536,
+                    "temperature": 0.7,
+                    "stream": True
+                },
+                headers={
+                    "Authorization": f"Bearer {OPENAI_API_KEY}",
+                    "Content-Type": "application/json"
                 }
             ) as response:
                 async for line in response.aiter_lines():
-                    if line.strip():
+                    if line.startswith("data: "):
                         try:
-                            data = json.loads(line)
-                            if "message" in data and "content" in data["message"]:
-                                chunk = data["message"]["content"]
-                                yield f"data: {json.dumps({'content': chunk, 'done': False})}\n\n"
-                            
-                            if data.get("done", False):
+                            data = json.loads(line[6:])
+                            content = data.get("choices", [{}])[0].get("delta", {}).get("content", "")
+                            if content:
+                                yield f"data: {json.dumps({'content': content, 'done': False})}\n\n"
+                            if data.get("choices", [{}])[0].get("finish_reason"):
                                 yield f"data: {json.dumps({'content': '', 'done': True})}\n\n"
                         except:
                             continue
-        except Exception as e:
-            yield f"data: {json.dumps({'error': str(e), 'done': True})}\n\n"
+    except Exception as e:
+        print(f"❌ OpenAI streaming error: {e}")
+        yield f"data: {json.dumps({'error': str(e), 'done': True})}\n\n"
 
 @app.get("/health")
+@app.get("/stats")
 async def health_check():
-    """Health check endpoint"""
     return {
-        "status": "online",
-        "document_loaded": bool(document_data["summary"]),
-        "filename": document_data["filename"]
+        "status": "healthy",
+        "has_document": document_data["filename"] is not None,
+        "current_document": document_data["filename"],
+        "summary_length": len(document_data["summary"]) if document_data["summary"] else 0,
+        "llm_provider": "Gemini (with OpenAI fallback)"
     }
 
 @app.post("/clear")

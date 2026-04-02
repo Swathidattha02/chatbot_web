@@ -199,27 +199,26 @@ function ChatWithAvatar() {
         const cleanedText = cleanTextForTTS(nextMessage);
         const lang = currentLanguageRef.current;
 
-        console.log(`🎤 TTS Processing [${lang}] - Text: "${cleanedText.substring(0, 50)}..."`);
-
         if (!cleanedText || cleanedText.trim().length <= 1) {
             processInternalQueue();
             return;
         }
 
-        if (lang !== 'en') {
-            try {
-                isTtsProcessingRef.current = true;
-                await speakWithElevenLabs(cleanedText, lang);
-                processInternalQueue();
-                return;
-            } catch (err) {
-                console.warn("⚠️ ElevenLabs failed, falling back to Web Speech:", err);
-                isTtsProcessingRef.current = false;
-                setIsAvatarSpeaking(false);
-                // Continue to web speech fallback
-            }
+        console.log(`🎤 High-Quality TTS Processing [${lang}] - Text: "${cleanedText.substring(0, 50)}..."`);
+
+        // ALWAYS attempt high-quality backend TTS (OpenAI/ElevenLabs) first
+        try {
+            isTtsProcessingRef.current = true;
+            await speakWithElevenLabs(cleanedText, lang);
+            processInternalQueue();
+            return;
+        } catch (err) {
+            console.warn("⚠️ Backend TTS failed, falling back to Browser Speech:", err);
+            isTtsProcessingRef.current = false;
+            setIsAvatarSpeaking(false);
         }
 
+        // BROWSER FALLBACK (Last Resort)
         const utterance = new SpeechSynthesisUtterance(cleanedText);
         utteranceRef.current = utterance;
         const voice = getBestVoiceForLang(lang);
@@ -245,7 +244,6 @@ function ChatWithAvatar() {
         };
 
         utterance.onerror = (e) => {
-            console.error("Speech chunk error:", e);
             processInternalQueue();
         };
 
@@ -344,26 +342,7 @@ function ChatWithAvatar() {
                 (chunk) => {
                     fullContent += chunk;
 
-                    // Streaming speech for English
                     if (currentLanguage === 'en') {
-                        sentenceBufferRef.current += chunk;
-                        if (/[.!?\n]/.test(chunk)) {
-                            const bufferContent = sentenceBufferRef.current;
-                            const sentences = bufferContent.match(/[^.!?\n]+[.!?\n]?/g) || [];
-                            if (sentences.length > 0) {
-                                const lastChar = bufferContent.slice(-1);
-                                if (/[.!?\n]/.test(lastChar)) {
-                                    sentences.forEach(s => speakSegment(cleanTextForTTS(s)));
-                                    sentenceBufferRef.current = "";
-                                } else {
-                                    for (let i = 0; i < sentences.length - 1; i++) {
-                                        speakSegment(cleanTextForTTS(sentences[i]));
-                                    }
-                                    sentenceBufferRef.current = sentences[sentences.length - 1];
-                                }
-                            }
-                        }
-
                         setMessages((prevMessages) => {
                             const newMessages = [...prevMessages];
                             const index = newMessages.findLastIndex(msg => msg.isStreaming);
@@ -377,7 +356,7 @@ function ChatWithAvatar() {
                         setMessages((prevMessages) => {
                             const newMessages = [...prevMessages];
                             const index = newMessages.findLastIndex(msg => msg.isStreaming);
-                            if (index !== -1 && newMessages[index].content === "") {
+                            if (index !== -1 && (newMessages[index].content === "" || newMessages[index].content.includes("..."))) {
                                 newMessages[index] = { ...newMessages[index], content: "*(ఆలోచిస్తున్నాను... Generating response...)*" };
                             }
                             return newMessages;
@@ -412,26 +391,7 @@ function ChatWithAvatar() {
                             // 3. Call streaming translation
                             const translated = await translationService.translate(finalResponse, currentLanguage, (chunk) => {
                                 translatedSoFar += chunk;
-                                sentenceBufferRef.current += chunk;
-
-                                // Streaming speech for translated text
-                                if (/[.!?|।\n?？।所在地]/.test(chunk)) {
-                                    const bufferContent = sentenceBufferRef.current;
-                                    const sentences = bufferContent.match(/[^.!?|।\n?？।所在地]+([.!?|।\n?？所在地]|$)/g) || [];
-                                    if (sentences.length > 0) {
-                                        const lastChar = bufferContent.slice(-1);
-                                        if (/[.!?|।\n?？।所在地]/.test(lastChar)) {
-                                            sentences.forEach(s => speakSegment(cleanTextForTTS(s)));
-                                            sentenceBufferRef.current = "";
-                                        } else {
-                                            for (let i = 0; i < sentences.length - 1; i++) {
-                                                speakSegment(cleanTextForTTS(sentences[i]));
-                                            }
-                                            sentenceBufferRef.current = sentences[sentences.length - 1];
-                                        }
-                                    }
-                                }
-
+                                // Update UI with translated chunks
                                 setMessages((prev) => {
                                     const newMessages = [...prev];
                                     const index = newMessages.findLastIndex(msg => msg.role === "assistant");
@@ -452,10 +412,7 @@ function ChatWithAvatar() {
                     }
 
                     // 4. Final update to ensure state is synchronized and streaming stops
-                    if (sentenceBufferRef.current.trim()) {
-                        speakSegment(cleanTextForTTS(sentenceBufferRef.current));
-                        sentenceBufferRef.current = "";
-                    }
+                    sentenceBufferRef.current = "";
 
                     setMessages((prevMessages) => {
                         const newMessages = [...prevMessages];

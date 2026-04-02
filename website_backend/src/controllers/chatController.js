@@ -2,10 +2,9 @@ const ChatHistory = require("../models/ChatHistory");
 const User = require("../models/User");
 const axios = require("axios");
 const mongoose = require("mongoose");
+const { getLlmResponse, formatSystemPrompt } = require("../services/llmService");
 
-// Ollama configuration
-const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
-const LLM_MODEL = process.env.LLM_MODEL || "llama3.2";
+// LLM configuration: Gemini (primary) with OpenAI fallback via llmService
 
 // Language mapping - Only Telugu, Hindi, English supported
 const LANGUAGE_NAMES = {
@@ -246,113 +245,58 @@ exports.sendMessage = async (req, res) => {
                     throw new Error('RAG service returned error');
                 }
             } catch (ragError) {
-                console.warn('⚠️ RAG service failed, falling back to direct Ollama:', ragError.message);
-                // Fall through to direct Ollama call below
+                console.warn('⚠️ RAG service failed, falling back to LLM Service:', ragError.message);
+                // Fall through to LLM service call below
             }
         } else {
-            console.log('ℹ️ RAG service not available, using direct Ollama');
+            console.log('ℹ️ RAG service not available, using LLM Service directly');
         }
 
-        // Fallback to direct Ollama if RAG didn't work
+        // Fallback to LLM Service (Gemini + OpenAI) if RAG didn't work
         if (aiResponse === "I'm your AI assistant. How can I help you today?") {
             try {
-                // Call AI Service (Detect RunPod or Local Ollama)
-                const RUNPOD_API_KEY = process.env.RUNPOD_API_KEY;
-                const RUNPOD_ENDPOINT_ID = process.env.RUNPOD_ENDPOINT_ID;
-
                 // Get curriculum-aware system prompt
                 const systemPrompt = await getSystemPrompt(language, userId);
 
-                // Prepare conversation history
+                // Prepare conversation history (last 10 messages)
                 const currentConversation = chatSession.messages.slice(-10).map(msg => ({
                     role: msg.role === 'user' ? 'user' : 'assistant',
                     content: msg.content
                 }));
 
-                if (RUNPOD_API_KEY && RUNPOD_ENDPOINT_ID) {
-                    console.log('🚀 Using RunPod Serverless Endpoint:', RUNPOD_ENDPOINT_ID);
+                const formattedMessages = [
+                    { role: 'system', content: systemPrompt },
+                    ...currentConversation
+                ];
 
-                    const runpodResponse = await axios.post(
-                        `https://api.runpod.ai/v2/${RUNPOD_ENDPOINT_ID}/runsync`,
-                        {
-                            input: {
-                                method_name: "chat", // Most ollama workers use this or generic 'input'
-                                input: {
-                                    model: LLM_MODEL,
-                                    messages: [
-                                        { role: 'system', content: systemPrompt },
-                                        ...currentConversation
-                                    ],
-                                    stream: false
-                                }
-                            }
-                        },
-                        {
-                            headers: {
-                                'Authorization': `Bearer ${RUNPOD_API_KEY}`,
-                                'Content-Type': 'application/json'
-                            },
-                            timeout: 120000 // 2 minutes for cold starts
-                        }
-                    );
+                console.log('📤 Sending to LLM Service (Gemini/OpenAI):', { messageCount: formattedMessages.length });
 
-                    if (runpodResponse.data && runpodResponse.data.output) {
-                        // Handle different worker output formats
-                        const output = runpodResponse.data.output;
-                        if (typeof output === 'string') {
-                            aiResponse = output;
-                        } else if (output.message && output.message.content) {
-                            aiResponse = output.message.content;
-                        } else if (output.response) {
-                            aiResponse = output.response;
-                        }
-                    } else if (runpodResponse.data && runpodResponse.data.error) {
-                        throw new Error(`RunPod Error: ${runpodResponse.data.error}`);
+                // Collect full response from streaming LLM service
+                let llmResponse = '';
+                for await (const chunk of getLlmResponse(formattedMessages, { maxTokens: 2048, temperature: 0.7 }, language)) {
+                    if (chunk.error) {
+                        throw new Error(chunk.content);
                     }
-                } else {
-                    // Call Local Ollama API
-                    const ollamaResponse = await axios.post(
-                        `${OLLAMA_BASE_URL}/api/chat`,
-                        {
-                            model: LLM_MODEL,
-                            messages: [
-                                {
-                                    role: 'system',
-                                    content: systemPrompt
-                                },
-                                ...currentConversation
-                            ],
-                            stream: false,
-                            options: {
-                                num_ctx: 4096,
-                                num_predict: 1536,
-                                temperature: 0.7
-                            }
-                        },
-                        {
-                            timeout: 60000,
-                            headers: {
-                                'Content-Type': 'application/json'
-                            }
-                        }
-                    );
-
-                    if (ollamaResponse.data && ollamaResponse.data.message) {
-                        aiResponse = ollamaResponse.data.message.content;
-                        console.log('✅ Ollama response received:', aiResponse.substring(0, 100) + '...');
+                    if (chunk.content && !chunk.done) {
+                        llmResponse += chunk.content;
                     }
+                    if (chunk.done) break;
                 }
-            } catch (aiError) {
-                console.error("❌ AI Service Error:", aiError.message);
 
-                if (aiError.message.includes('RunPod')) {
-                    aiResponse = "I'm having trouble connecting to my remote AI service on RunPod. It might be starting up (Cold Start) or the API key is invalid.";
-                } else if (aiError.code === 'ECONNREFUSED') {
-                    console.error('⚠️ Ollama is not running. Please start Ollama service.');
-                    aiResponse = "I'm having trouble connecting to my AI service. Please make sure Ollama is running with llama3.2 model installed.";
-                } else if (aiError.response?.status === 404) {
-                    console.error('⚠️ Model not found. Please pull llama3.2 model.');
-                    aiResponse = "The AI model is not available. Please run: ollama pull llama3.2";
+                if (llmResponse.trim()) {
+                    aiResponse = llmResponse.trim();
+                    console.log('✅ LLM response received:', aiResponse.substring(0, 100) + '...');
+                }
+
+            } catch (aiError) {
+                console.error("❌ LLM Service Error:", aiError.message);
+
+                if (aiError.message.includes('not configured')) {
+                    aiResponse = aiError.message + ". Please add your GEMINI_API_KEY or OPENAI_LLM_API_KEY to the .env file.";
+                } else if (aiError.response?.status === 429) {
+                    aiResponse = "AI service rate limit exceeded. Please try again in a moment.";
+                } else if (aiError.response?.status === 401 || aiError.response?.status === 403) {
+                    aiResponse = "AI service authentication failed. Please check your API keys in the .env file.";
                 } else {
                     aiResponse = "I apologize, but I'm having technical difficulties. Please try again in a moment.";
                 }
@@ -666,66 +610,48 @@ exports.streamMessage = async (req, res) => {
                 }
             } else {
                 try {
-                    const ollamaPayload = {
-                        model: LLM_MODEL,
-                        messages: [
-                            {
-                                role: 'system',
-                                content: systemPrompt
-                            },
-                            ...currentConversation
-                        ],
-                        stream: true
-                    };
-                    console.log('📤 Sending to Ollama:', { model: LLM_MODEL, messageCount: ollamaPayload.messages.length, stream: true });
-                    const ollamaResponse = await axios.post(
-                        `${OLLAMA_BASE_URL}/api/chat`,
-                        ollamaPayload,
+                    // Use LLM Service (Gemini with OpenAI fallback)
+                    const formattedMessages = [
                         {
-                            responseType: 'stream',
-                            timeout: 60000,
+                            role: 'system',
+                            content: systemPrompt
+                        },
+                        ...currentConversation
+                    ];
+
+                    console.log('📤 Sending to LLM Service (Gemini/OpenAI):', { model: 'gemini-2.0-flash', messageCount: formattedMessages.length, stream: true });
+                    
+                    // Stream from LLM service
+                    for await (const chunk of getLlmResponse(formattedMessages, { maxTokens: 2048, temperature: 0.7 }, language)) {
+                        if (chunk.error) {
+                            console.error('❌ LLM Error:', chunk.content);
+                            fullResponse = chunk.content;
+                            res.write(`data: ${JSON.stringify({ chunk: chunk.content, done: false })} \n\n`);
+                            break;
                         }
-                    );
-
-                    // Stream Ollama response
-                    let streamingBuffer = "";
-                    for await (const chunk of ollamaResponse.data) {
-                        streamingBuffer += chunk.toString();
-                        const lines = streamingBuffer.split("\n");
-                        streamingBuffer = lines.pop(); // Keep partial line in buffer
-
-                        for (const line of lines) {
-                            if (!line.trim()) continue;
-                            try {
-                                const json = JSON.parse(line);
-                                if (json.message?.content) {
-                                    fullResponse += json.message.content;
-                                    res.write(`data: ${JSON.stringify({ chunk: json.message.content, done: false })} \n\n`);
-                                }
-                                if (json.done) {
-                                    break;
-                                }
-                            } catch (e) {
-                                console.error('Error parsing Ollama chunk:', e.message, line);
-                            }
+                        
+                        if (chunk.content && !chunk.done) {
+                            fullResponse += chunk.content;
+                            res.write(`data: ${JSON.stringify({ chunk: chunk.content, done: false })} \n\n`);
+                        }
+                        
+                        if (chunk.done) {
+                            break;
                         }
                     }
-                } catch (ollamaError) {
-                    console.error('❌ Ollama streaming error:', ollamaError.message);
-                    console.error('Error status:', ollamaError.response?.status);
-                    console.error('Error data:', ollamaError.response?.data);
+                } catch (llmError) {
+                    console.error('❌ LLM Service streaming error:', llmError.message);
 
-                    if (ollamaError.code === 'ECONNREFUSED') {
-                        fullResponse = "Ollama is not running. Please start the Ollama service on your computer.";
-                    } else if (ollamaError.response?.status === 400) {
-                        fullResponse = "Ollama streaming failed: Invalid request format. Please ensure Ollama is properly configured and the model is loaded.";
-                        console.error('⚠️ 400 Error Details:', ollamaError.response?.data);
-                    } else if (ollamaError.response?.status === 404) {
-                        fullResponse = `The AI model (${LLM_MODEL}) is not found. Please run: ollama pull ${LLM_MODEL}`;
-                    } else if (ollamaError.response?.status === 500) {
-                        fullResponse = "Ollama server error. Please restart Ollama service.";
+                    if (llmError.message.includes('not configured')) {
+                        fullResponse = llmError.message + ". Please check your API keys in the .env file.";
+                    } else if (llmError.code === 'ECONNREFUSED') {
+                        fullResponse = "AI service is not available. Please check your internet connection.";
+                    } else if (llmError.response?.status === 429) {
+                        fullResponse = "AI service rate limit exceeded. Please try again in a moment.";
+                    } else if (llmError.response?.status === 401 || llmError.response?.status === 403) {
+                        fullResponse = "AI service authentication failed. Please check your API keys.";
                     } else {
-                        fullResponse = "I apologize, but I'm having technical difficulties. Please check if Ollama is running.";
+                        fullResponse = "I apologize, but I'm having technical difficulties. Please try again.";
                     }
 
                     res.write(`data: ${JSON.stringify({ chunk: fullResponse, done: false })} \n\n`);

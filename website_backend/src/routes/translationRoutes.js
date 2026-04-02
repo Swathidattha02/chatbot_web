@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
+const { getLlmResponse } = require("../services/llmService");
 
-// @desc    Translate text using local Ollama (supports streaming)
+// @desc    Translate text using Gemini/OpenAI (with streaming)
 router.post("/translate", async (req, res) => {
     try {
         const { text, targetLang, targetName, stream = false } = req.body;
@@ -12,101 +13,74 @@ router.post("/translate", async (req, res) => {
 
         console.log(`🌍 [Translation] Target: ${targetName || targetLang} | Stream: ${stream}`);
 
-        const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
-        const model = "llama3.2:latest";
-
-        let prompt = `You are a professional translator. Translate the following text from English to ${targetName || targetLang} precisely and completely.
+        let systemPrompt = `You are a professional translator. Translate the following text from English to ${targetName || targetLang} precisely and completely.
 Do NOT summarize, Do NOT skip any sentences, and Do NOT add any notes. 
 Keep the original structure, including any numbering or bullet points.
-If there are technical terms, you may include the English term in parentheses next to the translation if it helps clarity.
-
-Target Language: ${targetName || targetLang}`;
+If there are technical terms, you may include the English term in parentheses next to the translation if it helps clarity.`;
 
         if (targetLang === 'te') {
-            prompt += `
+            systemPrompt += `
 Role: Translate for an Indian student. Use formal, standard academic Telugu (గ్రాంథిక భాష కాదు, కానీ పాఠ్యపుస్తక భాష).
 IMPORTANT: Use standard Telugu biological and scientific terms where possible (e.g., use "ఏకదళబీజాలు" for Monocotyledons). 
 Ensure long explanations remain detailed and scientifically accurate.`;
         }
-        
-        prompt += `\n\nTEXT TO TRANSLATE:\n${text}\n\nTRANSLATION:`;
+
+        const messages = [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: `TEXT TO TRANSLATE:\n${text}\n\nTRANSLATION:` }
+        ];
 
         if (stream) {
-            // Setup SSE
+            // Setup SSE for streaming
             res.setHeader('Content-Type', 'text/event-stream');
             res.setHeader('Cache-Control', 'no-cache');
             res.setHeader('Connection', 'keep-alive');
+            res.flushHeaders();
 
-            const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    model: model,
-                    prompt: prompt,
-                    stream: true,
-                    options: { 
-                        temperature: 0.3,
-                        num_ctx: 4096,
-                        num_predict: 2048 
+            let translatedText = '';
+            
+            try {
+                for await (const chunk of getLlmResponse(messages, { maxTokens: 2048, temperature: 0.3 }, targetLang)) {
+                    if (chunk.content && !chunk.done) {
+                        translatedText += chunk.content;
+                        res.write(`data: ${JSON.stringify({ chunk: chunk.content })} \n\n`);
                     }
-                })
-            });
-
-            if (!response.ok) throw new Error(`Ollama error: ${response.status}`);
-
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-
-            let buffer = '';
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop(); // Keep the last partial line in buffer
-
-                for (const line of lines) {
-                    if (!line.trim()) continue;
-                    try {
-                        const data = JSON.parse(line);
-                        if (data.response) {
-                            res.write(`data: ${JSON.stringify({ chunk: data.response })} \n\n`);
-                        }
-                    } catch (e) {
-                        // If parsing fails, it might be a partial JSON, but pop() should handle most cases.
-                        // We'll keep it for the next chunk if it looks incomplete.
+                    if (chunk.done) {
+                        res.write(`data: ${JSON.stringify({ chunk: '', done: true })} \n\n`);
+                        break;
                     }
                 }
+            } catch (error) {
+                console.error('❌ Translation streaming error:', error.message);
+                res.write(`data: ${JSON.stringify({ error: error.message, done: true })} \n\n`);
             }
-            res.write(`data: ${JSON.stringify({ done: true })} \n\n`);
-            return res.end();
+            
+            res.end();
         } else {
-            // Non-streaming fallback
-            const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    model: model,
-                    prompt: prompt,
-                    stream: false,
-                    options: { 
-                        temperature: 0.3,
-                        num_ctx: 4096,
-                        num_predict: 2048 
+            // Non-streaming: collect full translation
+            let translatedText = '';
+            
+            try {
+                for await (const chunk of getLlmResponse(messages, { maxTokens: 2048, temperature: 0.3 }, targetLang)) {
+                    if (chunk.content && !chunk.done) {
+                        translatedText += chunk.content;
                     }
-                })
-            });
-
-            if (!response.ok) throw new Error(`Ollama error: ${response.status}`);
-            const data = await response.json();
-            return res.json({ translatedText: data.response.trim() });
+                    if (chunk.done) {
+                        break;
+                    }
+                }
+                
+                res.json({ translatedText: translatedText.trim() });
+            } catch (error) {
+                console.error('❌ Translation error:', error.message);
+                res.status(500).json({ error: error.message });
+            }
         }
 
     } catch (error) {
-        console.error("❌ Translation Exception:", error.message);
+        console.error('❌ Translation route error:', error);
         if (!res.headersSent) {
-            res.status(500).json({ error: "Translation failed", details: error.message });
+            res.status(500).json({ error: error.message });
         } else {
             res.end();
         }

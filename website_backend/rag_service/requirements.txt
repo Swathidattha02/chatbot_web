@@ -9,3 +9,5 @@ pypdf
 python-dotenv
 unstructured
 pydantic-settings
+google-generativeai
+openai

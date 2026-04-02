@@ -137,7 +137,46 @@ function SubjectChapters() {
         mouthAnimationFrameRef.current = requestAnimationFrame(animateMouth);
     }, []);
 
-    const processInternalQueue = useCallback(() => {
+    const speakWithElevenLabs = useCallback(async (text, lang) => {
+        try {
+            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+            const response = await fetch(`${apiUrl}/tts`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: text, voiceId: "21m00Tcm4TlvDq8ikWAM" })
+            });
+
+            if (!response.ok) throw new Error(`TTS Server Error: ${response.status}`);
+
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const audio = new Audio(url);
+            
+            return new Promise((resolve, reject) => {
+                audio.onplay = () => {
+                    isAvatarSpeakingRef.current = true;
+                    setIsAvatarSpeaking(true);
+                    if (!mouthAnimationFrameRef.current) {
+                        mouthAnimationFrameRef.current = requestAnimationFrame(animateMouth);
+                    }
+                };
+                audio.onended = () => {
+                    setIsAvatarSpeaking(false);
+                    isAvatarSpeakingRef.current = false;
+                    setMouthValue(0);
+                    URL.revokeObjectURL(url);
+                    resolve();
+                };
+                audio.onerror = reject;
+                audio.play().catch(reject);
+            });
+        } catch (error) {
+            console.error("ElevenLabs error:", error);
+            throw error;
+        }
+    }, [animateMouth]);
+
+    const processInternalQueue = useCallback(async () => {
         if (internalQueueRef.current.length === 0) {
             setIsAvatarSpeaking(false);
             isAvatarSpeakingRef.current = false;
@@ -146,23 +185,31 @@ function SubjectChapters() {
         }
 
         const text = internalQueueRef.current.shift();
-        if (!text) {
+        if (!text || text.trim().length <= 1) {
             processInternalQueue();
             return;
         }
 
+        const lang = currentLanguage;
+
+        // Try high-quality backend TTS (OpenAI/ElevenLabs) first
+        try {
+            await speakWithElevenLabs(text, lang);
+            processInternalQueue();
+            return;
+        } catch (err) {
+            console.warn("Falling back to browser TTS:", err);
+        }
+
+        // Browser Fallback
         const utterance = new SpeechSynthesisUtterance(text);
         utteranceRef.current = utterance;
-        utterance.lang = currentLanguage === 'en' ? 'en-US' : 'hi-IN';
-
-        const resumeInterval = setInterval(() => {
-            if (window.speechSynthesis.speaking) {
-                window.speechSynthesis.pause();
-                window.speechSynthesis.resume();
-            } else {
-                clearInterval(resumeInterval);
-            }
-        }, 10000);
+        
+        // Voice selection for better local quality
+        const voices = window.speechSynthesis.getVoices();
+        const selectedVoice = voices.find(v => (lang === 'en' && v.lang.includes('en-US') && v.name.includes('Natural')));
+        if (selectedVoice) utterance.voice = selectedVoice;
+        utterance.lang = lang === 'en' ? 'en-US' : 'hi-IN';
 
         utterance.onstart = () => {
             isAvatarSpeakingRef.current = true;
@@ -173,17 +220,15 @@ function SubjectChapters() {
         };
 
         utterance.onend = () => {
-            clearInterval(resumeInterval);
             processInternalQueue();
         };
 
         utterance.onerror = () => {
-            clearInterval(resumeInterval);
             processInternalQueue();
         };
 
         window.speechSynthesis.speak(utterance);
-    }, [currentLanguage, animateMouth]);
+    }, [currentLanguage, animateMouth, speakWithElevenLabs]);
 
     const speakSegment = useCallback((text) => {
         if (!text || !('speechSynthesis' in window)) return;
@@ -334,28 +379,7 @@ function SubjectChapters() {
                         fullContent += chunk;
                         sentenceBufferRef.current += chunk;
 
-                        // If we have a sentence-ending character, speak it
-                        if (/[.!?\n]/.test(chunk)) {
-                            const bufferContent = sentenceBufferRef.current;
-                            const sentences = bufferContent.match(/[^.!?\n]+[.!?\n]?/g) || [];
-
-                            if (sentences.length > 0) {
-                                // Check if the last sentence is complete
-                                const lastChar = bufferContent.slice(-1);
-                                if (/[.!?\n]/.test(lastChar)) {
-                                    // All sentences are complete
-                                    sentences.forEach(s => speakSegment(cleanTextForTTS(s)));
-                                    sentenceBufferRef.current = "";
-                                } else {
-                                    // Last one is incomplete, speak the others
-                                    for (let i = 0; i < sentences.length - 1; i++) {
-                                        speakSegment(cleanTextForTTS(sentences[i]));
-                                    }
-                                    sentenceBufferRef.current = sentences[sentences.length - 1];
-                                }
-                            }
-                        }
-
+                        // Update UI only - Removed automatic speech
                         setMessages((prev) => {
                             const next = [...prev];
                             const last = next[next.length - 1];
@@ -364,16 +388,10 @@ function SubjectChapters() {
                         });
                     },
                     (data) => {
+                        // Final cleanup: stop streaming state
                         setChatLoading(false);
                         abortControllerRef.current = null;
-                        if (data.sessionId && !sessionId) setSessionId(data.sessionId);
-
-                        // Final cleanup: speak any remaining text in buffer
-                        if (sentenceBufferRef.current.trim()) {
-                            speakSegment(cleanTextForTTS(sentenceBufferRef.current));
-                            sentenceBufferRef.current = "";
-                        }
-
+                        sentenceBufferRef.current = "";
                         setMessages((prev) => {
                             const next = [...prev];
                             const last = next[next.length - 1];
