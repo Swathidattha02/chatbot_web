@@ -1,9 +1,8 @@
 const axios = require("axios");
 const Quiz = require("../models/Quiz");
 const Progress = require("../models/Progress");
+const llmService = require("../services/llmService");
 
-const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || "http://localhost:11434";
-const LLM_MODEL = process.env.LLM_MODEL || "llama3.2";
 const PASS_PERCENT = 60;
 
 // @desc  Generate 10 MCQ questions for a chapter using Llama
@@ -85,45 +84,23 @@ Now output all 5 questions:`;
     while (attempts < maxAttempts) {
         attempts++;
         try {
-            // Lower temperature (0.1) for much faster and more reliable JSON generation
-            const RUNPOD_API_KEY = process.env.RUNPOD_API_KEY;
-            const RUNPOD_ENDPOINT_ID = process.env.RUNPOD_ENDPOINT_ID;
-            
-            let rawText;
-            if (RUNPOD_API_KEY && RUNPOD_ENDPOINT_ID) {
-                // RunPod
-                const response = await axios.post(
-                    `https://api.runpod.ai/v2/${RUNPOD_ENDPOINT_ID}/runsync`,
-                    {
-                        input: {
-                            model: LLM_MODEL,
-                            prompt,
-                            stream: false,
-                            options: { temperature: 0.1, num_predict: 1200 },
-                        },
-                    },
-                    {
-                        headers: { Authorization: `Bearer ${RUNPOD_API_KEY}`, "Content-Type": "application/json" },
-                        timeout: 180000,
-                    }
-                );
-                rawText = response.data?.output?.response || response.data?.output || "";
-            } else {
-                // Local Ollama
-                const response = await axios.post(
-                    `${OLLAMA_BASE_URL}/api/generate`,
-                    {
-                        model: LLM_MODEL,
-                        prompt,
-                        stream: false,
-                        options: { temperature: 0.1, num_predict: 1200 },
-                    },
-                    { timeout: 180000 } // Increased to 3 min
-                );
-                rawText = response.data?.response || "";
-            }
+            const messages = [
+                { 
+                    role: "system", 
+                    content: "You are an educational quiz generator. Your output MUST ALWAYS be a valid JSON array of question objects." 
+                },
+                { 
+                    role: "user", 
+                    content: prompt 
+                }
+            ];
 
-            if (!rawText) throw new Error("Empty response from LLM");
+            const rawText = await llmService.getLlmResponseNonStreaming(messages, {
+                temperature: 0.1, // Low temperature for consistent JSON output
+                maxTokens: 2000
+            });
+
+            if (!rawText) throw new Error("Empty response from AI");
 
             let parsedQuestions = repairAndParseJSON(rawText);
 
@@ -133,6 +110,7 @@ Now output all 5 questions:`;
                 .slice(0, 5)
                 .map((q, i) => {
                     const opts = q.options.slice(0, 4);
+                    // Ensure the answer is actually one of the options
                     const ans = q.answer && opts.includes(q.answer) ? q.answer : opts[0];
                     return { id: i + 1, question: q.question, options: opts, answer: ans };
                 });
@@ -141,7 +119,7 @@ Now output all 5 questions:`;
                 throw new Error(`Only ${questions.length} valid questions returned.`);
             }
 
-            console.log(`✅ delivered ${questions.length} questions for "${chapterName}" (Attempt ${attempts})`);
+            console.log(`✅ delivered ${questions.length} questions for "${chapterName}" (AI: Gemini/OpenAI - Attempt ${attempts})`);
             return res.json({ success: true, questions });
 
         } catch (error) {

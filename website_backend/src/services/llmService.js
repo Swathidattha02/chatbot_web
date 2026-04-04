@@ -83,12 +83,12 @@ const callGeminiApi = async function* (messages, options = {}) {
 };
 
 // ─ PROVIDER: OpenAI API (Fallback) ─
-const callOpenAiApi = async function* (messages, options = {}) {
-    // Read at call-time so dotenv is already loaded
-    const apiKey = process.env.OPENAI_LLM_API_KEY;
+const callOpenAiApi = async function* (messages, options = {}, forcedApiKey = null) {
+    // Priority: 1. forcedApiKey (from caller), 2. OPENAI_LLM_API_KEY, 3. OPENAI_API_KEY
+    const apiKey = forcedApiKey || process.env.OPENAI_LLM_API_KEY || process.env.OPENAI_API_KEY;
     
     if (!apiKey) {
-        throw new Error("OpenAI API key not configured on server (OPENAI_LLM_API_KEY)");
+        throw new Error("No OpenAI API key configured (OPENAI_LLM_API_KEY or OPENAI_API_KEY)");
     }
 
     const opts = { ...DEFAULT_OPTIONS, ...options };
@@ -181,18 +181,35 @@ const getLlmResponse = async function* (messages, options = {}, language = 'en')
         console.warn(`⚠️ Gemini failed: ${geminiError.message}`);
     }
 
-    // Fallback to OpenAI
+    // Fallback 1: Primary OpenAI
     if (geminiFailed) {
         try {
-            console.log(`📤 Gemini failed, falling back to OpenAI (secondary LLM)...`);
-            for await (const chunk of callOpenAiApi(messages, options)) {
+            console.log(`📤 Gemini failed, falling back to Primary OpenAI...`);
+            for await (const chunk of callOpenAiApi(messages, options, process.env.OPENAI_LLM_API_KEY)) {
                 yield chunk;
             }
             return; // Success, exit
         } catch (openaiError) {
             lastError = openaiError;
-            console.error(`❌ Both LLM providers failed`);
+            console.warn(`⚠️ Primary OpenAI failed: ${openaiError.message}`);
         }
+    }
+
+    // Fallback 2: Backup OpenAI (using TTS key or secondary LLM key)
+    const backupKey = process.env.OPENAI_API_KEY || process.env.OPENAI_LLM_API_KEY_SECONDARY;
+    if (backupKey && backupKey !== process.env.OPENAI_LLM_API_KEY) {
+        try {
+            console.log(`📤 Falling back to Backup OpenAI key...`);
+            for await (const chunk of callOpenAiApi(messages, options, backupKey)) {
+                yield chunk;
+            }
+            return; // Success, exit
+        } catch (backupError) {
+            lastError = backupError;
+            console.error(`❌ All LLM providers (including backup) failed`);
+        }
+    } else if (geminiFailed) {
+        console.error(`❌ Both LLM providers failed and no backup key found`);
     }
 
     // Both failed - return error
@@ -202,6 +219,21 @@ const getLlmResponse = async function* (messages, options = {}, language = 'en')
             done: true,
             error: true
         };
+    }
+};
+
+// ─ ROUTER: Get non-streaming response for easier use in non-chat contexts ─
+const getLlmResponseNonStreaming = async (messages, options = {}, language = 'en') => {
+    let fullContent = "";
+    try {
+        for await (const chunk of getLlmResponse(messages, options, language)) {
+            if (chunk.error) throw new Error(chunk.content);
+            if (chunk.content) fullContent += chunk.content;
+        }
+        return fullContent;
+    } catch (error) {
+        console.error("❌ getLlmResponseNonStreaming failed:", error.message);
+        throw error;
     }
 };
 
@@ -231,6 +263,7 @@ module.exports = {
     callGeminiApi,
     callOpenAiApi,
     getLlmResponse,
+    getLlmResponseNonStreaming,
     formatSystemPrompt,
     DEFAULT_OPTIONS
 };
