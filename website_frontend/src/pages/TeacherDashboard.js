@@ -4,13 +4,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { 
     BookOpen, FileText, Search, CheckCircle, XCircle, 
-    Star, BarChart3, AlertTriangle, Calendar, Download,
+    Star, BarChart3, AlertTriangle, Download,
     TrendingUp, TrendingDown, ChevronLeft, ChevronRight,
     Inbox, LogOut, Eye, Upload, Megaphone, Trash2, Plus, AlertCircle, Loader, RefreshCw,
     Filter, X, Info
 } from "lucide-react";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 import "../styles/TeacherDashboard.css";
 import ViolationTable from "../components/ViolationTable";
 import { getSubjectsForClass } from "../config/syllabus";
@@ -44,7 +42,6 @@ function TeacherDashboard() {
     const [view, setView] = useState("Daily"); // Daily | Weekly | Monthly
     const [searchQuery, setSearchQuery] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
-    const [selectedDate, setSelectedDate] = useState(new Date());
     const studentsPerPage = 10;
 
     // Quiz filters
@@ -330,17 +327,7 @@ function TeacherDashboard() {
         return "#dc2626";
     };
 
-    const formatDurationMinutes = (ms) => {
-        if (!ms || ms === 0) return "0m";
-        const minutes = Math.floor(ms / (1000 * 60));
-        const hours = Math.floor(minutes / 60);
-        const mins = minutes % 60;
-        
-        if (hours > 0) {
-            return `${hours}h ${mins}m`;
-        }
-        return `${mins}m`;
-    };
+
 
     const computeQuizStats = useCallback(() => {
         if (!quizResults || quizResults.length === 0) {

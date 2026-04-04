@@ -3,7 +3,6 @@ import sys
 
 # Mock pwd module for Windows compatibility
 if os.name == 'nt':
-    import sys
     from types import ModuleType
     mock_pwd = ModuleType('pwd')
     mock_pwd.getpwuid = lambda uid: None
@@ -17,7 +16,6 @@ from typing import Optional, List
 import shutil
 import json
 import httpx
-import os
 from langchain_community.document_loaders import PyPDFLoader, UnstructuredWordDocumentLoader
 from dotenv import load_dotenv
 import google.generativeai as genai
@@ -68,16 +66,6 @@ class ChatRequest(BaseModel):
     language: str = "en"
     conversation_history: Optional[List[dict]] = []
 
-@app.get("/health")
-@app.get("/stats")
-async def health_check():
-    return {
-        "status": "healthy",
-        "has_document": document_data["filename"] is not None,
-        "current_document": document_data["filename"],
-        "summary_length": len(document_data["summary"]) if document_data["summary"] else 0
-    }
-
 async def generate_summary(text: str):
     """Generate a high-quality summary of the document using Gemini API"""
     print("🤖 Generating document summary using Gemini...")
@@ -115,12 +103,6 @@ SUMMARY:"""
     except Exception as e:
         print(f"❌ Error generating summary: {e}")
         raise
-                data = response.json()
-                return data.get("response", "Could not generate summary.")
-            return "Error: Summary service unavailable."
-        except Exception as e:
-            print(f"Summary generation error: {e}")
-            return f"Error: {str(e)}"
 
 def build_system_prompt(language: str):
     """Build the system prompt based on the selected language and loaded document"""
@@ -229,7 +211,7 @@ async def stream_chat(request: ChatRequest):
         messages.append({"role": "user", "content": final_message})
 
         return StreamingResponse(
-            generate_ollama_stream(messages),
+            generate_gemini_stream(messages),
             media_type="text/event-stream"
         )
     except Exception as e:
