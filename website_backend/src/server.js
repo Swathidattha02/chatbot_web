@@ -13,7 +13,7 @@ const app = express();
 const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:3001',
-    process.env.FRONTEND_URL || 'https://chatbot-web-sigma.vercel.app'
+    process.env.FRONTEND_URL || 'https://chatbot-cwhbnsauy-pavansivasairahulbabu-7076s-projects.vercel.app/'
 ];
 
 app.use(cors({
