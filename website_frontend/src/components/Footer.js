@@ -38,15 +38,15 @@ function Footer() {
                         <h4 className="footer-title">Contact Us</h4>
                         <ul className="contact-list">
                             <li>
-                                <span className="contact-icon"><MapPin size={16} /></span>
-                                <span>9-135/1,Kamavarapukota,Eluru,Andhra Pradesh,534426,India</span>
+                                <span className="contact-icon"><MapPin size={20} /></span>
+                                <span>9-135/1, Kamavarapukota, Eluru, Andhra Pradesh, 534426, India</span>
                             </li>
                             <li>
-                                <span className="contact-icon"><Mail size={16} /></span>
+                                <span className="contact-icon"><Mail size={18} /></span>
                                 <a href="mailto:info@yugantaai.com">info@yugantaai.com</a>
                             </li>
                             <li>
-                                <span className="contact-icon"><Phone size={16} /></span>
+                                <span className="contact-icon"><Phone size={18} /></span>
                                 <a href="tel:+918978946421">+91 8978946421</a>
                             </li>
                         </ul>

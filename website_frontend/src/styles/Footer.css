@@ -91,10 +91,20 @@
 
 .contact-list li {
     display: flex;
-    gap: 1rem;
-    margin-bottom: 1.2rem;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
     color: #a0aec0;
     align-items: flex-start;
+    line-height: 1.5;
+}
+
+.contact-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    color: #4f46e5;
+    margin-top: 3px;
 }
 
 .contact-list a {
