@@ -1,9 +1,11 @@
 .pdf-viewer-container {
     height: calc(100vh - 72px);
-    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+    background: #f1f5f9 !important; /* Soft light gray background */
     padding: 16px 24px;
     display: flex;
     flex-direction: column;
+    color-scheme: light !important;
+    forced-color-adjust: none; /* Force browser to stay light */
 }
 
 .pdf-viewer-header {
@@ -46,11 +48,11 @@
 }
 
 .chapter-info-header h2 {
-    color: white;
+    color: #1e1b4b !important; /* Change text to dark for visibility on light background */
     font-size: 24px;
     font-weight: 700;
     margin: 0;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    text-shadow: none;
 }
 
 .learning-progress-mini {
@@ -100,11 +102,13 @@
 
 /* PDF Section - Left Side */
 .pdf-section {
-    background: rgba(255, 255, 255, 0.98);
+    background: #ffffff !important;
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
     position: relative;
+    forced-color-adjust: none; /* Stops browser from inverting these colors */
+    color-scheme: light !important;
 }
 
 .pdf-container {
@@ -113,6 +117,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    background: #ffffff !important;
 }
 
 .pdf-placeholder {
@@ -153,13 +158,14 @@
 }
 
 .chat-interface-pdf {
-    background: rgba(255, 255, 255, 0.98);
+    background: #ffffff !important;
     border-radius: 16px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
     display: flex;
     flex-direction: column;
     height: 100%;
     overflow: hidden;
+    forced-color-adjust: none; /* Block browser theme overrides */
 }
 
 .chat-avatar-header-pdf {

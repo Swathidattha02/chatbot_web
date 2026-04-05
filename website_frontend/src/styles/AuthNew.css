@@ -10,6 +10,10 @@
     min-height: calc(100vh - 72px);
     font-family: 'Inter', sans-serif;
     align-items: stretch;
+    background: #ffffff !important;
+    color: #1a202c !important;
+    color-scheme: light !important;
+    forced-color-adjust: none; /* Stops high-contrast and auto-dark mode overrides */
 }
 
 /* ════════════════════════════════════════════
@@ -270,8 +274,8 @@
     border-radius: 8px;
     font-size: 0.88rem;
     font-family: 'Inter', sans-serif;
-    color: #1a202c;
-    background: #fff;
+    color: #1a202c !important; /* Force dark text */
+    background: #ffffff !important; /* Force white background */
     transition: border-color 0.18s, box-shadow 0.18s;
     outline: none;
     width: 100%;
@@ -385,22 +389,25 @@
    ════════════════════════════════════════════ */
 .auth-new-container {
     min-height: calc(100vh - 72px);
-    background: #f0f4f8;
+    background: #f0f4f8 !important;
     display: flex;
     align-items: flex-start;
     justify-content: center;
     padding: 3rem 1rem 2rem 1rem;
     font-family: 'Inter', sans-serif;
     overflow-y: auto;
+    color-scheme: light !important;
+    forced-color-adjust: none; /* Force browser to respect our colors */
 }
 
 .auth-new-card {
-    background: #ffffff;
+    background: #ffffff !important;
     border-radius: 18px;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.10);
     padding: 2.5rem 2rem;
     width: 100%;
     max-width: 440px;
+    color: #1a202c !important;
 }
 
 .auth-new-header {
@@ -410,13 +417,13 @@
 .auth-new-header h1 {
     font-size: 1.85rem;
     font-weight: 800;
-    color: #1a202c;
+    color: #1a202c !important;
     margin: 0 0 0.3rem 0;
 }
 
 .auth-new-header p {
     font-size: 0.9rem;
-    color: #64748b;
+    color: #64748b !important;
     margin: 0;
 }
 
@@ -491,8 +498,8 @@
     border-radius: 8px;
     font-size: 0.9rem;
     font-family: 'Inter', sans-serif;
-    color: #1a202c;
-    background: #fff;
+    color: #1a202c !important; /* Force dark text */
+    background: #ffffff !important; /* Force white background */
     outline: none;
     box-sizing: border-box;
     transition: border-color 0.18s, box-shadow 0.18s;
@@ -531,8 +538,8 @@
     border-radius: 8px;
     font-size: 0.9rem;
     font-family: 'Inter', sans-serif;
-    color: #1a202c;
-    background: #fff;
+    color: #1a202c !important; /* Force dark text */
+    background: #ffffff !important; /* Force white background */
     outline: none;
     box-sizing: border-box;
     transition: border-color 0.18s, box-shadow 0.18s;
