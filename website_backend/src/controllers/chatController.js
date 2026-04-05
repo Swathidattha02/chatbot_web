@@ -619,7 +619,7 @@ exports.streamMessage = async (req, res) => {
                         ...currentConversation
                     ];
 
-                    console.log('📤 Sending to LLM Service (Gemini/OpenAI):', { model: 'gemini-2.0-flash', messageCount: formattedMessages.length, stream: true });
+                    console.log('📤 Sending to LLM Service (Gemini/OpenAI):', { model: process.env.GEMINI_MODEL || 'gemini-2.5-flash', messageCount: formattedMessages.length, stream: true });
                     
                     // Stream from LLM service
                     for await (const chunk of getLlmResponse(formattedMessages, { maxTokens: 2048, temperature: 0.7 }, language)) {

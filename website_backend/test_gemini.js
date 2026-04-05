@@ -9,22 +9,23 @@ async function testGemini() {
         process.exit(1);
     }
 
+    const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        const model = genAI.getGenerativeModel({ model: modelName });
         
-        console.log('Sending test message to [gemini-2.0-flash]: "Hello, who are you?"');
+        console.log(`Sending test message to [${modelName}]: "Hello, who are you?"`);
         const result = await model.generateContent("Hello, who are you?");
         const response = await result.response;
         const text = response.text();
         
-        console.log('\n✅ SUCCESS! [gemini-2.0-flash] responded:');
+        console.log('\n✅ SUCCESS! [gemini-2.5-flash] responded:');
         console.log('-----------------------------------');
         console.log(text);
         console.log('-----------------------------------');
         
     } catch (error) {
-        console.error('\n⚠️ [gemini-2.0-flash] FAILED! Gemini API Error:', error.message);
+        console.error('\n⚠️ [gemini-2.5-flash] FAILED! Gemini API Error:', error.message);
         
         console.log('\nTrying fallback model [gemini-1.5-flash]...');
         try {

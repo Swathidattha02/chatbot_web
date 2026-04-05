@@ -25,7 +25,8 @@ const callGeminiApi = async function* (messages, options = {}) {
         console.log(`🤖 Calling Gemini for ${messages.length} messages`);
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+        const model = genAI.getGenerativeModel({ model: modelName });
 
         // Separate system message from conversation messages
         const systemMsg = messages.find(m => m.role === 'system');
@@ -47,7 +48,7 @@ const callGeminiApi = async function* (messages, options = {}) {
 
         // Generate content with streaming
         const modelWithSystem = systemInstruction
-            ? genAI.getGenerativeModel({ model: "gemini-2.0-flash", systemInstruction })
+            ? genAI.getGenerativeModel({ model: modelName, systemInstruction })
             : model;
 
         const result = await modelWithSystem.generateContentStream({

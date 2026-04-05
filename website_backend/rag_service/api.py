@@ -43,6 +43,7 @@ app.add_middleware(
 # Configuration from .env
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_LLM_API_KEY")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 # Configure Gemini
 if GEMINI_API_KEY:
@@ -85,7 +86,7 @@ CONTENT:
 SUMMARY:"""
 
     try:
-        model = genai.GenerativeModel('gemini-2.0-flash')
+        model = genai.GenerativeModel(GEMINI_MODEL)
         response = model.generate_content(
             prompt,
             generation_config=genai.types.GenerationConfig(
@@ -239,7 +240,7 @@ async def chat(request: ChatRequest):
         messages.append({"role": "user", "content": final_message})
 
         try:
-            model = genai.GenerativeModel('gemini-2.0-flash')
+            model = genai.GenerativeModel(GEMINI_MODEL)
             response = model.generate_content(
                 [msg["content"] for msg in messages],
                 generation_config=genai.types.GenerationConfig(
@@ -299,7 +300,7 @@ async def generate_gemini_stream(messages):
             yield f"data: {json.dumps({'error': 'Gemini API key not configured', 'done': True})}\n\n"
             return
         
-        model = genai.GenerativeModel('gemini-2.0-flash')
+        model = genai.GenerativeModel(GEMINI_MODEL)
         response = model.generate_content(
             [msg["content"] for msg in messages],
             generation_config=genai.types.GenerationConfig(
