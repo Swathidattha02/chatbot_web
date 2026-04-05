@@ -77,9 +77,15 @@ export const AuthProvider = ({ children }) => {
 
             return { success: true };
         } catch (error) {
+            console.error("Login attempt failed:", {
+                message: error.message,
+                response: error.response?.data,
+                status: error.response?.status,
+                url: error.config?.url
+            });
             return {
                 success: false,
-                message: error.response?.data?.message || "Login failed",
+                message: error.response?.data?.message || "Login failed. Please check your credentials or connection.",
             };
         }
     };
