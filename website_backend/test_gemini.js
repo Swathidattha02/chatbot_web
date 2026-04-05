@@ -8,7 +8,6 @@ async function testGemini() {
     if (!apiKey) {
         process.exit(1);
     }
-
     const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
