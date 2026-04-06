@@ -360,9 +360,7 @@
     .navbar-container {
         padding: 0 1.5rem;
     }
-}
-
-@media (max-width: 768px) {
+    
     .navbar-menu {
         display: none;
     }
@@ -370,4 +368,50 @@
     .mobile-menu-toggle {
         display: block;
     }
+}
+
+@media (max-width: 480px) {
+    .logo-tagline {
+        display: none;
+    }
+    
+    .logo-text {
+        font-size: 1.1rem;
+    }
+
+    .navbar-container {
+        padding: 0 1rem;
+    }
+}
+
+/* Mobile specific fixes */
+.mobile-btn-signup {
+    padding: 0.75rem 1rem;
+    background: var(--primary);
+    color: white !important;
+    border-radius: 8px;
+    font-weight: 600;
+    text-decoration: none;
+    text-align: center;
+    margin-top: 0.5rem;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.mobile-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 1rem 0;
+    border: none;
+}
+
+.mobile-user-name {
+    color: white;
+    font-weight: 600;
+    margin: 0;
+}
+
+.mobile-user-role {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin: 0;
 }

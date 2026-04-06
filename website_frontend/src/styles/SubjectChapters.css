@@ -443,7 +443,75 @@
     font-weight: 600;
 }
 
-/* ── Responsive ──────────────────────────────────────────────── */
+.back-button-chapters {
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 8px 16px;
+    border-radius: 8px;
+    color: #4b5563;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-right: 16px;
+}
+
+.back-button-chapters:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+/* Mobile Tabs & Visibility */
+.mobile-view-toggle {
+    display: none;
+    margin-bottom: 20px;
+    background: #f1f5f9;
+    padding: 4px;
+    border-radius: 12px;
+    gap: 4px;
+}
+
+@media (max-width: 1024px) {
+    .mobile-view-toggle {
+        display: flex;
+    }
+    
+    .chat-avatar-header-pdf {
+        height: 120px !important;
+        min-height: 120px !important;
+    }
+
+    /* Logic to show only one section on mobile */
+    .view-mode-chapters .chatbot-section {
+        display: none;
+    }
+    .view-mode-chat .chapters-left-col {
+        display: none;
+    }
+    
+    .view-mode-chat .chatbot-section {
+        height: calc(100vh - 220px);
+    }
+}
+
+.view-toggle-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.view-toggle-btn.active {
+    background: white;
+    color: #4f46e5;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
 @media (max-width: 1100px) {
     .chapters-content-grid {
         grid-template-columns: 1fr 340px;
@@ -463,17 +531,23 @@
     }
 
     .chatbot-section {
-        height: 520px;
+        height: auto;
+        min-height: 500px;
     }
 
     .chapters-container {
-        padding: 16px;
+        padding: 80px 16px 16px;
     }
 }
 
 @media (max-width: 480px) {
+    .chapters-container {
+        padding: 70px 12px 12px;
+    }
+
     .chapter-card-professional {
         flex-direction: column;
+        gap: 16px;
         align-items: flex-start;
         padding: 18px;
     }

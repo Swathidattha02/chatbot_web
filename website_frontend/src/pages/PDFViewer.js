@@ -243,6 +243,7 @@ function PDFViewer() {
 
     const [currentChapter, setCurrentChapter] = useState(chapter);
     const [currentSubject, setCurrentSubject] = useState(subject);
+    const [viewMode, setViewMode] = useState('pdf'); // 'pdf' or 'chat' for mobile
 
     useEffect(() => {
         // Recover chapter data
@@ -593,11 +594,27 @@ function PDFViewer() {
     }
 
     return (
-        <div className="pdf-viewer-container">
+        <div className={`pdf-viewer-container view-mode-${viewMode}`}>
             <div className="pdf-viewer-header">
                 <div className="chapter-info-header">
+                    <button onClick={() => navigate(-1)} className="back-button">Back</button>
                     <h2>{currentChapter.name || currentChapter.title}</h2>
                 </div>
+            </div>
+
+            <div className="mobile-view-toggle">
+                <button 
+                    className={`view-toggle-btn ${viewMode === 'pdf' ? 'active' : ''}`}
+                    onClick={() => setViewMode('pdf')}
+                >
+                    Textbook
+                </button>
+                <button 
+                    className={`view-toggle-btn ${viewMode === 'chat' ? 'active' : ''}`}
+                    onClick={() => setViewMode('chat')}
+                >
+                    AI Chat
+                </button>
             </div>
 
             <div className="pdf-viewer-content">

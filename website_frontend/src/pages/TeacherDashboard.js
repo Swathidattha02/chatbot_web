@@ -7,7 +7,7 @@ import {
     Star, BarChart3, AlertTriangle, Download,
     TrendingUp, TrendingDown, ChevronLeft, ChevronRight,
     Inbox, LogOut, Eye, Upload, Megaphone, Trash2, Plus, AlertCircle, Loader, RefreshCw,
-    Filter, X, Info
+    Filter, X, Info, ArrowLeft
 } from "lucide-react";
 import "../styles/TeacherDashboard.css";
 import ViolationTable from "../components/ViolationTable";
@@ -456,11 +456,21 @@ function TeacherDashboard() {
         "#ede9fe", "#fee2e2", "#f0fdf4", "#fff7ed",
     ];
 
+    const getStudentViolations = (studentId, studentName) => {
+        return violations.filter(v => 
+            (studentId && v.userId && studentId.toString() === v.userId.toString()) ||
+            (studentName && v.username && studentName.toLowerCase().trim() === v.username.toLowerCase().trim())
+        ).length;
+    };
+
     return (
         <div className="td-container">
             {/* ── Top Navbar ─────────────────────────────────────── */}
             <header className="td-navbar">
                 <div className="td-navbar-left">
+                    <button className="td-back-btn" onClick={() => navigate("/")} title="Back to Home">
+                        <ArrowLeft size={20} />
+                    </button>
                     <div className="td-school-logo"><BookOpen size={24} color="#4f46e5" /></div>
                     <div>
                         <div className="td-school-name">
@@ -874,6 +884,9 @@ function TeacherDashboard() {
                                         <th className="td-th-total">
                                             {view === "Daily" ? "TOTAL" : "AVG COMPLETION"}
                                         </th>
+                                        <th className="td-th-violations" style={{ color: "#ef4444" }}>
+                                            VIOLATIONS
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -957,6 +970,30 @@ function TeacherDashboard() {
                                                 >
                                                     {student.totalCompletion >= 60 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
                                                 </span>
+                                            </td>
+
+                                            {/* Violations */}
+                                            <td className="td-total-cell" style={{ textAlign: "center" }}>
+                                                {(() => {
+                                                    const vCount = getStudentViolations(student._id, student.name);
+                                                    return (
+                                                        <span 
+                                                            style={{ 
+                                                                color: vCount > 0 ? "#ef4444" : "#64748b",
+                                                                fontWeight: vCount > 0 ? "700" : "500",
+                                                                fontSize: "14px",
+                                                                cursor: vCount > 0 ? "pointer" : "default",
+                                                                display: "inline-flex",
+                                                                alignItems: "center",
+                                                                gap: "4px"
+                                                            }}
+                                                            onClick={() => vCount > 0 && setActiveTab("violations")}
+                                                        >
+                                                            {vCount > 0 && <AlertTriangle size={14} />}
+                                                            {vCount}
+                                                        </span>
+                                                    );
+                                                })()}
                                             </td>
                                         </tr>
                                     ))}

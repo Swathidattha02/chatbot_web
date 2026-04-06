@@ -137,3 +137,36 @@ select.form-input {
 .auth-link:hover {
     text-decoration: underline;
 }
+
+/* ==================== RESPONSIVE ==================== */
+
+@media (max-width: 640px) {
+    .auth-container {
+        padding: 1rem;
+    }
+
+    .auth-card {
+        padding: 2rem 1.5rem;
+        border-radius: 16px;
+    }
+
+    .auth-title {
+        font-size: 1.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .auth-container {
+        padding: 0;
+        min-height: calc(100vh - 72px);
+    }
+    
+    .auth-card {
+        border-radius: 0;
+        min-height: calc(100vh - 72px);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        box-shadow: none;
+    }
+}

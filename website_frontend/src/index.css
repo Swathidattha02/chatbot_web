@@ -11,18 +11,21 @@
   --text-muted: #64748b;
   --gradient-main: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
   --gradient-accent: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  
+  /* Responsive Breakpoints */
+  --breakpoint-xs: 480px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
 }
 
 html {
   scroll-behavior: smooth;
-  overflow-y: scroll;
-  /* Forces vertical scrollbar to prevent layout shift */
   overflow-x: hidden;
-  /* Prevents horizontal 'moving' or shifting */
-  scrollbar-gutter: stable;
-  /* Keeps content centered even if scrollbar appears */
   width: 100%;
 }
+
 
 * {
   margin: 0;
@@ -256,4 +259,45 @@ code {
   fill: #ffffff !important;
   color: #ffffff !important;
   stroke: #e2e8f0 !important;
+}
+
+/* Responsive Utilities */
+.container {
+  width: 100%;
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+.hide-on-mobile {
+  display: block;
+}
+
+.show-on-mobile {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .hide-on-mobile {
+    display: none !important;
+  }
+  .show-on-mobile {
+    display: block !important;
+  }
+}
+
+/* Base Responsive Typography */
+@media (max-width: 768px) {
+  html {
+    font-size: 14px;
+  }
 }

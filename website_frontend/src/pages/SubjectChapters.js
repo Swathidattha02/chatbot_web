@@ -502,6 +502,8 @@ function SubjectChapters() {
         return { text: <><Square size={14} /> Not Started</>, className: "status-not-started" };
     };
 
+    const [viewMode, setViewMode] = useState('chapters'); // 'chapters' or 'chat' for mobile
+
     if (loading) {
         return (
             <div className="chapters-container">
@@ -514,9 +516,10 @@ function SubjectChapters() {
     }
 
     return (
-        <div className="chapters-container">
+        <div className={`chapters-container view-mode-${viewMode}`}>
             {/* ── Header ─────────────────────────────────────────── */}
             <div className="chapters-header">
+                <button onClick={() => navigate(-1)} className="back-button-chapters">Back</button>
                 {subject && (
                     <div className="subject-header-chapters">
                         <div className="subject-header-icon-chapters" style={{ background: subject.color }}>
@@ -537,6 +540,21 @@ function SubjectChapters() {
                         </div>
                     </div>
                 )}
+            </div>
+
+            <div className="mobile-view-toggle">
+                <button 
+                    className={`view-toggle-btn ${viewMode === 'chapters' ? 'active' : ''}`}
+                    onClick={() => setViewMode('chapters')}
+                >
+                    Chapters
+                </button>
+                <button 
+                    className={`view-toggle-btn ${viewMode === 'chat' ? 'active' : ''}`}
+                    onClick={() => setViewMode('chat')}
+                >
+                    AI Chat
+                </button>
             </div>
 
             {/* ── Two-column content ──────────────────────────────── */}

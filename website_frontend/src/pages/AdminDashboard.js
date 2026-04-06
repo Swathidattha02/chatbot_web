@@ -6,7 +6,7 @@ import {
     Building2, Settings, LogOut, BookOpen, CheckCircle, 
     XCircle, Trash2, MapPin, Hand, Lock, Key, ShieldAlert,
     ArrowRight, Activity, ChevronLeft, ChevronRight, Search,
-    Filter, X, Info
+    Filter, X, Info, Menu, Home, ArrowLeft
 } from "lucide-react";
 import ViolationTable from "../components/ViolationTable";
 import "../styles/AdminDashboard.css";
@@ -44,6 +44,7 @@ function AdminDashboard() {
     const [teacherPage, setTeacherPage] = useState(1);
     const [pendingTeacherPage, setPendingTeacherPage] = useState(1);
     const [pendingStudentPage, setPendingStudentPage] = useState(1);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const itemsPerPage = 6;
 
     const token = localStorage.getItem("token");
@@ -367,9 +368,37 @@ function AdminDashboard() {
     ];
 
     return (
-        <div className="admin-dashboard">
+        <div className={`admin-dashboard ${isSidebarOpen ? "sidebar-open" : ""}`}>
+            {/* ── Mobile Header ────────────────────────────────── */}
+            <header className="admin-mobile-header">
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <button className="mobile-menu-toggle" onClick={() => navigate("/")} title="Back to Home">
+                        <ArrowLeft size={22} />
+                    </button>
+                    <button className="mobile-menu-toggle" onClick={() => setIsSidebarOpen(true)}>
+                        <Menu size={22} />
+                    </button>
+                </div>
+                <div className="admin-logo-mobile">
+                    <span className="admin-logo-icon"><Building2 size={22} color="#1e1b4b" /></span>
+                    <span className="admin-logo-title-mobile">Admin</span>
+                </div>
+
+                <div className="admin-teacher-avatar-mobile" onClick={() => setShowLogoutModal(true)}>
+                    <div className="admin-avatar-sm">ADM</div>
+                </div>
+            </header>
+
+            {/* ── Mobile Overlay ────────────────────────────────── */}
+            {isSidebarOpen && (
+                <div className="admin-sidebar-overlay" onClick={() => setIsSidebarOpen(false)}></div>
+            )}
+
             {/* ── Sidebar ──────────────────────────────────────── */}
-            <aside className="admin-sidebar">
+            <aside className={`admin-sidebar ${isSidebarOpen ? "open" : ""}`}>
+                <div className="admin-sidebar-close" onClick={() => setIsSidebarOpen(false)}>
+                    <X size={24} color="white" />
+                </div>
                 <div className="admin-logo">
                     <span className="admin-logo-icon"><Building2 size={28} color="white" /></span>
                     <div>
@@ -379,6 +408,14 @@ function AdminDashboard() {
                 </div>
 
                 <nav className="admin-nav">
+                    <button
+                        className="admin-nav-item"
+                        onClick={() => navigate("/")}
+                        style={{ borderBottom: "1px solid rgba(255,255,255,0.1)", marginBottom: "12px", paddingBottom: "12px" }}
+                    >
+                        <span><Home size={20} /></span>
+                        Back to Home
+                    </button>
                     {NAV.map((item) => (
                         <button
                             key={item.id}
