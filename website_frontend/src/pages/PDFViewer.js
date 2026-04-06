@@ -60,6 +60,7 @@ function PDFViewer() {
             .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
             .replace(/\n+/g, ". ")
             .replace(/\.\.+/g, ".")
+            .replace(/[,;:]/g, "") // Remove commas and other punctuation that cause mid-sentence pauses
             .trim();
     };
 
@@ -114,9 +115,6 @@ function PDFViewer() {
                     }
                 };
                 audio.onended = () => {
-                    setIsAvatarSpeaking(false);
-                    isAvatarSpeakingRef.current = false;
-                    setMouthValue(0);
                     URL.revokeObjectURL(url);
                     resolve();
                 };
@@ -533,9 +531,10 @@ function PDFViewer() {
             return;
         }
 
-        // Stop current speech when starting voice input
-        if (!isListening && isAvatarSpeaking) {
-            stopSpeaking();
+        // Disable mic usage if avatar is speaking to prevent overlapping
+        if (isAvatarSpeaking) {
+            console.log("Mic disabled while avatar is speaking");
+            return;
         }
 
         if (isListening) {

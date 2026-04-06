@@ -132,6 +132,7 @@ function ChatWithAvatar() {
             .replace(/[|।॥]/g, ". ")
             .replace(/\n+/g, " ")
             .replace(/\s+/g, " ")
+            .replace(/[,;:]/g, "") // Remove commas and other punctuation that cause mid-sentence pauses
             .trim();
         return cleaned;
     };
@@ -167,9 +168,6 @@ function ChatWithAvatar() {
                 };
 
                 audio.onended = () => {
-                    setIsAvatarSpeaking(false);
-                    isTtsProcessingRef.current = false;
-                    setMouthValue(0);
                     URL.revokeObjectURL(url);
                     resolve();
                 };
@@ -240,7 +238,7 @@ function ChatWithAvatar() {
         };
 
         utterance.onend = () => {
-            setTimeout(processInternalQueue, 100);
+            processInternalQueue();
         };
 
         utterance.onerror = (e) => {
@@ -511,8 +509,11 @@ function ChatWithAvatar() {
             return;
         }
 
-        // Stop avatar speech when user wants to talk
-        stopSpeaking();
+        // Disable mic usage if avatar is speaking to prevent overlapping
+        if (isAvatarSpeaking) {
+            console.log("Mic disabled while avatar is speaking");
+            return;
+        }
 
         if (isListening) {
             recognitionRef.current.stop();
@@ -641,7 +642,13 @@ function ChatWithAvatar() {
 
                     <form className="chat-input-form" onSubmit={handleFormSubmit}>
                         <input type="text" className="chat-input" placeholder="Type your message..." value={inputMessage} onChange={(e) => setInputMessage(e.target.value)} disabled={loading} />
-                        <button type="button" className={`voice-input-button ${isListening ? 'listening' : ''}`} onClick={toggleVoiceListening} disabled={loading || !isVoiceSupported} title={!isVoiceSupported ? 'Voice not supported' : isListening ? 'Stop listening' : 'Voice input'}>
+                        <button 
+                            type="button" 
+                            className={`voice-input-button ${isListening ? 'listening' : ''}`} 
+                            onClick={toggleVoiceListening} 
+                            disabled={loading || isAvatarSpeaking || !isVoiceSupported} 
+                            title={!isVoiceSupported ? 'Voice not supported' : isListening ? 'Stop listening' : isAvatarSpeaking ? 'Speaking...' : 'Voice input'}
+                        >
                             <Mic size={18} />
                         </button>
                         <button type="submit" className="send-button" disabled={loading || !inputMessage.trim()}>{loading ? <Clock size={18} /> : <Send size={18} />}</button>
