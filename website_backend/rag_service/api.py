@@ -105,7 +105,7 @@ SUMMARY:"""
         print(f"❌ Error generating summary: {e}")
         raise
 
-def build_system_prompt(language: str):
+def build_system_prompt(language: str, use_rag: bool = True):
     """Build the system prompt based on the selected language and loaded document"""
     lang_name = LANGUAGE_NAMES.get(language, "English")
     
@@ -115,7 +115,7 @@ def build_system_prompt(language: str):
             "YOU ARE AN EXPERT EDUCATIONAL TUTOR. "
             "YOUR TASK IS TO PROVIDE A COMPREHENSIVE, DETAILED, AND STEP-BY-STEP EXPLANATION. "
             "IMPORTANT: NEVER give short answers. Your response MUST be thorough and cover all aspects of the student's question. "
-            "If the question is about types or categories, list ALL major categories and explain each one in detail. "
+            "If the question is about types or categories (like 'types of carbohydrates'), list ALL major categories and explain each one in detail. "
             "Use clear structure, headings, and bullet points. Focus on providing the MOST ACCURATE and DETAILED academic content."
         )
     else:
@@ -128,8 +128,8 @@ def build_system_prompt(language: str):
             f"Begin answering in English now:"
         )
 
-    # Inject Document Summary if available
-    if document_data["summary"]:
+    # Inject Document Summary ONLY if use_rag is explicitly enabled and summary exists
+    if use_rag and document_data["summary"]:
         prompt += f"\n\n[DOCUMENT DATA LOADED: {document_data['filename']}]\n"
         prompt += (
             f"YOU MUST STUDY AND USE THE DOCUMENT CONTENT PROVIDED BELOW TO ANSWER THE STUDENT'S QUESTION. "
@@ -195,7 +195,7 @@ async def upload_document(file: UploadFile = File(...)):
 async def stream_chat(request: ChatRequest):
     """Chat using the generated summary as context (streaming)"""
     try:
-        system_prompt = build_system_prompt(request.language)
+        system_prompt = build_system_prompt(request.language, request.use_rag)
         lang_name = LANGUAGE_NAMES.get(request.language, "English")
 
         messages = [{"role": "system", "content": system_prompt}]
@@ -228,10 +228,10 @@ async def chat(request: ChatRequest):
         if not GEMINI_API_KEY:
             raise HTTPException(status_code=500, detail="Gemini API key not configured")
         
-        system_prompt = build_system_prompt(request.language)
+        system_prompt = build_system_prompt(request.language, request.use_rag)
         lang_name = LANGUAGE_NAMES.get(request.language, "English")
 
-        messages = [{"role": "user", "content": system_prompt}]
+        messages = [{"role": "system", "content": system_prompt}]
         
         if request.conversation_history:
             for msg in request.conversation_history[-6:]:
