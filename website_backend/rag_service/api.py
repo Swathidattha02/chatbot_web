@@ -43,7 +43,7 @@ app.add_middleware(
 # Configuration from .env
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_LLM_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = "gemini-2.5-flash"
 
 # Configure Gemini
 if GEMINI_API_KEY:
@@ -130,11 +130,13 @@ def build_system_prompt(language: str):
 
     # Inject Document Summary if available
     if document_data["summary"]:
-        prompt += f"\n\n[DOCUMENT LOADED: {document_data['filename']}]\n"
+        prompt += f"\n\n[DOCUMENT DATA LOADED: {document_data['filename']}]\n"
         prompt += (
-            f"INSTRUCTION: You are a world-class academic tutor. Use BOTH the following document summary AND your own extensive general knowledge to answer the student's question in detail. "
-            f"If the question is not directly mentioned in the document, use your broad expert knowledge to provide a full explanation anyway. "
-            f"NEVER GIVE SHORT ANSWERS. Your response must be in English ONLY. Do not use {lang_name} at all; the system will translate your English response later.\n\n"
+            f"YOU MUST STUDY AND USE THE DOCUMENT CONTENT PROVIDED BELOW TO ANSWER THE STUDENT'S QUESTION. "
+            f"Even if the student asks general questions like 'what does this pdf contain?', you MUST explain the key topics from the DOCUMENT SUMMARY provided. "
+            f"Use BOTH the following document summary AND your own expert knowledge. "
+            f"IF THE QUESTION CAN BE ANSWERED BY THE DOCUMENT, PRIORITIZE THE DOCUMENT'S INFORMATION.\n\n"
+            f"NEVER say you cannot see files. You have been given the content below.\n\n"
         )
         prompt += f"DOCUMENT SUMMARY:\n{document_data['summary']}"
         

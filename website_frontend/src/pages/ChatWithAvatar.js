@@ -338,7 +338,13 @@ function ChatWithAvatar() {
             abortControllerRef.current = new AbortController();
 
             await chatAPI.streamMessage(
-                { message: messageText, sessionId, language: currentLanguage, use_rag: !!loadedDocument },
+                { 
+                    message: messageText, 
+                    sessionId, 
+                    language: currentLanguage, 
+                    use_rag: !!loadedDocument,
+                    context: loadedDocument ? `Uploaded Document: ${loadedDocument.name}` : null
+                },
                 (chunk) => {
                     fullContent += chunk;
 
