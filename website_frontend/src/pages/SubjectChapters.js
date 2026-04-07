@@ -57,9 +57,12 @@ function SubjectChapters() {
     const mouthAnimationFrameRef = useRef(null);
     const utteranceRef = useRef(null);
     const internalQueueRef = useRef([]);
+    const audioCacheRef = useRef(new Map());
+    const audioRef = useRef(null);
     const sentenceBufferRef = useRef("");
-    const isAvatarSpeakingRef = useRef(false);
+    const isTtsProcessingRef = useRef(false);
     const handleSendMessageRef = useRef(null);
+    const [isTtsLoading, setIsTtsLoading] = useState(false);
 
     const handleStopResponse = useCallback(() => {
         abortControllerRef.current?.abort();
@@ -127,7 +130,7 @@ function SubjectChapters() {
     }, []);
 
     const animateMouth = useCallback(() => {
-        if (!window.speechSynthesis.speaking && !isAvatarSpeakingRef.current) {
+        if (!isTtsProcessingRef.current && !window.speechSynthesis.speaking && !audioRef.current) {
             setMouthValue(0);
             mouthAnimationFrameRef.current = null;
             return;
@@ -138,116 +141,108 @@ function SubjectChapters() {
         mouthAnimationFrameRef.current = requestAnimationFrame(animateMouth);
     }, []);
 
-    const speakWithElevenLabs = useCallback(async (text, lang) => {
+    const fetchAudioChunk = useCallback(async (text, index, lang) => {
+        if (!text || text.trim().length <= 1) return null;
         try {
-            const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-            const response = await fetch(`${apiUrl}/tts`, {
+            const response = await fetch(`${API_BASE_URL}/tts`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: text, voiceId: "pNInz6ovhh93LU4LcVNo" })
+                body: JSON.stringify({ text, lang, voiceId: "pNInz6ovhh93LU4LcVNo" })
             });
-
-            if (!response.ok) throw new Error(`TTS Server Error: ${response.status}`);
-
+            if (!response.ok) throw new Error(`TTS Fetch failed: ${response.status}`);
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
-            const audio = new Audio(url);
-            
-            return new Promise((resolve, reject) => {
-                audio.onplay = () => {
-                    isAvatarSpeakingRef.current = true;
-                    setIsAvatarSpeaking(true);
-                    if (!mouthAnimationFrameRef.current) {
-                        mouthAnimationFrameRef.current = requestAnimationFrame(animateMouth);
-                    }
-                };
-                audio.onended = () => {
-                    URL.revokeObjectURL(url);
-                    resolve();
-                };
-                audio.onerror = reject;
-                audio.play().catch(reject);
-            });
+            audioCacheRef.current.set(index, url);
+            return url;
         } catch (error) {
-            console.error("ElevenLabs error:", error);
-            throw error;
+            console.error(`❌ Error fetching chunk ${index}:`, error);
+            return null;
         }
-    }, [animateMouth]);
+    }, []);
 
     const processInternalQueue = useCallback(async () => {
         if (internalQueueRef.current.length === 0) {
             setIsAvatarSpeaking(false);
-            isAvatarSpeakingRef.current = false;
+            isTtsProcessingRef.current = false;
+            setIsTtsLoading(false);
             setMouthValue(0);
+            setCurrentExpression("neutral");
+            audioCacheRef.current.forEach(url => URL.revokeObjectURL(url));
+            audioCacheRef.current.clear();
             return;
         }
 
-        const text = internalQueueRef.current.shift();
-        if (!text || text.trim().length <= 1) {
-            processInternalQueue();
-            return;
-        }
-
+        isTtsProcessingRef.current = true;
+        const currentItem = internalQueueRef.current[0];
+        const { index, text } = currentItem;
         const lang = currentLanguage;
 
-        // Try high-quality backend TTS (OpenAI/ElevenLabs) first
-        try {
-            await speakWithElevenLabs(text, lang);
+        let url = audioCacheRef.current.get(index);
+        let attempts = 0;
+        
+        if (!url) {
+            setIsTtsLoading(true);
+            while (!url && attempts < 50) {
+                await new Promise(r => setTimeout(r, 100));
+                url = audioCacheRef.current.get(index);
+                attempts++;
+            }
+        }
+
+        if (!url) {
+            console.warn(`⚠️ Chunk ${index} timed out, skipping...`);
+            internalQueueRef.current.shift();
             processInternalQueue();
             return;
-        } catch (err) {
-            console.warn("Falling back to browser TTS:", err);
         }
 
-        // Browser Fallback
-        const utterance = new SpeechSynthesisUtterance(text);
-        utteranceRef.current = utterance;
-        
-        // Voice selection for better local quality
-        const voices = window.speechSynthesis.getVoices();
-        const selectedVoice = voices.find(v => (lang === 'en' && v.lang.includes('en-US') && v.name.includes('Natural')));
-        if (selectedVoice) utterance.voice = selectedVoice;
-        utterance.lang = lang === 'en' ? 'en-US' : 'hi-IN';
+        setIsTtsLoading(false);
 
-        utterance.onstart = () => {
-            isAvatarSpeakingRef.current = true;
-            setIsAvatarSpeaking(true);
-            if (!mouthAnimationFrameRef.current) {
-                mouthAnimationFrameRef.current = requestAnimationFrame(animateMouth);
-            }
-        };
-
-        utterance.onend = () => {
-            processInternalQueue();
-        };
-
-        utterance.onerror = () => {
-            processInternalQueue();
-        };
-
-        window.speechSynthesis.speak(utterance);
-    }, [currentLanguage, animateMouth, speakWithElevenLabs]);
-
-    const speakSegment = useCallback((text) => {
-        if (!text || !('speechSynthesis' in window)) return;
-        const chunks = text.match(/[^.!?\n]+[.!?\n]?/g) || [text];
-        const cleaned = chunks.map(c => c.trim()).filter(c => c.length > 0);
-        internalQueueRef.current.push(...cleaned);
-
-        if (!isAvatarSpeakingRef.current) {
+        try {
+            const audio = new Audio(url);
+            audioRef.current = audio;
+            audio.onplay = () => {
+                setIsAvatarSpeaking(true);
+                if (!mouthAnimationFrameRef.current) {
+                    mouthAnimationFrameRef.current = requestAnimationFrame(animateMouth);
+                }
+                setCurrentExpression("happy");
+            };
+            audio.onended = () => {
+                internalQueueRef.current.shift();
+                processInternalQueue();
+            };
+            await audio.play();
+        } catch (error) {
+            console.error("❌ Audio playback error:", error);
+            internalQueueRef.current.shift();
             processInternalQueue();
         }
-    }, [processInternalQueue]);
+    }, [animateMouth, currentLanguage]);
 
     const speakMessage = useCallback((text) => {
-        if (!text || !('speechSynthesis' in window)) return;
-        window.speechSynthesis.cancel();
+        if (!text) return;
+        stopSpeaking();
         setTimeout(() => {
-            const chunks = text.match(/[^.!?\n]+[.!?\n]?/g) || [text];
-            internalQueueRef.current = chunks.map(c => c.trim()).filter(c => c.length > 0);
-            processInternalQueue();
-        }, 200);
-    }, [processInternalQueue]);
+            const chunks = text.match(/[^.!?|।\n?？।]+([.!?|।\n?？/]|$)/g) || [text];
+            const refinedChunks = [];
+            for (let i = 0; i < chunks.length; i++) {
+                let chunk = chunks[i].trim();
+                if (chunk.match(/^\d+[\.।]?$/) && i + 1 < chunks.length) {
+                    refinedChunks.push(chunk + " " + chunks[i + 1].trim());
+                    i++;
+                } else if (chunk.length > 1) {
+                    refinedChunks.push(chunk);
+                }
+            }
+            refinedChunks.forEach((chunk, i) => {
+                const index = Date.now() + i;
+                internalQueueRef.current.push({ index, text: chunk });
+                fetchAudioChunk(chunk, index, currentLanguage);
+            });
+            if (internalQueueRef.current.length > 0) processInternalQueue();
+        }, 300);
+    }, [fetchAudioChunk, processInternalQueue, stopSpeaking, currentLanguage]);
 
     // ── Auto scroll ───────────────────────────────────────────────
     useEffect(() => {
@@ -392,10 +387,17 @@ function SubjectChapters() {
                         sentenceBufferRef.current = "";
                         setMessages((prev) => {
                             const next = [...prev];
-                            const last = next[next.length - 1];
-                            if (last?.role === "assistant") last.isStreaming = false;
+                            const index = next.findLastIndex(msg => msg.role === "assistant");
+                            if (index !== -1) {
+                                next[index] = { ...next[index], isStreaming: false };
+                            }
                             return next;
                         });
+
+                        // Re-enable automatic voice response
+                        if (fullContent) {
+                            speakMessage(cleanTextForTTS(fullContent));
+                        }
 
                         if (fullContent.includes("[EXPRESSION:")) {
                             const match = fullContent.match(/\[EXPRESSION:\s*(\w+)\]/);
@@ -685,7 +687,7 @@ function SubjectChapters() {
                     <div className="chat-interface-pdf">
                         {/* Avatar Header */}
                         <div
-                            className={`chat-avatar-header-pdf ${(isAvatarSpeaking || chatLoading) ? "speaking" : ""}`}
+                            className={`chat-avatar-header-pdf ${(isAvatarSpeaking || chatLoading || isTtsLoading) ? "speaking" : ""} ${isTtsLoading ? 'tts-loading' : ''}`}
                             onClick={() => {
                                 if (chatLoading) handleStopResponse();
                                 else if (isAvatarSpeaking) stopSpeaking();
@@ -720,9 +722,23 @@ function SubjectChapters() {
 
                             <div className="chat-header-pdf">
                                 <h3>Ask Questions</h3>
+                                {(chatLoading || isTtsLoading) && (
+                                    <div className="speaking-control-pdf">
+                                        <span className="speaking-indicator">
+                                            {chatLoading ? <Zap size={14} /> : <Volume2 size={14} />} 
+                                            {chatLoading ? "Thinking..." : "Voice Readying..."}
+                                        </span>
+                                        <button onClick={handleStopResponse} className="btn-stop-speaking-pdf">Stop <Square size={14} /></button>
+                                    </div>
+                                )}
                                 {isAvatarSpeaking && (
                                     <div className="speaking-control-pdf">
-                                        <span className="speaking-indicator"><Mic size={14} className="animate-pulse" /> Speaking...</span>
+                                        <span className="speaking-indicator">
+                                            <div className="sound-wave">
+                                                <span></span><span></span><span></span><span></span>
+                                            </div> 
+                                            Speaking...
+                                        </span>
                                         <button onClick={stopSpeaking} className="btn-stop-speaking-pdf">Stop <StopCircle size={14} /></button>
                                     </div>
                                 )}
@@ -730,7 +746,7 @@ function SubjectChapters() {
 
                             <div className="chat-messages-pdf">
                                 {messages.map((msg, index) => (
-                                    <div key={index} className={`message ${msg.role === "user" ? "user-message" : "avatar-message"}`}>
+                                    <div key={index} className={`message ${msg.role === "user" ? "user-message" : "avatar-message"} ${isAvatarSpeaking && index === messages.findLastIndex(m => m.role === 'assistant') ? 'speaking' : ''}`}>
                                         <div className="message-avatar">{msg.role === "user" ? <User size={16} /> : <Bot size={16} />}</div>
                                         <div className="message-content">
                                             <div className="message-text">{msg.content}</div>
@@ -775,7 +791,11 @@ function SubjectChapters() {
                                     disabled={chatLoading || isAvatarSpeaking || !isVoiceSupported}
                                     title={!isVoiceSupported ? "Voice not supported" : isListening ? "Stop listening" : "Voice input"}
                                 >
-                                    {isListening ? <Mic size={20} className="animate-pulse" /> : <Mic size={20} />}
+                                    {isListening ? (
+                                        <div className="sound-wave">
+                                            <span></span><span></span><span></span><span></span>
+                                        </div>
+                                    ) : <Mic size={20} />}
                                 </button>
                                 {chatLoading ? (
                                     <button type="button" className="stop-button-pdf" onClick={handleStopResponse} title="Stop generating"><Square size={16} /></button>

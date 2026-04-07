@@ -22,11 +22,13 @@ function ChatWithAvatar() {
     const [sessionId, setSessionId] = useState(null);
     const [currentLanguage, setCurrentLanguage] = useState('en');
     const [isAvatarSpeaking, setIsAvatarSpeaking] = useState(false);
+    const [isTtsLoading, setIsTtsLoading] = useState(false);
     const [mouthValue, setMouthValue] = useState(0);
-    const [currentExpression] = useState('neutral');
+    const [currentExpression, setCurrentExpression] = useState("neutral");
     const [isListening, setIsListening] = useState(false);
     const [isVoiceSupported, setIsVoiceSupported] = useState(false);
     const [loadedDocument, setLoadedDocument] = useState(null);
+
     const messagesEndRef = useRef(null);
     const recognitionRef = useRef(null);
     const mouthAnimationFrameRef = useRef(null);
@@ -34,6 +36,7 @@ function ChatWithAvatar() {
     const abortControllerRef = useRef(null);
     const isTtsProcessingRef = useRef(false);
     const internalQueueRef = useRef([]);
+    const audioCacheRef = useRef(new Map());
     const audioRef = useRef(null);
     const elevenLabsTimerRef = useRef(null);
     const handleSendMessageRef = useRef(null);
@@ -68,21 +71,27 @@ function ChatWithAvatar() {
 
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
-
-            if (mouthAnimationFrameRef.current) {
-                cancelAnimationFrame(mouthAnimationFrameRef.current);
-                mouthAnimationFrameRef.current = null;
-            }
-
-            setMouthValue(0);
-            setIsAvatarSpeaking(false);
-            isTtsProcessingRef.current = false;
-            utteranceRef.current = null;
         }
+
+        if (mouthAnimationFrameRef.current) {
+            cancelAnimationFrame(mouthAnimationFrameRef.current);
+            mouthAnimationFrameRef.current = null;
+        }
+
+        setMouthValue(0);
+        setIsAvatarSpeaking(false);
+        setIsTtsLoading(false);
+        isTtsProcessingRef.current = false;
+        utteranceRef.current = null;
+        
+        // Clear queue
+        internalQueueRef.current = [];
+        audioCacheRef.current.forEach(url => URL.revokeObjectURL(url));
+        audioCacheRef.current.clear();
     }, []);
 
     const animateMouth = useCallback(() => {
-        if (!isTtsProcessingRef.current && !window.speechSynthesis.speaking) {
+        if (!isTtsProcessingRef.current && !window.speechSynthesis.speaking && !audioRef.current) {
             setMouthValue(0);
             return;
         }
@@ -103,18 +112,15 @@ function ChatWithAvatar() {
         };
         const targetLocales = langMap[langCode] || ['en-US'];
 
-        // 1. Precise match (locale + name)
         let voice = voices.find(v =>
             targetLocales.some(loc => v.lang.replace('_', '-').toLowerCase().includes(loc.toLowerCase())) &&
             (v.name.includes('Natural') || v.name.includes('Online'))
         );
 
-        // 2. Locale match only
         if (!voice) {
             voice = voices.find(v => targetLocales.some(loc => v.lang.replace('_', '-').toLowerCase().includes(loc.toLowerCase())));
         }
 
-        // 3. Language only match (e.g. just 'te')
         if (!voice) {
             voice = voices.find(v => v.lang.toLowerCase().startsWith(langCode.toLowerCase()));
         }
@@ -132,159 +138,135 @@ function ChatWithAvatar() {
             .replace(/[|।॥]/g, ". ")
             .replace(/\n+/g, " ")
             .replace(/\s+/g, " ")
-            .replace(/[,;:]/g, "") // Remove commas and other punctuation that cause mid-sentence pauses
+            .replace(/[,;:]/g, "")
             .trim();
         return cleaned;
     };
 
-    const speakWithElevenLabs = useCallback(async (text, lang) => {
+    const fetchAudioChunk = useCallback(async (text, index, lang) => {
+        if (!text || text.trim().length <= 1) return null;
+        
         try {
             const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
             const response = await fetch(`${apiUrl}/tts`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: text, voiceId: "pNInz6ovhh93LU4LcVNo" })
+                body: JSON.stringify({ 
+                    text: text, 
+                    lang: lang,
+                    voiceId: "pNInz6ovhh93LU4LcVNo" 
+                })
             });
 
-            if (!response.ok) {
-                const errBody = await response.text();
-                console.error("❌ ElevenLabs Proxy Error Details:", errBody);
-                throw new Error(`TTS Server Error: ${response.status}`);
-            }
-
+            if (!response.ok) throw new Error(`TTS Fetch failed: ${response.status}`);
+            
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
-
-            return new Promise((resolve, reject) => {
-                const audio = new Audio(url);
-                audioRef.current = audio;
-
-                audio.onplay = () => {
-                    isTtsProcessingRef.current = true;
-                    setIsAvatarSpeaking(true);
-                    if (!mouthAnimationFrameRef.current) {
-                        mouthAnimationFrameRef.current = requestAnimationFrame(animateMouth);
-                    }
-                };
-
-                audio.onended = () => {
-                    URL.revokeObjectURL(url);
-                    resolve();
-                };
-
-                audio.onerror = (e) => {
-                    URL.revokeObjectURL(url);
-                    reject(e);
-                };
-
-                audio.play().catch(reject);
-            });
+            audioCacheRef.current.set(index, url);
+            return url;
         } catch (error) {
-            console.error("ElevenLabs speak error:", error);
-            throw error;
+            console.error(`❌ Error fetching chunk ${index}:`, error);
+            return null;
         }
-    }, [animateMouth]);
+    }, []);
 
     const processInternalQueue = useCallback(async () => {
         if (internalQueueRef.current.length === 0) {
             setIsAvatarSpeaking(false);
             isTtsProcessingRef.current = false;
+            setIsTtsLoading(false);
             setMouthValue(0);
+            setCurrentExpression("neutral");
+            
+            audioCacheRef.current.forEach(url => URL.revokeObjectURL(url));
+            audioCacheRef.current.clear();
             return;
         }
 
-        const nextMessage = internalQueueRef.current.shift();
-        const cleanedText = cleanTextForTTS(nextMessage);
+        isTtsProcessingRef.current = true;
+        const currentItem = internalQueueRef.current[0];
+        const { index, text } = currentItem;
         const lang = currentLanguageRef.current;
 
-        if (!cleanedText || cleanedText.trim().length <= 1) {
-            processInternalQueue();
-            return;
-        }
-
-        console.log(`🎤 High-Quality TTS Processing [${lang}] - Text: "${cleanedText.substring(0, 50)}..."`);
-
-        // ALWAYS attempt high-quality backend TTS (OpenAI/ElevenLabs) first
-        try {
-            isTtsProcessingRef.current = true;
-            await speakWithElevenLabs(cleanedText, lang);
-            processInternalQueue();
-            return;
-        } catch (err) {
-            console.warn("⚠️ Backend TTS failed, falling back to Browser Speech:", err);
-            isTtsProcessingRef.current = false;
-            setIsAvatarSpeaking(false);
-        }
-
-        // BROWSER FALLBACK (Last Resort)
-        const utterance = new SpeechSynthesisUtterance(cleanedText);
-        utteranceRef.current = utterance;
-        const voice = getBestVoiceForLang(lang);
-        if (voice) {
-            utterance.voice = voice;
-            utterance.lang = voice.lang;
-        } else {
-            const SynthesisLangMap = { 'en': 'en-US', 'hi': 'hi-IN', 'ta': 'ta-IN', 'te': 'te-IN', 'kn': 'kn-IN', 'ml': 'ml-IN', 'bn': 'bn-IN', 'mr': 'mr-IN', 'gu': 'gu-IN', 'pa': 'pa-IN' };
-            utterance.lang = SynthesisLangMap[lang] || 'en-US';
-        }
-
-        utterance.rate = 0.95;
-        utterance.onstart = () => {
-            isTtsProcessingRef.current = true;
-            setIsAvatarSpeaking(true);
-            if (!mouthAnimationFrameRef.current) {
-                mouthAnimationFrameRef.current = requestAnimationFrame(animateMouth);
+        let url = audioCacheRef.current.get(index);
+        let attempts = 0;
+        
+        if (!url) {
+            setIsTtsLoading(true);
+            while (!url && attempts < 50) {
+                await new Promise(r => setTimeout(r, 100));
+                url = audioCacheRef.current.get(index);
+                attempts++;
             }
-        };
+        }
 
-        utterance.onend = () => {
-            processInternalQueue();
-        };
+        if (!url) {
+            console.warn(`⚠️ Chunk ${index} timed out, attempting browser fallback...`);
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utteranceRef.current = utterance;
+            const voice = getBestVoiceForLang(lang);
+            if (voice) {
+                utterance.voice = voice;
+                utterance.lang = voice.lang;
+            }
+            
+            utterance.onstart = () => {
+                setIsAvatarSpeaking(true);
+                if (!mouthAnimationFrameRef.current) {
+                    mouthAnimationFrameRef.current = requestAnimationFrame(animateMouth);
+                }
+            };
+            
+            utterance.onend = () => {
+                internalQueueRef.current.shift();
+                processInternalQueue();
+            };
+            
+            window.speechSynthesis.speak(utterance);
+            return;
+        }
 
-        utterance.onerror = (e) => {
-            processInternalQueue();
-        };
+        setIsTtsLoading(false);
 
-        window.speechSynthesis.speak(utterance);
-    }, [getBestVoiceForLang, speakWithElevenLabs, animateMouth]);
+        try {
+            const audio = new Audio(url);
+            audioRef.current = audio;
 
-    const speakSegment = useCallback((text) => {
-        if (!text) return;
-        const rawChunks = text.match(/[^.!?|।\n?？।]+([.!?|।\n?？所在地]|$)/g) || [text];
-        const refinedChunks = rawChunks.map(c => c.trim()).filter(c => c.length > 1);
+            audio.onplay = () => {
+                setIsAvatarSpeaking(true);
+                if (!mouthAnimationFrameRef.current) {
+                    mouthAnimationFrameRef.current = requestAnimationFrame(animateMouth);
+                }
+                setCurrentExpression("happy");
+            };
 
-        internalQueueRef.current.push(...refinedChunks);
-        if (!isAvatarSpeaking && !isTtsProcessingRef.current) {
+            audio.onended = () => {
+                internalQueueRef.current.shift();
+                processInternalQueue();
+            };
+
+            await audio.play();
+        } catch (error) {
+            console.error("❌ Audio playback error:", error);
+            internalQueueRef.current.shift();
             processInternalQueue();
         }
-    }, [isAvatarSpeaking, processInternalQueue]);
+    }, [animateMouth, getBestVoiceForLang]);
 
     const speakMessage = useCallback((text) => {
         if (!text) return;
-
+        
         stopSpeaking();
-
-        // Wait a bit for state and UI to settle
+        
         setTimeout(() => {
             const lang = currentLanguageRef.current;
-
-            // For non-English languages, ElevenLabs works much better with larger blocks
-            // We only split if the text is exceptionally long (> 1000 chars)
-            if (lang !== 'en' && text.length < 1500) {
-                internalQueueRef.current = [text];
-                processInternalQueue();
-                return;
-            }
-
-            // Normal chunking for English or very long texts
-            const rawChunks = text.match(/[^.!?|।\n?？।]+([.!?|।\n?؟।]|$)/g) || [text];
+            const rawChunks = text.match(/[^.!?|।\n?？।]+([.!?|।\n?？/]|$)/g) || [text];
             const refinedChunks = [];
 
             for (let i = 0; i < rawChunks.length; i++) {
                 let chunk = rawChunks[i].trim();
-
-                // CRITICAL FIX: Join numbers like "1." or "2." with the following text
-                // Check if chunk is just a number followed by a period or just a number
+                // Join small things like "1." with following text
                 if (chunk.match(/^\d+[\.।]?$/) && i + 1 < rawChunks.length) {
                     refinedChunks.push(chunk + " " + rawChunks[i + 1].trim());
                     i++;
@@ -293,12 +275,18 @@ function ChatWithAvatar() {
                 }
             }
 
-            internalQueueRef.current = refinedChunks;
+            // Trigger parallel fetching for all chunks
+            refinedChunks.forEach((chunk, i) => {
+                const index = Date.now() + i;
+                internalQueueRef.current.push({ index, text: chunk });
+                fetchAudioChunk(chunk, index, lang);
+            });
+
             if (internalQueueRef.current.length > 0) {
                 processInternalQueue();
             }
         }, 300);
-    }, [processInternalQueue, stopSpeaking]);
+    }, [fetchAudioChunk, processInternalQueue, stopSpeaking]);
 
     useEffect(() => {
         scrollToBottom();
@@ -356,7 +344,6 @@ function ChatWithAvatar() {
                             return newMessages;
                         });
                     } else {
-                        // For non-English, show a placeholder so the user knows we're working
                         setMessages((prevMessages) => {
                             const newMessages = [...prevMessages];
                             const index = newMessages.findLastIndex(msg => msg.isStreaming);
@@ -368,55 +355,27 @@ function ChatWithAvatar() {
                     }
                 },
                 async (data) => {
-                    console.log("🏁 AI Stream Complete. Content length:", fullContent.length);
                     let finalResponse = fullContent || data.fullResponse;
 
                     if (currentLanguage !== 'en' && finalResponse) {
                         try {
-                            console.log(`🌍 Initiating streaming translation to ${currentLanguage}...`);
-
-                            // 1. Prepare to stream translation
                             let translatedSoFar = "";
-                            sentenceBufferRef.current = ""; // Reset for translation
-
-                            // 2. Clear placeholder and start showing translated chunks
-                            setMessages((prev) => {
-                                const newMessages = [...prev];
-                                const index = newMessages.findLastIndex(msg => msg.role === "assistant");
-                                if (index !== -1) {
-                                    newMessages[index] = {
-                                        ...newMessages[index],
-                                        content: "⏳ *భాష మారుతోంది... Translating...*"
-                                    };
-                                }
-                                return newMessages;
-                            });
-
-                            // 3. Call streaming translation
                             const translated = await translationService.translate(finalResponse, currentLanguage, (chunk) => {
                                 translatedSoFar += chunk;
-                                // Update UI with translated chunks
                                 setMessages((prev) => {
                                     const newMessages = [...prev];
                                     const index = newMessages.findLastIndex(msg => msg.role === "assistant");
                                     if (index !== -1) {
-                                        newMessages[index] = {
-                                            ...newMessages[index],
-                                            content: translatedSoFar
-                                        };
+                                        newMessages[index] = { ...newMessages[index], content: translatedSoFar };
                                     }
                                     return newMessages;
                                 });
                             });
-
                             if (translated) finalResponse = translated;
                         } catch (err) {
                             console.error("❌ Translation sequence failed:", err);
                         }
                     }
-
-                    // 4. Final update to ensure state is synchronized and streaming stops
-                    sentenceBufferRef.current = "";
 
                     setMessages((prevMessages) => {
                         const newMessages = [...prevMessages];
@@ -434,7 +393,10 @@ function ChatWithAvatar() {
 
                     setLoading(false);
                     if (!sessionId && data.sessionId) setSessionId(data.sessionId);
-                    console.log("✨ Response fully processed.");
+                    
+                    if (finalResponse) {
+                        speakMessage(cleanTextForTTS(finalResponse));
+                    }
                 },
                 (error) => {
                     console.error("Stream error:", error);
@@ -454,7 +416,7 @@ function ChatWithAvatar() {
             console.error("Chat error:", error);
             setLoading(false);
         }
-    }, [loading, sessionId, currentLanguage, loadedDocument, handleStopResponse, stopSpeaking, speakSegment]);
+    }, [loading, sessionId, currentLanguage, loadedDocument, handleStopResponse, stopSpeaking, speakMessage]);
 
     useEffect(() => {
         handleSendMessageRef.current = handleSendMessage;
@@ -509,11 +471,7 @@ function ChatWithAvatar() {
             return;
         }
 
-        // Disable mic usage if avatar is speaking to prevent overlapping
-        if (isAvatarSpeaking) {
-            console.log("Mic disabled while avatar is speaking");
-            return;
-        }
+        if (isAvatarSpeaking) return;
 
         if (isListening) {
             recognitionRef.current.stop();
@@ -530,12 +488,6 @@ function ChatWithAvatar() {
 
     const handleLanguageChange = useCallback((language) => {
         setCurrentLanguage(language);
-        const translatedMsg = translationService.getLanguageChangeMessage(language);
-        setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: translatedMsg,
-            timestamp: new Date()
-        }]);
     }, []);
 
     const handleNewChat = () => {
@@ -557,21 +509,19 @@ function ChatWithAvatar() {
         <div className="chat-page">
             <div className="chat-interface">
                 <div
-                    className={`chat-avatar-header ${(isAvatarSpeaking || loading) ? 'speaking' : ''}`}
+                    className={`chat-avatar-header ${(isAvatarSpeaking || loading || isTtsLoading) ? 'speaking' : ''} ${isTtsLoading ? 'tts-loading' : ''}`}
                     onClick={() => {
                         if (loading) handleStopResponse();
                         else if (isAvatarSpeaking) stopSpeaking();
                     }}
-                    title={(isAvatarSpeaking || loading) ? "Click to stop" : ""}
                 >
                     <div className="avatar-canvas-container">
-                        <Canvas camera={{ position: [0, 1.6, 5.5], fov: 15 }} style={{ width: '100%', height: '100%', background: 'transparent' }}>
+                        <Canvas camera={{ position: [0, 1.6, 5.5], fov: 15 }} style={{ width: '100%', height: '100%' }}>
                             <ambientLight intensity={0.8} />
                             <directionalLight position={[0, 5, 5]} intensity={1} />
                             <LipSyncAvatar url="/avatar1.glb" animation="idle" mouthValue={mouthValue} expression={currentExpression} gesture="none" position={[0, -4, 0]} scale={2.5} />
                         </Canvas>
                     </div>
-                    <div className="avatar-background-blur"></div>
                 </div>
 
                 <div className="chat-content">
@@ -584,22 +534,30 @@ function ChatWithAvatar() {
                             </div>
                         </div>
                         <div className="chat-header-center">
-                            {loading && (
+                            {(loading || isTtsLoading) && (
                                 <div className="speaking-control">
-                                    <span className="speaking-indicator"><Zap size={16} /> Generating...</span>
+                                    <span className="speaking-indicator">
+                                        {loading ? <Zap size={16} /> : <Volume2 size={16} />} 
+                                        {loading ? "Generating..." : "Processing Voice..."}
+                                    </span>
                                     <button onClick={handleStopResponse} className="btn-stop-speaking" title="Stop"><Square size={16} /> Stop</button>
                                 </div>
                             )}
                             {isAvatarSpeaking && (
                                 <div className="speaking-control">
-                                    <span className="speaking-indicator"><Mic size={16} /> Speaking...</span>
+                                    <span className="speaking-indicator">
+                                        <div className="sound-wave">
+                                            <span></span><span></span><span></span><span></span>
+                                        </div> 
+                                        Speaking...
+                                    </span>
                                     <button onClick={stopSpeaking} className="btn-stop-speaking" title="Stop"><Square size={16} /> Stop</button>
                                 </div>
                             )}
                         </div>
                         <div className="chat-header-right">
                             <LanguageSelector currentLanguage={currentLanguage} onLanguageChange={handleLanguageChange} supportedLanguages={translationService.getSupportedLanguages()} />
-                            <button onClick={handleNewChat} className="btn-new-chat" title="Start a new conversation">
+                            <button onClick={handleNewChat} className="btn-new-chat">
                                 <Sparkles size={16} />
                                 <span>New Chat</span>
                                 <RefreshCw size={14} className="btn-new-chat-icon" />
@@ -609,19 +567,14 @@ function ChatWithAvatar() {
 
                     <div className="chat-messages">
                         {messages.map((msg, index) => (
-                            <div key={index} className={`message ${msg.role === 'user' ? 'user-message' : 'avatar-message'}`}>
+                            <div key={index} className={`message ${msg.role === 'user' ? 'user-message' : 'avatar-message'} ${isAvatarSpeaking && index === messages.findLastIndex(m => m.role === 'assistant') ? 'speaking' : ''}`}>
                                 <div className="message-avatar">{msg.role === 'user' ? <User size={20} /> : <Bot size={20} />}</div>
                                 <div className="message-content">
                                     <div className="message-text">{msg.content}</div>
                                     <div className="message-footer">
                                         <div className="message-time">{new Date(msg.timestamp).toLocaleTimeString()}</div>
                                         {msg.role === 'assistant' && msg.content && !msg.isStreaming && (
-                                            <button
-                                                className="read-again-button"
-                                                onClick={() => handleReadAgain(msg.content)}
-                                                disabled={isAvatarSpeaking}
-                                                title="Read again"
-                                            >
+                                            <button className="read-again-button" onClick={() => handleReadAgain(msg.content)} disabled={isAvatarSpeaking}>
                                                 <Volume2 size={16} />
                                             </button>
                                         )}
@@ -632,9 +585,7 @@ function ChatWithAvatar() {
                         {loading && (
                             <div className="message avatar-message">
                                 <div className="message-avatar"><Bot size={20} /></div>
-                                <div className="message-content">
-                                    <div className="typing-indicator"><span></span><span></span><span></span></div>
-                                </div>
+                                <div className="typing-indicator"><span></span><span></span><span></span></div>
                             </div>
                         )}
                         <div ref={messagesEndRef} />
@@ -642,14 +593,12 @@ function ChatWithAvatar() {
 
                     <form className="chat-input-form" onSubmit={handleFormSubmit}>
                         <input type="text" className="chat-input" placeholder="Type your message..." value={inputMessage} onChange={(e) => setInputMessage(e.target.value)} disabled={loading} />
-                        <button 
-                            type="button" 
-                            className={`voice-input-button ${isListening ? 'listening' : ''}`} 
-                            onClick={toggleVoiceListening} 
-                            disabled={loading || isAvatarSpeaking || !isVoiceSupported} 
-                            title={!isVoiceSupported ? 'Voice not supported' : isListening ? 'Stop listening' : isAvatarSpeaking ? 'Speaking...' : 'Voice input'}
-                        >
-                            <Mic size={18} />
+                        <button type="button" className={`voice-input-button ${isListening ? 'listening' : ''}`} onClick={toggleVoiceListening} disabled={loading || isAvatarSpeaking || !isVoiceSupported}>
+                            {isListening ? (
+                                <div className="sound-wave">
+                                    <span></span><span></span><span></span><span></span>
+                                </div>
+                            ) : <Mic size={18} />}
                         </button>
                         <button type="submit" className="send-button" disabled={loading || !inputMessage.trim()}>{loading ? <Clock size={18} /> : <Send size={18} />}</button>
                     </form>
