@@ -193,55 +193,7 @@ function Signup() {
 
     return (
         <div className="signup-page">
-            {/* ── LEFT PANEL ─────────────────────────────────────── */}
-            <div className="signup-left">
-                <div className="signup-left-inner">
-                    <div className="signup-badge">✨ AI-POWERED LEARNING</div>
-
-                    <h1 className="signup-left-title">
-                        Learn Smarter<br />
-                        <span className="signup-left-highlight">with AI</span>
-                    </h1>
-
-                    <p className="signup-left-desc">
-                        Unlock a personalized educational journey with our advanced AI tutor,{" "}
-                        <strong>designed</strong> to help you excel in every <strong>subject</strong>.
-                    </p>
-
-                    <ul className="signup-features">
-                        <li>
-                            <div className="feature-icon"><Globe size={20} color="#4f46e5" /></div>
-                            <div>
-                                <strong>Multilingual Support</strong>
-                                <p>Explains complex topics in your preferred language for better understanding.</p>
-                            </div>
-                        </li>
-                        <li>
-                            <div className="feature-icon"><Mic size={20} color="#ec4899" /></div>
-                            <div>
-                                <strong>Voice Interaction</strong>
-                                <p>Hear clear, spoken explanations of any chapter, making learning accessible.</p>
-                            </div>
-                        </li>
-                        <li>
-                            <div className="feature-icon"><Clock size={20} color="#f59e0b" /></div>
-                            <div>
-                                <strong>24/7 Availability</strong>
-                                <p>Get instant help with your doubts, anytime, anywhere, without waiting.</p>
-                            </div>
-                        </li>
-                        <li>
-                            <div className="feature-icon"><Target size={20} color="#10b981" /></div>
-                            <div>
-                                <strong>Personalized Learning</strong>
-                                <p>Tailored explanations for grades 6–10 based on individual learning pace.</p>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            {/* ── RIGHT PANEL ─────────────────────────────────────── */}
+            {/* ── SIGNUP FORM CARD ─────────────────────────────────────── */}
             <div className="signup-right">
                 <div className="signup-right-inner">
                     {/* Header */}

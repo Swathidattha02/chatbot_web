@@ -7,138 +7,36 @@
 /* ── SIGNUP: Full-page two-column layout ──────────────────────── */
 .signup-page {
     display: flex;
+    justify-content: center;
+    align-items: center;
     min-height: calc(100vh - 72px);
     font-family: 'Inter', sans-serif;
-    align-items: stretch;
-    background: #ffffff !important;
+    background: #f0f4f8 !important; /* Professional light gray background */
     color: #1a202c !important;
     color-scheme: light !important;
-    forced-color-adjust: none; /* Stops high-contrast and auto-dark mode overrides */
+    padding: 2rem 1rem;
+    forced-color-adjust: none;
 }
 
-/* ════════════════════════════════════════════
-   LEFT PANEL
-   ════════════════════════════════════════════ */
-.signup-left {
-    width: 45%;
-    background: #f0f4f8;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 3rem 2.5rem;
-    border-right: 1px solid #e2e8f0;
-    position: relative;
-    height: calc(100vh - 72px);
-    overflow: hidden;
-}
-
-.signup-left-inner {
-    max-width: 380px;
-}
-
-/* Badge */
-.signup-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    background: #eef2ff;
-    color: #1e1b4b;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    padding: 0.35rem 0.9rem;
-    border-radius: 100px;
-    margin-bottom: 1.5rem;
-    border: 1px solid #c7d2fe;
-}
-
-/* Title */
-.signup-left-title {
-    font-size: 2.4rem;
-    font-weight: 800;
-    color: #1a202c;
-    line-height: 1.15;
-    margin: 0 0 1rem 0;
-}
-
-.signup-left-highlight {
-    color: #1e1b4b;
-}
-
-/* Desc */
-.signup-left-desc {
-    font-size: 0.93rem;
-    color: #64748b;
-    line-height: 1.65;
-    margin: 0 0 2rem 0;
-}
-
-.signup-left-desc strong {
-    color: #e53e3e;
-    font-weight: 600;
-}
-
-/* Features list */
-.signup-features {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem;
-}
-
-.signup-features li {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.85rem;
-}
-
-.feature-icon {
-    width: 38px;
-    height: 38px;
-    background: #fff;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.1rem;
-    flex-shrink: 0;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-    border: 1px solid #e2e8f0;
-}
-
-.signup-features li strong {
-    display: block;
-    font-size: 0.88rem;
-    font-weight: 700;
-    color: #1a202c;
-    margin-bottom: 0.2rem;
-}
-
-.signup-features li p {
-    font-size: 0.8rem;
-    color: #64748b;
-    margin: 0;
-    line-height: 1.5;
-}
+/* Removed signup-left styles as it is no longer used */
 
 /* ════════════════════════════════════════════
    RIGHT PANEL
    ════════════════════════════════════════════ */
 .signup-right {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: center;
-    padding: 2.5rem 2rem;
-    overflow-y: auto;
-    height: calc(100vh - 72px);
-    padding-top: 3rem;
+    width: 100%;
 }
 
 .signup-right-inner {
     width: 100%;
-    max-width: 480px;
+    max-width: 600px; /* Increased slightly for 2-column form rows */
+    background: #ffffff;
+    padding: 2.5rem;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
 }
 
 /* Form header */
@@ -638,55 +536,18 @@
 /* ════════════════════════════════════════════
    RESPONSIVE
    ════════════════════════════════════════════ */
-@media (max-width: 900px) {
-    .signup-page {
-        flex-direction: column;
-    }
-
-    .signup-left {
-        width: 100%;
-        height: auto;
-        position: relative;
-        padding: 2rem 1.5rem;
-        border-right: none;
-        border-bottom: 1px solid #e2e8f0;
-    }
-
-    .signup-left-inner {
+/* Responsive for Signup Page */
+@media (max-width: 650px) {
+    .signup-right-inner {
+        padding: 1.5rem;
         max-width: 100%;
-    }
-
-    .signup-left-title {
-        font-size: 1.8rem;
-    }
-
-    .signup-features {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-    }
-
-    .signup-right {
-        width: 100%;
-        padding: 2rem 1.25rem;
+        border-radius: 12px;
     }
 }
 
 @media (max-width: 560px) {
     .form-row-2 {
         grid-template-columns: 1fr;
-    }
-
-    .signup-features {
-        grid-template-columns: 1fr;
-    }
-
-    .signup-left-title {
-        font-size: 1.5rem;
-    }
-
-    .auth-new-card {
-        padding: 1.75rem 1.25rem;
     }
 }
 
