@@ -671,7 +671,7 @@
   display: flex;
   justify-content: center;
   align-items: stretch;
-  gap: 0;
+  gap: 1.5rem;
   max-width: 1250px;
   margin: 3rem auto 0;
   flex-wrap: wrap;
@@ -681,13 +681,17 @@
   background: var(--hp-bg-soft);
   border: 1px solid #e2e8f0;
   border-radius: var(--hp-radius);
-  padding: 2rem 1.5rem;
-  width: 240px;
+  padding: 2.5rem 1.75rem;
+  width: calc(25% - 2rem);
+  min-width: 260px;
+  max-width: 320px;
   text-align: center;
   position: relative;
   transition: transform .3s, box-shadow .3s;
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .hp-step-card:hover {
@@ -734,9 +738,16 @@
   font-size: 1.4rem;
   color: var(--hp-primary);
   font-weight: 700;
-  padding: 0 1rem;
+  padding: 0;
   display: flex;
   align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 1200px) {
+  .hp-step-connector {
+    display: none;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1060,12 +1071,22 @@
 
   .hp-steps-grid {
     flex-direction: column;
-    gap: 1.5rem;
+    align-items: center;
+    gap: 2.5rem;
+  }
+
+  .hp-step-card {
+    width: 100% !important;
+    max-width: 400px;
+    padding: 2rem 1.5rem;
   }
 
   .hp-step-connector {
+    display: flex !important;
     transform: rotate(90deg);
-    padding: 0;
+    height: 32px;
+    margin: 0;
+    z-index: 2;
   }
 
   .hp-hero-title {
