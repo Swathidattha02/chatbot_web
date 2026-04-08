@@ -15,7 +15,7 @@ import {
     Send, RotateCcw, Target,
     Languages as LanguagesIcon,
     Calculator, Microscope, Dna, Globe, FileText,
-    Atom, Beaker, Monitor
+    Atom, Beaker, Monitor, Zap
 } from "lucide-react";
 import "../styles/SubjectChapters.css";
 
@@ -61,6 +61,7 @@ function SubjectChapters() {
     const audioRef = useRef(null);
     const sentenceBufferRef = useRef("");
     const isTtsProcessingRef = useRef(false);
+    const isAvatarSpeakingRef = useRef(false);
     const handleSendMessageRef = useRef(null);
     const [isTtsLoading, setIsTtsLoading] = useState(false);
 
@@ -163,6 +164,7 @@ function SubjectChapters() {
     const processInternalQueue = useCallback(async () => {
         if (internalQueueRef.current.length === 0) {
             setIsAvatarSpeaking(false);
+            isAvatarSpeakingRef.current = false;
             isTtsProcessingRef.current = false;
             setIsTtsLoading(false);
             setMouthValue(0);
@@ -203,6 +205,7 @@ function SubjectChapters() {
             audioRef.current = audio;
             audio.onplay = () => {
                 setIsAvatarSpeaking(true);
+                isAvatarSpeakingRef.current = true;
                 if (!mouthAnimationFrameRef.current) {
                     mouthAnimationFrameRef.current = requestAnimationFrame(animateMouth);
                 }
@@ -425,7 +428,7 @@ function SubjectChapters() {
                 setChatLoading(false);
             }
         },
-        [chatLoading, sessionId, currentLanguage, subject, stopSpeaking, unlockTTS, handleStopResponse, speakSegment]
+        [chatLoading, sessionId, currentLanguage, subject, stopSpeaking, unlockTTS, handleStopResponse]
     );
 
     useEffect(() => {
