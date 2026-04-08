@@ -13,17 +13,20 @@ const app = express();
 const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:3001',
-    process.env.FRONTEND_URL,
-    'https://chatbot-web-sigma.vercel.app'
-].filter(Boolean); // Remote null/undefined
+    'https://chatbot-web-sigma.vercel.app',
+    process.env.FRONTEND_URL
+].filter(Boolean);
 
 app.use(cors({
     origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
+        // Allow requests with no origin (like mobile apps, curl, or some tools)
         if (!origin) return callback(null, true);
 
-        const isAllowed = allowedOrigins.includes(origin) || 
-                         origin.endsWith('.vercel.app') ||
+        // Normalize origin: remove trailing slash if present
+        const normalizedOrigin = origin.replace(/\/$/, '');
+
+        const isAllowed = allowedOrigins.some(o => o.replace(/\/$/, '') === normalizedOrigin) || 
+                         normalizedOrigin.endsWith('.vercel.app') ||
                          process.env.NODE_ENV === 'development';
 
         if (isAllowed) {
@@ -35,7 +38,15 @@ app.use(cors({
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: [
+        'Content-Type', 
+        'Authorization', 
+        'X-Requested-With', 
+        'Accept', 
+        'Origin',
+        'Access-Control-Allow-Headers'
+    ],
+    optionsSuccessStatus: 200
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
